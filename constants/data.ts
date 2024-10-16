@@ -129,35 +129,71 @@ export const navItems: NavItem[] = [
     label: 'Dashboard'
   },
   {
-    title: 'Employee',
+    title: 'Channel',
+    href: '/dashboard/employee',
+    icon: 'channel',
+    label: 'employee'
+  },
+  {
+    title: 'User',
     href: '/dashboard/employee',
     icon: 'user',
     label: 'employee'
   },
   {
-    title: 'Product',
+    title: 'Billing',
     href: '/dashboard/product',
-    icon: 'product',
+    icon: 'billing',
     label: 'product'
   },
   {
-    title: 'Account',
-    icon: 'user',
-    label: 'account',
-    children: [
-      {
-        title: 'Profile',
-        href: '/dashboard/profile',
-        icon: 'userPen',
-        label: 'profile'
-      },
-      {
-        title: 'Login',
-        href: '/',
-        icon: 'login',
-        label: 'login'
-      }
-    ]
+    title: 'Keys',
+    href: '/dashboard/product',
+    icon: 'key',
+    label: 'product'
+  },
+  {
+    title: 'Usage',
+    href: '/dashboard/product',
+    icon: 'usage',
+    label: 'product'
+  },
+  {
+    title: 'Midjourney',
+    href: '/dashboard/product',
+    icon: 'images',
+    label: 'product'
+  },
+  {
+    title: 'Videos',
+    href: '/dashboard/product',
+    icon: 'video',
+    label: 'product'
+  },
+  // {
+  //   title: 'Logs',
+  //   icon: 'user',
+  //   label: 'account',
+  //   children: [
+  //     {
+  //       title: 'Midjourney',
+  //       href: '/dashboard/profile',
+  //       icon: 'userPen',
+  //       label: 'profile'
+  //     },
+  //     {
+  //       title: 'Video',
+  //       href: '/',
+  //       icon: 'login',
+  //       label: 'login'
+  //     }
+  //   ]
+  // },
+  {
+    title: 'Setting',
+    href: '/dashboard/kanban',
+    icon: 'kanban',
+    label: 'kanban'
   },
   {
     title: 'Kanban',
