@@ -97,6 +97,14 @@ const authConfig = {
     strategy: 'jwt'
   },
   callbacks: {
+    async redirect(params: { url: string; baseUrl: string }) {
+      console.log('params', params);
+      // console.log('params.url', params.url)
+      // console.log('params.baseUrl', params.baseUrl)
+      // 在用户登录后重定向到指定的端口
+      // return 'http://localhost:3001'; // 替换为您需要的端口
+      return params.url; // 替换为您需要的端口
+    },
     async jwt({ token, user, session, trigger, account }) {
       // console.log('----jwt token----', token)
       // console.log('----jwt user----', user)
