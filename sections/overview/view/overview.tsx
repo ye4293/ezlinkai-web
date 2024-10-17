@@ -1,3 +1,5 @@
+import { cookies } from 'next/headers';
+import { getUnixTime } from 'date-fns';
 import { AreaGraph } from '../area-graph';
 import { BarGraph } from '../bar-graph';
 import { PieGraph } from '../pie-graph';
@@ -14,7 +16,22 @@ import {
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-export default function OverViewPage() {
+export default async function OverViewPage() {
+  const params = {
+    time: Math.trunc(getUnixTime(new Date()))
+  };
+  const _cookie = 'session=' + cookies().get('session')?.value + '==';
+  const res = await fetch(
+    process.env.NEXT_API_BASE_URL + `/api/dashboard1/?time=${params.time}`,
+    {
+      credentials: 'include',
+      headers: {
+        Cookie: _cookie
+      }
+    }
+  );
+  const dashboard = await res.json();
+  console.log('dashboard', dashboard);
   return (
     <PageContainer scrollable>
       <div className="space-y-2">

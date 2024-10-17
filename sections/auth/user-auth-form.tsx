@@ -18,7 +18,9 @@ import * as z from 'zod';
 import GithubSignInButton from './github-auth-button';
 
 const formSchema = z.object({
-  email: z.string().email({ message: 'Enter a valid email address' })
+  // email: z.string().email({ message: 'Enter a valid email address' })
+  username: z.string().min(1, { message: 'User name cannot be empty' }),
+  password: z.string().min(1, { message: 'Password cannot be empty' })
 });
 
 type UserFormValue = z.infer<typeof formSchema>;
@@ -28,7 +30,11 @@ export default function UserAuthForm() {
   const callbackUrl = searchParams.get('callbackUrl');
   const [loading, startTransition] = useTransition();
   const defaultValues = {
-    email: 'demo@gmail.com'
+    // email: 'demo@gmail.com'
+    username: 'root',
+    password: 'ezlinkai666'
+    // username: process.env.NEXT_USERNAME,
+    // password: process.env.NEXT_PASSWORD,
   };
   const form = useForm<UserFormValue>({
     resolver: zodResolver(formSchema),
@@ -38,7 +44,9 @@ export default function UserAuthForm() {
   const onSubmit = async (data: UserFormValue) => {
     startTransition(() => {
       signIn('credentials', {
-        email: data.email,
+        // email: data.email,
+        username: data.username,
+        password: data.password,
         callbackUrl: callbackUrl ?? '/dashboard'
       });
     });
@@ -51,7 +59,7 @@ export default function UserAuthForm() {
           onSubmit={form.handleSubmit(onSubmit)}
           className="w-full space-y-2"
         >
-          <FormField
+          {/* <FormField
             control={form.control}
             name="email"
             render={({ field }) => (
@@ -68,10 +76,46 @@ export default function UserAuthForm() {
                 <FormMessage />
               </FormItem>
             )}
+          /> */}
+          <FormField
+            control={form.control}
+            name="username"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>username</FormLabel>
+                <FormControl>
+                  <Input
+                    type="text"
+                    placeholder="Enter your username..."
+                    disabled={loading}
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>password</FormLabel>
+                <FormControl>
+                  <Input
+                    type="password"
+                    placeholder="Enter your password..."
+                    disabled={loading}
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
 
           <Button disabled={loading} className="ml-auto w-full" type="submit">
-            Continue With Email
+            Login
           </Button>
         </form>
       </Form>
