@@ -1,6 +1,7 @@
 'use client';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Channel } from '@/constants/data';
+// import { Channel } from '@/constants/data';
+import { Channel } from '@/lib/types';
 import { ColumnDef } from '@tanstack/react-table';
 import { CellAction } from './cell-action';
 
@@ -25,24 +26,40 @@ export const columns: ColumnDef<Channel>[] = [
     enableHiding: false
   },
   {
-    accessorKey: 'first_name',
-    header: 'NAME'
+    accessorKey: 'id',
+    header: 'ID'
   },
   {
-    accessorKey: 'country',
-    header: 'COUNTRY'
+    accessorKey: 'name',
+    header: 'Name'
   },
   {
-    accessorKey: 'email',
-    header: 'EMAIL'
+    accessorKey: 'group',
+    header: 'Group'
   },
   {
-    accessorKey: 'job',
-    header: 'COMPANY'
+    accessorKey: 'type',
+    header: 'Type'
   },
   {
-    accessorKey: 'gender',
-    header: 'GENDER'
+    accessorKey: 'status',
+    header: 'Status'
+  },
+  {
+    accessorKey: 'response_time',
+    header: 'Response time'
+  },
+  {
+    accessorKey: 'balance',
+    header: 'Balance'
+  },
+  {
+    accessorKey: 'priority',
+    header: 'Priority'
+  },
+  {
+    accessorKey: 'weight',
+    header: 'Weight'
   },
   {
     id: 'actions',
