@@ -178,9 +178,9 @@ export const navItems: NavItem[] = [
     label: 'product'
   },
   {
-    title: 'Midjourney',
+    title: 'File',
     href: '/dashboard/product',
-    icon: 'images',
+    icon: 'file',
     label: 'product'
   },
   {
@@ -189,29 +189,29 @@ export const navItems: NavItem[] = [
     icon: 'video',
     label: 'product'
   },
-  // {
-  //   title: 'Logs',
-  //   icon: 'user',
-  //   label: 'account',
-  //   children: [
-  //     {
-  //       title: 'Midjourney',
-  //       href: '/dashboard/profile',
-  //       icon: 'userPen',
-  //       label: 'profile'
-  //     },
-  //     {
-  //       title: 'Video',
-  //       href: '/',
-  //       icon: 'login',
-  //       label: 'login'
-  //     }
-  //   ]
-  // },
+  {
+    title: 'Images',
+    icon: 'images',
+    label: 'images',
+    children: [
+      {
+        title: 'Midjourney',
+        href: '/dashboard/profile',
+        icon: 'userPen',
+        label: 'profile'
+      },
+      {
+        title: 'SD',
+        href: '/',
+        icon: 'login',
+        label: 'login'
+      }
+    ]
+  },
   {
     title: 'Setting',
     href: '/dashboard/kanban',
-    icon: 'kanban',
+    icon: 'setting',
     label: 'kanban'
   },
   {
