@@ -25,21 +25,28 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 
 const formSchema = z.object({
-  name: z.string().min(2, {
-    message: 'Name must be at least 2 characters.'
+  name: z.string().min(1, {
+    message: 'Name is required.'
   }),
-  country: z.string({
-    required_error: 'Please select a country.'
+  type: z.string({
+    required_error: 'Please select a type.'
   }),
-  email: z.string().email({
-    message: 'Please enter a valid email address.'
+  groups: z.string({
+    required_error: 'Please select a group.'
   }),
-  company: z.string().min(1, {
-    message: 'Company name is required.'
+  key: z.string(),
+  base_url: z.string(),
+  model_mapping: z.string(),
+  models: z.string({
+    required_error: 'Please select a model.'
   }),
-  gender: z.enum(['male', 'female', 'other'], {
-    required_error: 'Please select a gender.'
-  })
+  customModelName: z.string()
+  // company: z.string().min(1, {
+  //   message: 'Company name is required.'
+  // }),
+  // gender: z.enum(['male', 'female', 'other'], {
+  //   required_error: 'Please select a gender.'
+  // })
 });
 
 export default function ChannelForm() {
@@ -47,10 +54,13 @@ export default function ChannelForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: '',
-      country: '',
-      email: '',
-      company: '',
-      gender: undefined
+      type: '',
+      groups: '',
+      key: '',
+      base_url: '',
+      model_mapping: '',
+      models: '',
+      customModelName: ''
     }
   });
 
@@ -84,14 +94,14 @@ export default function ChannelForm() {
               />
               <FormField
                 control={form.control}
-                name="country"
+                name="type"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Country</FormLabel>
+                    <FormLabel>Type</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select a country" />
+                          <SelectValue placeholder="Select a type" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -111,6 +121,125 @@ export default function ChannelForm() {
               />
               <FormField
                 control={form.control}
+                name="groups"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Group</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a group" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="usa">USA</SelectItem>
+                        <SelectItem value="uk">UK</SelectItem>
+                        <SelectItem value="canada">Canada</SelectItem>
+                        <SelectItem value="australia">Australia</SelectItem>
+                        <SelectItem value="germany">Germany</SelectItem>
+                        <SelectItem value="france">France</SelectItem>
+                        <SelectItem value="japan">Japan</SelectItem>
+                        <SelectItem value="brazil">Brazil</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="key"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Keys</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Enter the authentication key for the channel"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="base_url"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Agent</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="This option is used to make API calls through the proxy station, please enter the proxy address in the format https://domain.com"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="model_mapping"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Model redirection</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="textarea"
+                        placeholder="This option is optional to modify the name of the model in the request body, which is a JSON string, the key is the name of the model in the request, and the value is the name of the model to be replaced, for example {}"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="models"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Model</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Please select a model that is supported by this channel" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="usa">USA</SelectItem>
+                        <SelectItem value="uk">UK</SelectItem>
+                        <SelectItem value="canada">Canada</SelectItem>
+                        <SelectItem value="australia">Australia</SelectItem>
+                        <SelectItem value="germany">Germany</SelectItem>
+                        <SelectItem value="france">France</SelectItem>
+                        <SelectItem value="japan">Japan</SelectItem>
+                        <SelectItem value="brazil">Brazil</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="customModelName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>CustomModelName</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="please enter CustomModelName"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              {/* <FormField
+                control={form.control}
                 name="email"
                 render={({ field }) => (
                   <FormItem>
@@ -125,8 +254,8 @@ export default function ChannelForm() {
                     <FormMessage />
                   </FormItem>
                 )}
-              />
-              <FormField
+              /> */}
+              {/* <FormField
                 control={form.control}
                 name="company"
                 render={({ field }) => (
@@ -138,9 +267,9 @@ export default function ChannelForm() {
                     <FormMessage />
                   </FormItem>
                 )}
-              />
+              /> */}
             </div>
-            <FormField
+            {/* <FormField
               control={form.control}
               name="gender"
               render={({ field }) => (
@@ -175,7 +304,7 @@ export default function ChannelForm() {
                   <FormMessage />
                 </FormItem>
               )}
-            />
+            /> */}
             <Button type="submit">Submit</Button>
           </form>
         </Form>
