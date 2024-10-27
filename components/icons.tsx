@@ -92,5 +92,7 @@ export const Icons = {
   key: KeyRound,
   channel: Antenna,
   video: SquarePlay,
-  images: Images
+  images: Images,
+  setting: Settings,
+  file: File
 };
