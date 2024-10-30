@@ -51,36 +51,17 @@ const formSchema = z.object({
 });
 
 export default function ChannelForm() {
+  const [groupOptions, setGroupOptions] = useState([]);
+
   useEffect(() => {
-    const getCookie = (name: string): string | null => {
-      const cookieArr = document.cookie.split(';');
-      for (let i = 0; i < cookieArr.length; i++) {
-        const cookiePair = cookieArr[i].split('=');
-        if (name === cookiePair[0].trim()) {
-          return decodeURIComponent(cookiePair[1]);
-        }
-      }
-      return null;
-    };
-
-    const value = getCookie('session');
-
     // 查询分组
     const getGroupDict = async () => {
-      const _cookie = 'session=' + getCookie('session') + '==';
-      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL + `/api/group/`;
-      const res = await fetch(baseUrl, {
+      const res = await fetch(`/api/group`, {
         credentials: 'include'
-        // headers: {
-        //   Cookie: _cookie
-        // }
       });
       const { data } = await res.json();
       console.log('data', data);
-      // getGroup().then(res => {
-      //   const { data } = res || {};
-      //   groupOptions.value = data || [];
-      // });
+      setGroupOptions(data);
     };
 
     getGroupDict();
@@ -165,14 +146,11 @@ export default function ChannelForm() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="usa">USA</SelectItem>
-                        <SelectItem value="uk">UK</SelectItem>
-                        <SelectItem value="canada">Canada</SelectItem>
-                        <SelectItem value="australia">Australia</SelectItem>
-                        <SelectItem value="germany">Germany</SelectItem>
-                        <SelectItem value="france">France</SelectItem>
-                        <SelectItem value="japan">Japan</SelectItem>
-                        <SelectItem value="brazil">Brazil</SelectItem>
+                        {groupOptions.map((item) => (
+                          <SelectItem key={item} value={`${item}`}>
+                            {item}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
