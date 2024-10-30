@@ -22,7 +22,8 @@ export default async function OverViewPage() {
   };
   const _cookie = 'session=' + cookies().get('session')?.value + '==';
   const res = await fetch(
-    process.env.NEXT_API_BASE_URL + `/api/dashboard1/?time=${params.time}`,
+    process.env.NEXT_PUBLIC_API_BASE_URL +
+      `/api/dashboard1/?time=${params.time}`,
     {
       credentials: 'include',
       headers: {

@@ -44,6 +44,8 @@ export interface Channel {
   priority?: number;
   /** 权重 */
   weight?: number;
+  response_time?: number;
+  test_time?: number;
 }
 
 export type ModelResult = {

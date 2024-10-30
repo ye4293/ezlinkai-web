@@ -1,6 +1,6 @@
 'use client';
 
-import * as React from 'react';
+import React, { useEffect, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { CHANNEL_OPTIONS } from '@/constants';
 
 const formSchema = z.object({
   name: z.string().min(1, {
@@ -50,6 +51,41 @@ const formSchema = z.object({
 });
 
 export default function ChannelForm() {
+  useEffect(() => {
+    const getCookie = (name: string): string | null => {
+      const cookieArr = document.cookie.split(';');
+      for (let i = 0; i < cookieArr.length; i++) {
+        const cookiePair = cookieArr[i].split('=');
+        if (name === cookiePair[0].trim()) {
+          return decodeURIComponent(cookiePair[1]);
+        }
+      }
+      return null;
+    };
+
+    const value = getCookie('session');
+
+    // 查询分组
+    const getGroupDict = async () => {
+      const _cookie = 'session=' + getCookie('session') + '==';
+      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL + `/api/group/`;
+      const res = await fetch(baseUrl, {
+        credentials: 'include'
+        // headers: {
+        //   Cookie: _cookie
+        // }
+      });
+      const { data } = await res.json();
+      console.log('data', data);
+      // getGroup().then(res => {
+      //   const { data } = res || {};
+      //   groupOptions.value = data || [];
+      // });
+    };
+
+    getGroupDict();
+  }, []);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -104,15 +140,12 @@ export default function ChannelForm() {
                           <SelectValue placeholder="Select a type" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="usa">USA</SelectItem>
-                        <SelectItem value="uk">UK</SelectItem>
-                        <SelectItem value="canada">Canada</SelectItem>
-                        <SelectItem value="australia">Australia</SelectItem>
-                        <SelectItem value="germany">Germany</SelectItem>
-                        <SelectItem value="france">France</SelectItem>
-                        <SelectItem value="japan">Japan</SelectItem>
-                        <SelectItem value="brazil">Brazil</SelectItem>
+                      <SelectContent style={{ height: '300px' }}>
+                        {CHANNEL_OPTIONS.map((item) => (
+                          <SelectItem key={item.key} value={`${item.value}`}>
+                            {item.text}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />

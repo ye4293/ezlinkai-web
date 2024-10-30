@@ -42,10 +42,10 @@ export default async function ChannelListingPage({}: TChannelListingPage) {
   });
   const _cookie = 'session=' + cookies().get('session')?.value + '==';
   const baseUrl =
-    process.env.NEXT_API_BASE_URL + `/api/channel/search?${params}`;
+    process.env.NEXT_PUBLIC_API_BASE_URL + `/api/channel/search?${params}`;
   // console.log('baseUrl', baseUrl)
   const res = await fetch(
-    // process.env.NEXT_API_BASE_URL + `/api/channel/search?page=${params.page}&pagesize=${params.pagesize}`,
+    // process.env.NEXT_PUBLIC_API_BASE_URL + `/api/channel/search?page=${params.page}&pagesize=${params.pagesize}`,
     baseUrl,
     {
       credentials: 'include',
