@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -23,7 +24,7 @@ import {
 } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { CHANNEL_OPTIONS } from '@/constants';
+// import { CHANNEL_OPTIONS } from '@/constants';
 
 const formSchema = z.object({
   name: z.string().min(1, {
@@ -32,14 +33,14 @@ const formSchema = z.object({
   type: z.string({
     required_error: 'Please select a type.'
   }),
-  groups: z.string({
-    required_error: 'Please select a group.'
+  groups: z.array(z.string(), {
+    required_error: 'Please select at least one group.'
   }),
   key: z.string(),
   base_url: z.string(),
   model_mapping: z.string(),
-  models: z.string({
-    required_error: 'Please select a model.'
+  models: z.array(z.string(), {
+    required_error: 'Please select at least one model.'
   }),
   customModelName: z.string()
   // company: z.string().min(1, {
@@ -50,10 +51,53 @@ const formSchema = z.object({
   // })
 });
 
+interface ModelOption {
+  id: string;
+  // 添加其他可能的字段
+}
+
 export default function ChannelForm() {
-  const [groupOptions, setGroupOptions] = useState([]);
+  const { channelId } = useParams();
+  console.log('---id---', channelId);
+  console.log('---useParams()---', useParams());
+  const [modelTypes, setModelTypes] = useState<string[]>([]);
+  const [groupOptions, setGroupOptions] = useState<string[]>([]);
+  const [modelOptions, setModelOptions] = useState<ModelOption[]>([]);
 
   useEffect(() => {
+    // 获取渠道详情
+    const getChannelDetail = async () => {
+      if (!channelId) return;
+
+      const res = await fetch(`/api/channel/${channelId}`, {
+        credentials: 'include'
+      });
+      const { data } = await res.json();
+      console.log('---data---', data);
+
+      // 填充表单数据
+      form.reset({
+        name: data.name,
+        type: String(data.type),
+        groups: data.group?.split(',') || [],
+        key: data.key,
+        base_url: data.base_url,
+        model_mapping: data.model_mapping,
+        models: data.models?.split(',') || [],
+        customModelName: data.customModelName
+      });
+    };
+
+    // 查询模型类型
+    const getModelType = async () => {
+      const res = await fetch(`/api/channel/types`, {
+        credentials: 'include'
+      });
+      const { data } = await res.json();
+      console.log('data', data);
+      setModelTypes(data);
+    };
+
     // 查询分组
     const getGroupDict = async () => {
       const res = await fetch(`/api/group`, {
@@ -64,7 +108,20 @@ export default function ChannelForm() {
       setGroupOptions(data);
     };
 
+    // 查询模型
+    const getModelDict = async () => {
+      const res = await fetch(`/api/channel/models`, {
+        credentials: 'include'
+      });
+      const { data } = await res.json();
+      console.log('data', data);
+      setModelOptions(data);
+    };
+
+    getChannelDetail();
+    getModelType();
     getGroupDict();
+    getModelDict();
   }, []);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -72,17 +129,32 @@ export default function ChannelForm() {
     defaultValues: {
       name: '',
       type: '',
-      groups: '',
+      groups: [],
       key: '',
       base_url: '',
       model_mapping: '',
-      models: '',
+      models: [],
       customModelName: ''
     }
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     console.log(values);
+    const params = {
+      ...values,
+      group: values.groups.join(','),
+      models: values.models.join(',')
+    };
+    params.type = Number(params.type);
+    delete params.id;
+    delete params.groups;
+    const res = await fetch(`/api/channel`, {
+      method: 'POST',
+      body: JSON.stringify(params),
+      credentials: 'include'
+    });
+    const { data } = await res.json();
+    console.log('data', data);
   }
 
   return (
@@ -122,7 +194,7 @@ export default function ChannelForm() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent style={{ height: '300px' }}>
-                        {CHANNEL_OPTIONS.map((item) => (
+                        {modelTypes.map((item) => (
                           <SelectItem key={item.key} value={`${item.value}`}>
                             {item.text}
                           </SelectItem>
@@ -138,16 +210,34 @@ export default function ChannelForm() {
                 name="groups"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Group</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <FormLabel>Groups</FormLabel>
+                    <Select
+                      onValueChange={(value) => {
+                        const values = field.value ?? [];
+                        const newValues = values.includes(value)
+                          ? values.filter((v) => v !== value)
+                          : [...values, value];
+                        field.onChange(newValues);
+                      }}
+                    >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select a group" />
+                          <SelectValue placeholder="Select groups">
+                            {field.value?.length
+                              ? `${field.value.length} group(s) selected`
+                              : 'Select groups'}
+                          </SelectValue>
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {groupOptions.map((item) => (
-                          <SelectItem key={item} value={`${item}`}>
+                          <SelectItem
+                            key={item}
+                            value={item}
+                            className={
+                              field.value?.includes(item) ? 'bg-accent' : ''
+                            }
+                          >
                             {item}
                           </SelectItem>
                         ))}
@@ -157,6 +247,7 @@ export default function ChannelForm() {
                   </FormItem>
                 )}
               />
+
               <FormField
                 control={form.control}
                 name="key"
@@ -212,21 +303,36 @@ export default function ChannelForm() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Model</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select
+                      onValueChange={(value) => {
+                        const values = field.value ?? [];
+                        const newValues = values.includes(value)
+                          ? values.filter((v) => v !== value)
+                          : [...values, value];
+                        field.onChange(newValues);
+                      }}
+                    >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Please select a model that is supported by this channel" />
+                          <SelectValue placeholder="Select models">
+                            {field.value?.length
+                              ? `${field.value.length} model(s) selected`
+                              : 'Select models'}
+                          </SelectValue>
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="usa">USA</SelectItem>
-                        <SelectItem value="uk">UK</SelectItem>
-                        <SelectItem value="canada">Canada</SelectItem>
-                        <SelectItem value="australia">Australia</SelectItem>
-                        <SelectItem value="germany">Germany</SelectItem>
-                        <SelectItem value="france">France</SelectItem>
-                        <SelectItem value="japan">Japan</SelectItem>
-                        <SelectItem value="brazil">Brazil</SelectItem>
+                      <SelectContent style={{ height: '300px' }}>
+                        {modelOptions.map((item) => (
+                          <SelectItem
+                            key={item.id}
+                            value={item.id}
+                            className={
+                              field.value?.includes(item.id) ? 'bg-accent' : ''
+                            }
+                          >
+                            {item.id}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -249,73 +355,7 @@ export default function ChannelForm() {
                   </FormItem>
                 )}
               />
-              {/* <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="email"
-                        placeholder="Enter your email"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              /> */}
-              {/* <FormField
-                control={form.control}
-                name="company"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Company</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter your company" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              /> */}
             </div>
-            {/* <FormField
-              control={form.control}
-              name="gender"
-              render={({ field }) => (
-                <FormItem className="space-y-3">
-                  <FormLabel>Gender</FormLabel>
-                  <FormControl>
-                    <RadioGroup
-                      onValueChange={field.onChange}
-                      value={field.value}
-                      className="flex space-x-4"
-                    >
-                      <FormItem className="flex items-center space-x-2">
-                        <FormControl>
-                          <RadioGroupItem value="male" />
-                        </FormControl>
-                        <FormLabel className="font-normal">Male</FormLabel>
-                      </FormItem>
-                      <FormItem className="flex items-center space-x-2">
-                        <FormControl>
-                          <RadioGroupItem value="female" />
-                        </FormControl>
-                        <FormLabel className="font-normal">Female</FormLabel>
-                      </FormItem>
-                      <FormItem className="flex items-center space-x-2">
-                        <FormControl>
-                          <RadioGroupItem value="other" />
-                        </FormControl>
-                        <FormLabel className="font-normal">Other</FormLabel>
-                      </FormItem>
-                    </RadioGroup>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            /> */}
             <Button type="submit">Submit</Button>
           </form>
         </Form>
