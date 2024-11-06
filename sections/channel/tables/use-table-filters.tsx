@@ -9,7 +9,7 @@ export const STATUS_OPTIONS = [
   { value: '2', label: 'Disabled' }
 ];
 
-export function useChannelTableFilters() {
+export function useTableFilters() {
   const [searchQuery, setSearchQuery] = useQueryState(
     'q',
     searchParams.q

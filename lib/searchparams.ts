@@ -10,7 +10,14 @@ export const searchParams = {
   limit: parseAsInteger.withDefault(10),
   q: parseAsString,
   status: parseAsString,
-  categories: parseAsString
+  categories: parseAsString,
+  token_name: parseAsString,
+  model_name: parseAsString,
+  channel: parseAsString,
+  username: parseAsString,
+  type: parseAsString,
+  start_timestamp: parseAsString,
+  end_timestamp: parseAsString
 };
 
 export const searchParamsCache = createSearchParamsCache(searchParams);

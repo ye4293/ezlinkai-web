@@ -1,5 +1,5 @@
 import { searchParamsCache } from '@/lib/searchparams';
-import { ListingPage } from '@/sections/channel/views';
+import { ListingPage } from '@/sections/log/views';
 import { SearchParams } from 'nuqs/parsers';
 import React from 'react';
 

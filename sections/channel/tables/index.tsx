@@ -7,10 +7,7 @@ import { DataTableSearch } from '@/components/ui/table/data-table-search';
 // import { Channel } from '@/constants/data';
 import { Channel } from '@/lib/types';
 import { columns } from './columns';
-import {
-  STATUS_OPTIONS,
-  useChannelTableFilters
-} from './use-channel-table-filters';
+import { STATUS_OPTIONS, useTableFilters } from './use-table-filters';
 
 export default function ChannelTable({
   data,
@@ -27,7 +24,7 @@ export default function ChannelTable({
     searchQuery,
     setPage,
     setSearchQuery
-  } = useChannelTableFilters();
+  } = useTableFilters();
 
   return (
     <div className="space-y-4 ">

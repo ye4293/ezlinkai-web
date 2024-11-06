@@ -136,39 +136,39 @@ export const navItems: NavItem[] = [
   },
   {
     title: 'User',
-    href: '/dashboard/employee',
+    href: '/dashboard/user',
     icon: 'user',
-    label: 'employee'
+    label: 'user'
   },
   {
     title: 'Billing',
-    href: '/dashboard/product',
+    href: '/dashboard/topup',
     icon: 'billing',
-    label: 'product'
+    label: 'topup'
   },
   {
     title: 'Keys',
-    href: '/dashboard/product',
+    href: '/dashboard/token',
     icon: 'key',
-    label: 'product'
+    label: 'token'
   },
   {
     title: 'Usage',
-    href: '/dashboard/product',
+    href: '/dashboard/log',
     icon: 'usage',
-    label: 'product'
+    label: 'log'
   },
   {
     title: 'File',
-    href: '/dashboard/product',
+    href: '/dashboard/file',
     icon: 'file',
-    label: 'product'
+    label: 'file'
   },
   {
     title: 'Videos',
-    href: '/dashboard/product',
+    href: '/dashboard/video',
     icon: 'video',
-    label: 'product'
+    label: 'video'
   },
   {
     title: 'Images',
