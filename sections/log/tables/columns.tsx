@@ -56,58 +56,85 @@ export const columns: ColumnDef<Channel>[] = [
   },
   {
     accessorKey: 'created_at',
-    header: 'Time',
+    header: () => <div className="text-center">Time</div>,
     cell: ({ row }) => {
       const timestamp = row.getValue('created_at');
       return (
-        <span>
+        <div className="text-center">
           {dayjs(Number(timestamp) * 1000).format('YYYY-MM-DD HH:mm:ss')}
-        </span>
+        </div>
       );
     }
   },
   // 管理员
   {
     accessorKey: 'channel',
-    header: 'Channel'
+    header: () => <div className="text-center">Channel</div>,
+    cell: ({ row }) => (
+      <div className="text-center">{row.getValue('channel')}</div>
+    )
   },
   {
     accessorKey: 'username',
-    header: 'User'
+    header: () => <div className="text-center">User</div>,
+    cell: ({ row }) => (
+      <div className="text-center">{row.getValue('username')}</div>
+    )
   },
   {
     accessorKey: 'token_name',
-    header: 'Token'
+    header: () => <div className="text-center">Token</div>,
+    cell: ({ row }) => (
+      <div className="text-center">{row.getValue('token_name')}</div>
+    )
   },
   {
     accessorKey: 'type',
-    header: 'Type',
-    cell: ({ row }) => renderType(row.getValue('type'))
+    header: () => <div className="text-center">Type</div>,
+    cell: ({ row }) => (
+      <div className="text-center">{renderType(row.getValue('type'))}</div>
+    )
   },
   {
     accessorKey: 'model_name',
-    header: 'Model'
+    header: () => <div className="text-center">Model</div>,
+    cell: ({ row }) => (
+      <div className="text-center">{row.getValue('model_name')}</div>
+    )
   },
   {
     accessorKey: 'prompt_tokens',
-    header: 'Prompt'
+    header: () => <div className="text-center">Prompt</div>,
+    cell: ({ row }) => (
+      <div className="text-center">{row.getValue('prompt_tokens')}</div>
+    )
   },
   {
     accessorKey: 'completion_tokens',
-    header: 'Complement'
+    header: () => <div className="text-center">Complement</div>,
+    cell: ({ row }) => (
+      <div className="text-center">{row.getValue('completion_tokens')}</div>
+    )
   },
   {
     accessorKey: 'quota',
-    header: 'Quota',
-    cell: ({ row }) => processQuota(row.getValue('quota'))
+    header: () => <div className="text-center">Quota</div>,
+    cell: ({ row }) => (
+      <div className="text-center">{processQuota(row.getValue('quota'))}</div>
+    )
   },
   {
     accessorKey: 'duration',
-    header: 'Time Consuming'
+    header: () => <div className="text-center">Time Consuming</div>,
+    cell: ({ row }) => (
+      <div className="text-center">{row.getValue('duration')}</div>
+    )
   },
-  // 管理员
   {
     accessorKey: 'content',
-    header: 'Details'
+    header: () => <div className="text-center">Details</div>,
+    cell: ({ row }) => (
+      <div className="text-center">{row.getValue('content')}</div>
+    )
   }
 ];

@@ -89,53 +89,72 @@ export const columns: ColumnDef<Channel>[] = [
   },
   {
     accessorKey: 'id',
-    header: 'ID'
+    header: () => <div className="text-center">ID</div>,
+    cell: ({ row }) => <div className="text-center">{row.getValue('id')}</div>
   },
   {
     accessorKey: 'name',
-    header: 'Name'
+    header: () => <div className="text-center">Name</div>,
+    cell: ({ row }) => <div className="text-center">{row.getValue('name')}</div>
   },
   {
     accessorKey: 'group',
-    header: 'Group'
+    header: () => <div className="text-center">Group</div>,
+    cell: ({ row }) => (
+      <div className="text-center">{row.getValue('group')}</div>
+    )
   },
   {
     accessorKey: 'type',
-    header: 'Type',
+    header: () => <div className="text-center">Type</div>,
     cell: ({ row }) => (
-      <span>
+      <div className="text-center">
         {
           [...CHANNEL_OPTIONS].filter(
             (item) => item.key === row.getValue('type')
           )[0]?.text
         }
-      </span>
+      </div>
     )
   },
   {
     accessorKey: 'status',
-    header: 'Status',
-    cell: ({ row }) => <span>{renderStatus(row.getValue('status'))}</span>
+    header: () => <div className="text-center">Status</div>,
+    cell: ({ row }) => (
+      <div className="text-center">{renderStatus(row.getValue('status'))}</div>
+    )
   },
   {
     accessorKey: 'response_time',
-    header: 'Response time',
-    cell: ({ row }) =>
-      renderResponseTime(row.original.test_time, row.getValue('response_time'))
+    header: () => <div className="text-center">Response time</div>,
+    cell: ({ row }) => (
+      <div className="text-center">
+        {renderResponseTime(
+          row.original.test_time as number,
+          row.getValue('response_time') as number
+        )}
+      </div>
+    )
   },
   {
     accessorKey: 'balance',
-    header: 'Balance',
+    header: () => <div className="text-center">Balance</div>,
     cell: ({ row }) =>
       renderBalance(row.getValue('type'), row.getValue('balance'))
   },
   {
     accessorKey: 'priority',
-    header: 'Priority'
+    header: () => <div className="text-center">Priority</div>,
+    cell: ({ row }) => (
+      <div className="text-center">{row.getValue('priority')}</div>
+    )
   },
   {
     accessorKey: 'weight',
-    header: 'Weight'
+    header: () => <div className="text-center">Weight</div>,
+    cell: ({ row }) => (
+      <div className="text-center">{row.getValue('weight')}</div>
+    )
   },
   {
     id: 'actions',
