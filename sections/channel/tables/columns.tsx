@@ -158,6 +158,11 @@ export const columns: ColumnDef<Channel>[] = [
   },
   {
     id: 'actions',
-    cell: ({ row }) => <CellAction data={row.original} />
+    header: () => <div className="text-center">Actions</div>,
+    cell: ({ row }) => (
+      <div className="text-center">
+        <CellAction data={row.original} />
+      </div>
+    )
   }
 ];

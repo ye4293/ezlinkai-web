@@ -29,4 +29,5 @@ export interface Token {
   unlimited_quota?: boolean;
   /** 预警额度 */
   token_remind_threshold?: number;
+  key: string;
 }

@@ -33,13 +33,13 @@ export function renderNumber(num) {
  * @param {number} [digits=2] - 小数位数，默认为2。
  * @returns {string|number} - 渲染后的配额，可能是字符串（货币形式）或数字（常规形式）。
  */
-export function renderQuota(quota, digits = 2) {
+export function renderQuota(quota: number, digits = 2) {
   // 从本地存储中获取配额单位
-  let quotaPerUnit: string | number = localStorage.getItem('quota_per_unit');
+  let quotaPerUnit: string | number =
+    localStorage.getItem('quota_per_unit') || '1'; // 默认值为1
   // 从本地存储中获取显示货币标识
-  let displayInCurrency: string | boolean = localStorage.getItem(
-    'display_in_currency'
-  );
+  let displayInCurrency: string | boolean =
+    localStorage.getItem('display_in_currency') || 'false'; // 默认值为'false';
   // 将配额单位转换为数字
   quotaPerUnit = parseFloat(quotaPerUnit);
   // 将显示货币标识转换为布尔值
