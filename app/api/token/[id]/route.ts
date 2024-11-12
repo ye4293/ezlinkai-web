@@ -64,3 +64,34 @@ export async function GET(
     return new Response('Internal Server Error', { status: 500 });
   }
 }
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const _cookie = 'session=' + cookies().get('session')?.value + '==';
+  try {
+    const baseUrl =
+      process.env.NEXT_PUBLIC_API_BASE_URL + `/api/token/${params.id}`;
+    const response = await fetch(baseUrl, {
+      method: 'DELETE', // 使用 DELETE 方法
+      headers: {
+        ...req.headers,
+        Cookie: _cookie
+      },
+      redirect: 'follow'
+    });
+
+    if (!response.ok) {
+      return new Response('Error deleting data', { status: response.status });
+    }
+
+    const data = await response.json();
+    return new Response(JSON.stringify(data), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  } catch (error) {
+    return new Response('Internal Server Error', { status: 500 });
+  }
+}

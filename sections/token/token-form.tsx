@@ -16,6 +16,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -33,17 +34,18 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { CalendarIcon } from '@radix-ui/react-icons';
-import { addDays, format } from 'date-fns';
+import { addDays, format, addMonths, addHours, addMinutes } from 'date-fns';
 // import { CHANNEL_OPTIONS } from '@/constants';
+import { renderQuotaWithPrompt } from '@/utils/render';
 
 const formSchema = z.object({
   name: z.string().min(1, {
     message: 'Name is required.'
   }),
-  // expired_time: z.number().optional(),
+  expired_time: z.date().optional(),
   // expired_time_show: z.boolean().optional(),
-  remain_quota: z.number().optional() // 新增: 剩余配额
-  // unlimited_quota: z.boolean().optional(), // 新增: 是否是无限配额
+  remain_quota: z.number().optional(), // 新增: 剩余配额
+  unlimited_quota: z.boolean().optional() // 新增: 是否是无限配额
   // token_remind_threshold: z.number().optional(),
   // company: z.string().min(1, {
   //   message: 'Company name is required.'
@@ -65,13 +67,13 @@ export default function ChannelForm() {
   // const [modelTypes, setModelTypes] = useState<string[]>([]);
   // const [groupOptions, setGroupOptions] = useState<string[]>([]);
   // const [modelOptions, setModelOptions] = useState<ModelOption[]>([]);
-  const [dateState, setDateState] = useState<Date | null>(null);
+  const [isExpired, setIsExpired] = useState<Boolean | null>(null);
   const [tokenData, setTokenData] = useState<Object | null>(null);
 
   useEffect(() => {
     // 获取令牌详情
     const getTokenDetail = async () => {
-      if (!tokenId) return;
+      if (!tokenId || tokenId === 'create') return;
 
       const res = await fetch(`/api/token/${tokenId}`, {
         credentials: 'include'
@@ -79,21 +81,25 @@ export default function ChannelForm() {
       const { data } = await res.json();
       console.log('---data---', data);
       setTokenData(data);
+      setIsExpired(data.expired_time === -1 ? true : false);
 
       // 填充表单数据
       form.reset({
         /** 名称 */
         name: data.name,
         /** 过期时间 */
-        expired_time: data.expired_time,
+        expired_time:
+          data.expired_time === -1
+            ? undefined
+            : new Date(data.expired_time * 1000),
         /** 过期时间显示 */
-        expired_time_show: null,
+        // expired_time_show: data.expired_time === -1 ? true : undefined,
         /** 额度 */
         remain_quota: data.remain_quota,
         /** 是否是无限额度 */
-        unlimited_quota: data.unlimited_quota,
+        unlimited_quota: data.unlimited_quota
         /** token_remind_threshold */
-        token_remind_threshold: data.token_remind_threshold
+        // token_remind_threshold: data.token_remind_threshold
       });
     };
 
@@ -105,12 +111,17 @@ export default function ChannelForm() {
     defaultValues: {
       name: '',
       expired_time: undefined,
-      expired_time_show: undefined,
+      // expired_time_show: undefined,
       remain_quota: undefined,
-      unlimited_quota: false,
-      token_remind_threshold: undefined
+      unlimited_quota: false
+      // token_remind_threshold: undefined
     }
   });
+
+  useEffect(() => {
+    // Force re-render when unlimited_quota changes
+    form.setValue('remain_quota', form.getValues('remain_quota'));
+  }, [form.getValues('unlimited_quota')]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     console.log(values);
@@ -121,21 +132,24 @@ export default function ChannelForm() {
       // models: values.models.join(',')
     };
     console.log('params', params);
+    params.expired_time = isExpired
+      ? -1
+      : Math.floor(params.expired_time.getTime() / 1000); // Convert expired_time to timestamp in seconds
+    // delete params.expired_time_show
     // params.type = Number(params.type);
     // delete params.id;
     // delete params.groups;
     const res = await fetch(`/api/token`, {
-      method: 'PUT',
+      method: params.id ? 'PUT' : 'POST',
       body: JSON.stringify(params),
       credentials: 'include'
     });
-    const { data } = await res.json();
+    const { data, success } = await res.json();
     console.log('data', data);
+    if (success) {
+      window.location.href = '/dashboard/token';
+    }
   }
-
-  const handleDateChange = (date: Date | null) => {
-    setDateState(date);
-  };
 
   return (
     <Card className="mx-auto w-full">
@@ -162,71 +176,108 @@ export default function ChannelForm() {
                 )}
               />
             </div>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              {/* <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="expired_time"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Expired</FormLabel>
-                      <FormControl>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              id="date"
-                              variant={'outline'}
-                              className={cn(
-                                'w-[260px] justify-start text-left font-normal',
-                                !dateState && 'text-muted-foreground'
-                              )}
-                            >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {dateState ? (
-                                format(dateState, 'LLL dd, y')
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="end">
-                            <Calendar
-                              {...field}
-                              initialFocus
-                              selected={dateState}
-                              onSelect={(date) => {
-                                handleDateChange(date); // 确保选择日期后更新 dateState
-                                field.onChange(date); // 更新表单字段的值
-                              }}
-                              numberOfMonths={1}
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Name</FormLabel>
-                      <FormControl>
-                        <Checkbox {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div> */}
+            <div className="grid grid-cols-1 gap-6">
+              <FormField
+                control={form.control}
+                name="expired_time"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Date of birth</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={'outline'}
+                            className={cn(
+                              'w-[240px] pl-3 text-left font-normal',
+                              !field.value && 'text-muted-foreground'
+                            )}
+                            disabled={isExpired}
+                          >
+                            {field.value ? (
+                              format(field.value, 'PPP')
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          disabled={(date) =>
+                            // date > new Date() || date < new Date("1900-01-01")
+                            date < new Date()
+                          }
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="flex flex-wrap items-end gap-4">
+                <Button
+                  type="button"
+                  onClick={() => {
+                    form.setValue('expired_time', undefined);
+                    setIsExpired(true);
+                  }}
+                >
+                  Never expires
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    form.setValue('expired_time', addMonths(new Date(), 1));
+                    setIsExpired(false);
+                  }}
+                >
+                  Expires in one month
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    form.setValue('expired_time', addDays(new Date(), 1));
+                    setIsExpired(false);
+                  }}
+                >
+                  Expires in one day
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    form.setValue('expired_time', addHours(new Date(), 1));
+                    setIsExpired(false);
+                  }}
+                >
+                  Expires in one hour
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    form.setValue('expired_time', addMinutes(new Date(), 1));
+                    setIsExpired(false);
+                  }}
+                >
+                  Expires in one minute
+                </Button>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-6">
               <FormField
                 control={form.control}
                 name="remain_quota"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Limit</FormLabel>
+                    <FormLabel>
+                      Amount{' '}
+                      {renderQuotaWithPrompt(form.getValues('remain_quota'))}
+                    </FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -236,12 +287,33 @@ export default function ChannelForm() {
                           const value = e.target.value;
                           field.onChange(value ? Number(value) : undefined); // Parse to number
                         }}
+                        disabled={form.getValues('unlimited_quota')}
                       />
                     </FormControl>
+                    <FormDescription>
+                      Note that the token quota is only used to limit the
+                      maximum usage of the token itself, and the actual usage is
+                      limited by the remaining quota of the account.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+              <div className="flex flex-wrap items-end gap-4">
+                <Button
+                  type="button"
+                  onClick={() => {
+                    const currentValue = form.getValues('unlimited_quota');
+                    form.setValue('unlimited_quota', !currentValue); // Toggle the value
+                    // Force re-render to reflect the change
+                    form.trigger('unlimited_quota');
+                  }}
+                >
+                  {form.getValues('unlimited_quota')
+                    ? 'Cancel Unlimited Quota'
+                    : 'Set to Limited Quota'}
+                </Button>
+              </div>
             </div>
             <Button type="submit">Submit</Button>
           </form>
