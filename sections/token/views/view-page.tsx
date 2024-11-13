@@ -1,3 +1,4 @@
+import PageContainer from '@/components/layout/page-container';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import TokenForm from '../token-form';
@@ -10,11 +11,11 @@ const breadcrumbItems = [
 
 export default function TokenViewPage() {
   return (
-    <ScrollArea className="h-full">
-      <div className="flex-1 space-y-4 p-8">
+    <PageContainer scrollable>
+      <div className="flex-1 space-y-4">
         <Breadcrumbs items={breadcrumbItems} />
         <TokenForm />
       </div>
-    </ScrollArea>
+    </PageContainer>
   );
 }

@@ -4,6 +4,7 @@ import { getUnixTime } from 'date-fns';
 import { CalendarDateRangePicker } from '@/components/date-range-picker';
 import PageContainer from '@/components/layout/page-container';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Card,
   CardContent,
@@ -14,6 +15,8 @@ import {
 } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { renderQuota } from '@/utils/render';
+import StripePage from '../stripePage';
+import TopupForm from '../topup-form';
 
 export default async function TopupPage() {
   const _cookie = 'session=' + cookies().get('session')?.value + '==';
@@ -27,7 +30,7 @@ export default async function TopupPage() {
     }
   );
   const { data } = await res.json();
-  console.log('topup', data);
+  // console.log('topup', data);
 
   let topUpLink = '';
   let paymentUri = '';
@@ -43,25 +46,10 @@ export default async function TopupPage() {
     }
   );
   const upLinkData = await res2.json();
-  console.log('upLinkData', upLinkData);
+  // console.log('upLinkData', upLinkData);
   const base64 = `data:image/png;base64,${upLinkData.data.qr_code}`;
   topUpLink = base64;
-  // console.log('topUpLink', topUpLink)
   paymentUri = upLinkData.data.payment_uri;
-  const gettopUpLink = async () => {
-    // getPayQrcode().then(res => {
-    //   console.log(res);
-    //   const { success, data } = res;
-    //   if (success) {
-    //     const img = new Image();
-    //     const base64 = `data:image/png;base64,${data.qr_code}`;
-    //     topUpLink.value = base64;
-    //     paymentUri.value = data.payment_uri;
-    //   }
-    // });
-  };
-
-  // gettopUpLink()
 
   return (
     <PageContainer scrollable>
@@ -70,6 +58,7 @@ export default async function TopupPage() {
           <h2 className="text-2xl font-bold tracking-tight">Billing</h2>
         </div>
         <Label>Balance {renderQuota(data.quota)}</Label>
+        <TopupForm />
         <Card>
           <CardHeader>
             <CardTitle>Pay with crypto</CardTitle>
@@ -93,7 +82,7 @@ export default async function TopupPage() {
                   Deposit Address: 0x3C034A1Cf6A3eBe386b51327F5f8d9A06057821B
                 </p>
               </div>
-              <div>11</div>
+              <StripePage />
             </div>
           </CardContent>
           <CardFooter>
