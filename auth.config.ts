@@ -20,7 +20,7 @@ const authConfig = {
         }
       },
       async authorize(credentials, req) {
-        console.log('credentials', credentials);
+        // console.log('credentials', credentials);
         const { username, password } = credentials;
         const params = {
           username,
@@ -75,11 +75,17 @@ const authConfig = {
           // id: '1',
           // name: 'John',
           // email: credentials?.email as string,
-          username: credentials?.username as string
+          // username: credentials?.username as string,
+          id: userLogin.data.id,
+          username: userLogin.data.username,
+          display_name: userLogin.data.display_name,
+          email: userLogin.data.email,
+          role: userLogin.data.role
           // password: credentials?.password as string,
           // 'set-cookie': res.headers.get('set-cookie'),
           // ...loginData.data
         };
+        // console.log('-----user----', user)
         if (user) {
           // Any object returned will be saved in `user` property of the JWT
           return user;
@@ -98,7 +104,7 @@ const authConfig = {
   },
   callbacks: {
     async redirect(params: { url: string; baseUrl: string }) {
-      console.log('params', params);
+      // console.log('params', params);
       // console.log('params.url', params.url)
       // console.log('params.baseUrl', params.baseUrl)
       // 在用户登录后重定向到指定的端口
@@ -112,17 +118,30 @@ const authConfig = {
       // console.log('----jwt trigger----', trigger)
       // console.log('----jwt account----', account)
       if (user) {
+        console.log('user******', user);
         token.id = user.id;
         token.username = user.username;
+        token.display_name = user.display_name;
+        token.email = user.email;
+        token.role = user.role;
         // token.accessToken = user.accessToken;
       }
       return token;
     },
     async session({ session, token, user }) {
+      // session.display_name = user.display_name;
       // session.cookies = token[set-cookie];
       // console.log('----session session----', session)
       // console.log('----session token----', token)
       // console.log('----session user----', user)
+      session.user.id = token.id;
+      session.user.username = token.username;
+      session.user.name = token.display_name;
+      session.user.email = token.email;
+      session.user.role = token.role;
+      // if (session?.user) {
+      //   session?.user?.display_name = token.display_name
+      // }
       // session.user.id = token.id;
       // if (token?.username && session.user) {
       //   session.user = token.username

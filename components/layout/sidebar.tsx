@@ -5,13 +5,19 @@ import { useSidebar } from '@/hooks/useSidebar';
 import { cn } from '@/lib/utils';
 import { ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 
 type SidebarProps = {
   className?: string;
 };
 
 export default function Sidebar({ className }: SidebarProps) {
+  const { data: session } = useSession();
   const { isMinimized, toggle } = useSidebar();
+
+  const filterNavItems = navItems.filter((item) => {
+    return item.roles?.includes(session.user.role);
+  });
 
   const handleToggle = () => {
     toggle();
@@ -54,7 +60,7 @@ export default function Sidebar({ className }: SidebarProps) {
       <div className="space-y-4 py-4">
         <div className="px-3 py-2">
           <div className="mt-3 space-y-1">
-            <DashboardNav items={navItems} />
+            <DashboardNav items={filterNavItems} />
           </div>
         </div>
       </div>

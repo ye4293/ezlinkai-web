@@ -1,4 +1,5 @@
 import { NavItem } from '@/types';
+// import { RoleValue } from "@/enums";
 
 export type User = {
   id: number;
@@ -126,66 +127,77 @@ export const navItems: NavItem[] = [
     title: 'Dashboard',
     href: '/dashboard',
     icon: 'dashboard',
-    label: 'Dashboard'
+    label: 'Dashboard',
+    roles: [1, 10, 100]
   },
   {
     title: 'Channel',
     href: '/dashboard/channel',
     icon: 'channel',
-    label: 'channel'
+    label: 'channel',
+    roles: [10, 100]
   },
   {
     title: 'User',
     href: '/dashboard/user',
     icon: 'user',
-    label: 'user'
+    label: 'user',
+    roles: [10, 100]
   },
   {
     title: 'Billing',
     href: '/dashboard/topup',
     icon: 'billing',
-    label: 'topup'
+    label: 'topup',
+    roles: [1, 10, 100]
   },
   {
     title: 'Keys',
     href: '/dashboard/token',
     icon: 'key',
-    label: 'token'
+    label: 'token',
+    roles: [1, 10, 100]
   },
   {
     title: 'Usage',
     href: '/dashboard/log',
     icon: 'usage',
-    label: 'log'
+    label: 'log',
+    roles: [1, 10, 100]
   },
   {
     title: 'File',
     href: '/dashboard/file',
     icon: 'file',
-    label: 'file'
+    label: 'file',
+    roles: [10, 100]
   },
   {
     title: 'Videos',
     href: '/dashboard/video',
     icon: 'video',
-    label: 'video'
+    label: 'video',
+    roles: [10, 100]
   },
   {
     title: 'Images',
     icon: 'images',
     label: 'images',
+    roles: [10, 100],
     children: [
       {
         title: 'Midjourney',
         href: '/dashboard/profile',
         icon: 'userPen',
-        label: 'profile'
+        label: 'profile',
+        roles: [10, 100]
       },
       {
         title: 'SD',
         href: '/',
         icon: 'login',
-        label: 'login'
+        label: 'login',
+        roles: [10, 100]
       }
     ]
   },
@@ -193,12 +205,14 @@ export const navItems: NavItem[] = [
     title: 'Setting',
     href: '/dashboard/kanban',
     icon: 'setting',
-    label: 'kanban'
+    label: 'kanban',
+    roles: [10, 100]
   },
   {
     title: 'Kanban',
     href: '/dashboard/kanban',
     icon: 'kanban',
-    label: 'kanban'
+    label: 'kanban',
+    roles: [10, 100]
   }
 ];
