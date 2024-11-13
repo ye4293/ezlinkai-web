@@ -10,6 +10,7 @@ import { Channel } from '@/lib/types';
 import { LOG_OPTIONS } from '@/constants';
 import { columns } from './columns';
 import { STATUS_OPTIONS, useTableFilters } from './use-table-filters';
+import { useSession } from 'next-auth/react';
 
 export default function LogTable({
   data,
@@ -18,6 +19,18 @@ export default function LogTable({
   data: Channel[];
   totalData: number;
 }) {
+  const { data: session } = useSession();
+
+  // 根据角色权限过滤
+  const filterColumns = columns.filter((item) => {
+    if (
+      session.user.role === 1 &&
+      ['channel', 'content'].includes(item.accessorKey)
+    )
+      return false;
+    return true;
+  });
+
   const {
     tokenName,
     setTokenName,
@@ -94,7 +107,7 @@ export default function LogTable({
           }}
         />
       </div>
-      <DataTable columns={columns} data={data} totalItems={totalData} />
+      <DataTable columns={filterColumns} data={data} totalItems={totalData} />
     </div>
   );
 }

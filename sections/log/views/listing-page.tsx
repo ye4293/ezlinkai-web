@@ -58,8 +58,12 @@ export default async function LogListingPage({}: TLogListingPage) {
     ...(endTime && { end_timestamp: String(endTime) })
   });
   const _cookie = 'session=' + cookies().get('session')?.value + '==';
-  const baseUrl =
-    process.env.NEXT_PUBLIC_API_BASE_URL + `/api/log/self?${params}`;
+  // 查看角色
+  const _userRole = cookies().get('role')?.value;
+  const userApi = [10, 100].includes(Number(_userRole))
+    ? `/api/log/`
+    : `/api/log/self`;
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL + `${userApi}?${params}`;
   // console.log('baseUrl', baseUrl)
   const res = await fetch(
     // process.env.NEXT_PUBLIC_API_BASE_URL + `/api/channel/search?page=${params.page}&pagesize=${params.pagesize}`,
@@ -72,7 +76,7 @@ export default async function LogListingPage({}: TLogListingPage) {
     }
   );
   const { data } = await res.json();
-  console.log('----data----', data);
+  // console.log('----data----', data);
   // console.log('----data----', data.currentPage)
   // console.log('----params----', params)
   const totalUsers = (data && data.total) || 0;

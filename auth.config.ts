@@ -69,6 +69,13 @@ const authConfig = {
           httpOnly: true,
           path: '/'
         });
+        // 设置角色
+        cookies().set({
+          name: 'role',
+          value: userLogin.data.role,
+          httpOnly: true,
+          path: '/'
+        });
         // const loginData = await res.json()
         // console.log('loginData', loginData)
         const user = {
