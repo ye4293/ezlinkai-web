@@ -7,7 +7,11 @@ const authConfig = {
   providers: [
     GithubProvider({
       clientId: process.env.GITHUB_ID ?? '',
-      clientSecret: process.env.GITHUB_SECRET ?? ''
+      clientSecret: process.env.GITHUB_SECRET ?? '',
+      authorization: {
+        // 指向您的后端 API 处理 GitHub OAuth
+        url: `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/oauth/github`
+      }
     }),
     CredentialProvider({
       credentials: {
