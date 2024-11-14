@@ -15,6 +15,7 @@ import {
   FormMessage
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -38,6 +39,13 @@ const formSchema = z.object({
   }),
   key: z.string(),
   base_url: z.string(),
+  other: z.string(),
+  region: z.string(),
+  ak: z.string(),
+  sk: z.string(),
+  vertex_ai_project_id: z.string(),
+  vertex_ai_adc: z.string(),
+  user_id: z.string(),
   model_mapping: z.string(),
   models: z.array(z.string(), {
     required_error: 'Please select at least one model.'
@@ -67,7 +75,7 @@ export default function ChannelForm() {
   useEffect(() => {
     // 获取渠道详情
     const getChannelDetail = async () => {
-      if (!channelId) return;
+      if (!channelId || channelId === 'create') return;
 
       const res = await fetch(`/api/channel/${channelId}`, {
         credentials: 'include'
@@ -82,6 +90,13 @@ export default function ChannelForm() {
         groups: data.group?.split(',') || [],
         key: data.key,
         base_url: data.base_url,
+        other: data.other,
+        region: data.region,
+        ak: data.ak,
+        sk: data.sk,
+        vertex_ai_project_id: data.vertex_ai_project_id,
+        vertex_ai_adc: data.vertex_ai_adc,
+        user_id: data.user_id,
         model_mapping: data.model_mapping,
         models: data.models?.split(',') || [],
         customModelName: data.customModelName
@@ -115,7 +130,9 @@ export default function ChannelForm() {
       });
       const { data } = await res.json();
       console.log('data', data);
-      setModelOptions(data);
+      setModelOptions([
+        ...new Map(data.map((item) => [item.id, item])).values()
+      ]);
     };
 
     getChannelDetail();
@@ -123,6 +140,31 @@ export default function ChannelForm() {
     getGroupDict();
     getModelDict();
   }, []);
+
+  const handleTypeInputChange = (value) => {
+    if (value !== '3') {
+      form.setValue('other', '');
+    }
+    if (value !== '3' && value !== '8') {
+      form.setValue('base_url', '');
+    }
+  };
+
+  const type2secretPrompt = (type) => {
+    // inputs.type === 15 ? '按照如下格式输入：APIKey|SecretKey' : (inputs.type === 18 ? '按照如下格式输入：APPID|APISecret|APIKey' : '请输入渠道对应的鉴权密钥')
+    switch (type) {
+      case '15':
+        return '按照如下格式输入：APIKey|SecretKey';
+      case '18':
+        return '按照如下格式输入：APPID|APISecret|APIKey';
+      case '22':
+        return '按照如下格式输入：APIKey-AppId，例如：fastgpt-0sp2gtvfdgyi4k30jwlgwf1i-64f335d84283f05518e9e041';
+      case '23':
+        return '按照如下格式输入：AppId|SecretId|SecretKey';
+      default:
+        return '请输入渠道对应的鉴权密钥';
+    }
+  };
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -132,6 +174,13 @@ export default function ChannelForm() {
       groups: [],
       key: '',
       base_url: '',
+      other: '',
+      region: '',
+      ak: '',
+      sk: '',
+      vertex_ai_project_id: '',
+      vertex_ai_adc: '',
+      user_id: '',
       model_mapping: '',
       models: [],
       customModelName: ''
@@ -167,27 +216,20 @@ export default function ChannelForm() {
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter your name" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <div className="grid grid-cols-1 gap-6">
               <FormField
                 control={form.control}
                 name="type"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Type</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        handleTypeInputChange(value); // Call the function to handle type changes
+                      }}
+                      value={field.value}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select a type" />
@@ -201,6 +243,79 @@ export default function ChannelForm() {
                         ))}
                       </SelectContent>
                     </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              {form.watch('type') === '3' && (
+                <>
+                  <FormField
+                    control={form.control}
+                    name="base_url"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>AZURE_OPENAI_ENDPOINT</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            className="h-auto max-h-24 min-h-16 resize-none overflow-auto"
+                            placeholder="请输入 AZURE_OPENAI_ENDPOINT，例如：https://docs-test-001.openai.azure.com"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="other"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>默认 API 版本</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            className="h-auto max-h-24 min-h-16 resize-none overflow-auto"
+                            placeholder="请输入默认 API 版本，例如：2024-03-01-preview，该配置可以被实际的请求查询参数所覆盖"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </>
+              )}
+              {form.watch('type') === '8' && (
+                <FormField
+                  control={form.control}
+                  name="base_url"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Base URL</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          className="h-auto max-h-24 min-h-16 resize-none overflow-auto"
+                          placeholder="请输入自定义渠道的 Base URL，例如：https://openai.justsong.cn"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Please name the channels"
+                        {...field}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -248,7 +363,81 @@ export default function ChannelForm() {
                 )}
               />
 
-              <FormField
+              {form.watch('type') === '18' && (
+                <FormField
+                  control={form.control}
+                  name="other"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>模型版本</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          className="h-auto max-h-24 min-h-16 resize-none overflow-auto"
+                          placeholder="请输入星火大模型版本，注意是接口地址中的版本号，例如：v2.1"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+              {form.watch('type') === '21' && (
+                <FormField
+                  control={form.control}
+                  name="other"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>知识库 ID</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="请输入知识库 ID，例如：123456"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+              {form.watch('type') === '17' && (
+                <FormField
+                  control={form.control}
+                  name="other"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>插件参数</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="请输入插件参数，即 X-DashScope-Plugin 请求头的取值"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+              {form.watch('type') === '34' && (
+                <p className="rounded bg-gray-100 p-2 text-sm text-gray-600">
+                  对于 Coze 而言，模型名称即 Bot ID，你可以添加一个前缀
+                  `bot-`，例如：`bot-123456`。
+                </p>
+              )}
+              {form.watch('type') === '40' && (
+                <p className="rounded bg-gray-100 p-2 text-sm text-gray-600">
+                  对于豆包而言，需要手动去{' '}
+                  <a
+                    target="_blank"
+                    href="https://console.volcengine.com/ark/region:ark+cn-beijing/endpoint"
+                  >
+                    模型推理页面
+                  </a>{' '}
+                  创建推理接入点，以接入点名称作为模型名称，例如：`ep-20240608051426-tkxvl`。
+                </p>
+              )}
+
+              {/* <FormField
                 control={form.control}
                 name="key"
                 render={({ field }) => (
@@ -263,82 +452,273 @@ export default function ChannelForm() {
                     <FormMessage />
                   </FormItem>
                 )}
-              />
-              <FormField
-                control={form.control}
-                name="base_url"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Agent</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="This option is used to make API calls through the proxy station, please enter the proxy address in the format https://domain.com"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="model_mapping"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Model redirection</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="textarea"
-                        placeholder="This option is optional to modify the name of the model in the request body, which is a JSON string, the key is the name of the model in the request, and the value is the name of the model to be replaced, for example {}"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="models"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Model</FormLabel>
-                    <Select
-                      onValueChange={(value) => {
-                        const values = field.value ?? [];
-                        const newValues = values.includes(value)
-                          ? values.filter((v) => v !== value)
-                          : [...values, value];
-                        field.onChange(newValues);
-                      }}
-                    >
+              /> */}
+
+              {form.watch('type') !== '43' && (
+                <FormField
+                  control={form.control}
+                  name="models"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Model</FormLabel>
+                      <Select
+                        onValueChange={(value) => {
+                          const values = field.value ?? [];
+                          const newValues = values.includes(value)
+                            ? values.filter((v) => v !== value)
+                            : [...values, value];
+                          field.onChange(newValues);
+                        }}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select models">
+                              {field.value?.length
+                                ? `${field.value.length} model(s) selected`
+                                : 'Select models'}
+                            </SelectValue>
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent style={{ height: '300px' }}>
+                          {modelOptions.map((item) => (
+                            <SelectItem
+                              key={item.id}
+                              value={item.id}
+                              className={
+                                field.value?.includes(item.id)
+                                  ? 'bg-accent'
+                                  : ''
+                              }
+                            >
+                              {item.id}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {form.watch('type') !== '43' && (
+                <FormField
+                  control={form.control}
+                  name="model_mapping"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Model redirection</FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select models">
-                            {field.value?.length
-                              ? `${field.value.length} model(s) selected`
-                              : 'Select models'}
-                          </SelectValue>
-                        </SelectTrigger>
+                        <Textarea
+                          className="h-auto max-h-64 min-h-32 resize-none overflow-auto"
+                          placeholder="This option is optional to modify the name of the model in the request body, which is a JSON string, the key is the name of the model in the request, and the value is the name of the model to be replaced, for example {}"
+                          {...field}
+                        />
                       </FormControl>
-                      <SelectContent style={{ height: '300px' }}>
-                        {modelOptions.map((item) => (
-                          <SelectItem
-                            key={item.id}
-                            value={item.id}
-                            className={
-                              field.value?.includes(item.id) ? 'bg-accent' : ''
-                            }
-                          >
-                            {item.id}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {form.watch('type') === '33' && (
+                <>
+                  <FormField
+                    control={form.control}
+                    name="region"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Region</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="region，e.g. us-west-2"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="ak"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>AK</FormLabel>
+                        <FormControl>
+                          <Input placeholder="AWS IAM Access Key" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="sk"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>SK</FormLabel>
+                        <FormControl>
+                          <Input placeholder="AWS IAM Secret Key" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </>
+              )}
+
+              {form.watch('type') === '42' && (
+                <>
+                  <FormField
+                    control={form.control}
+                    name="region"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Region</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Vertex AI Region.g. us-east5"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="vertex_ai_project_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Vertex AI Project ID</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Vertex AI Project ID"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="vertex_ai_adc"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          Google Cloud Application Default Credentials JSON
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Google Cloud Application Default Credentials JSON"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </>
+              )}
+
+              {form.watch('type') === '34' && (
+                <FormField
+                  control={form.control}
+                  name="user_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>User ID</FormLabel>
+                      <FormControl>
+                        <Input placeholder="生成该密钥的用户 ID" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {form.watch('type') !== '33' && form.watch('type') !== '42' && (
+                <FormField
+                  control={form.control}
+                  name="key"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>密钥</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder={type2secretPrompt(field.value)}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {form.watch('type') === '37' && (
+                <FormField
+                  control={form.control}
+                  name="user_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Account ID</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="请输入 Account ID，例如：d8d7c61dbc334c32d3ced580e4bf42b4"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {form.watch('type') !== '3' &&
+                form.watch('type') !== '8' &&
+                form.watch('type') !== '22' &&
+                form.watch('type') !== '33' && (
+                  <FormField
+                    control={form.control}
+                    name="base_url"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Agent</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            className="h-auto max-h-64 min-h-32 resize-none overflow-auto"
+                            placeholder="This option is used to make API calls through the proxy station, please enter the proxy address in the format https://domain.com"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 )}
-              />
+              {form.watch('type') === '22' && (
+                <FormField
+                  control={form.control}
+                  name="base_url"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>私有部署地址</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          className="h-auto max-h-64 min-h-32 resize-none overflow-auto"
+                          placeholder="请输入私有部署地址，格式为：https://fastgpt.run/api/openapi"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
               <FormField
                 control={form.control}
                 name="customModelName"
