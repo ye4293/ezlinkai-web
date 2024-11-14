@@ -72,6 +72,9 @@ export function CalendarDateRangePicker({
             selected={dateState}
             onSelect={handleDateChange}
             numberOfMonths={2}
+            disabled={(date) =>
+              date > new Date() || date < new Date('1900-01-01')
+            }
           />
         </PopoverContent>
       </Popover>

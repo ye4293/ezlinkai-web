@@ -7,11 +7,7 @@ const authConfig = {
   providers: [
     GithubProvider({
       clientId: process.env.GITHUB_ID ?? '',
-      clientSecret: process.env.GITHUB_SECRET ?? '',
-      authorization: {
-        // 指向您的后端 API 处理 GitHub OAuth
-        url: `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/oauth/github`
-      }
+      clientSecret: process.env.GITHUB_SECRET ?? ''
     }),
     CredentialProvider({
       credentials: {
@@ -114,6 +110,39 @@ const authConfig = {
     strategy: 'jwt'
   },
   callbacks: {
+    async signIn({ user, account, profile }) {
+      // console.log('----user---', user)
+      // console.log('----account---', account)
+      // console.log('----profile---', profile)
+      // 处理 GitHub 登录成功后的回调
+      if (account.provider === 'github') {
+        // 可以在这里添加任何额外的逻辑，例如记录用户信息或进行其他验证
+        // console.log('GitHub login successful:', user);
+        const params = {
+          ...user
+        };
+        const res = await fetch(
+          process.env.NEXT_PUBLIC_API_BASE_URL + '/api/github/login',
+          {
+            method: 'POST',
+            body: JSON.stringify(params),
+            headers: { 'Content-Type': 'application/json' }
+          }
+        );
+        const userInfo = await res.json();
+        if (!userInfo.success) return false;
+        // 返回从后端 API 获取的用户数据
+        account.userData = { ...userInfo.data };
+        // account = { ...account, role: 1 }
+        // console.log('*****account*****', account)
+        // user = { ...user, ...userInfo.data }
+        return true; // 返回 true 以允许登录
+      }
+      // user = { ...user, role: 1 }
+      // user = { role: 1, aaa: 222 }
+
+      return true; // 其他提供者的默认行为
+    },
     async redirect(params: { url: string; baseUrl: string }) {
       // console.log('params', params);
       // console.log('params.url', params.url)
@@ -129,13 +158,14 @@ const authConfig = {
       // console.log('----jwt trigger----', trigger)
       // console.log('----jwt account----', account)
       if (user) {
-        console.log('user******', user);
+        console.log('user******', user, account);
         token.id = user.id;
-        token.username = user.username;
+        token.username = user.username || account?.userData?.username;
         token.name = user.name;
-        token.display_name = user.display_name;
-        token.email = user.email;
-        token.role = user.role;
+        token.display_name =
+          user.display_name || account?.userData?.display_name;
+        token.email = user.email || account?.userData?.email;
+        token.role = user.role || account?.userData?.role;
         // token.role = user.role || 1;
         // token.accessToken = user.accessToken;
       }
