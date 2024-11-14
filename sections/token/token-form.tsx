@@ -315,7 +315,12 @@ export default function ChannelForm() {
                 </Button>
               </div>
             </div>
-            <Button type="submit">Submit</Button>
+            <div className="flex gap-4">
+              <Button type="button" onClick={() => window.history.back()}>
+                Go Back
+              </Button>
+              <Button type="submit">Submit</Button>
+            </div>
           </form>
         </Form>
       </CardContent>

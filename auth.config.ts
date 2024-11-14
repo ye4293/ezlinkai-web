@@ -128,9 +128,11 @@ const authConfig = {
         console.log('user******', user);
         token.id = user.id;
         token.username = user.username;
+        token.name = user.name;
         token.display_name = user.display_name;
         token.email = user.email;
         token.role = user.role;
+        // token.role = user.role || 1;
         // token.accessToken = user.accessToken;
       }
       return token;
@@ -143,7 +145,7 @@ const authConfig = {
       // console.log('----session user----', user)
       session.user.id = token.id;
       session.user.username = token.username;
-      session.user.name = token.display_name;
+      session.user.name = token.name || token.display_name;
       session.user.email = token.email;
       session.user.role = token.role;
       // if (session?.user) {
