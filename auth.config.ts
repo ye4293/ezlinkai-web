@@ -116,6 +116,7 @@ const authConfig = {
       // console.log('----profile---', profile)
       // 处理 GitHub 登录成功后的回调
       if (account.provider === 'github') {
+        console.log('-----user****', user);
         // 可以在这里添加任何额外的逻辑，例如记录用户信息或进行其他验证
         // console.log('GitHub login successful:', user);
         const params = {
@@ -129,8 +130,45 @@ const authConfig = {
             headers: { 'Content-Type': 'application/json' }
           }
         );
+
         const userInfo = await res.json();
         if (!userInfo.success) return false;
+
+        const apiCookies = res.headers.get('set-cookie')?.split(';');
+        let _session = '';
+        let _path = '';
+        let _expires = '';
+        let _maxAge = '';
+        apiCookies &&
+          apiCookies.forEach((item) => {
+            if (item.includes('session')) {
+              _session = item.split('=')[1];
+            }
+            if (item.includes('Path')) {
+              _path = item.split('=')[1];
+            }
+            if (item.includes('Expires')) {
+              _expires = item.split('=')[1];
+            }
+            if (item.includes('Max-Age')) {
+              _maxAge = item.split('=')[1];
+            }
+          });
+        cookies().set({
+          name: 'session',
+          value: _session,
+          httpOnly: true,
+          path: '/'
+        });
+        // 设置角色
+        cookies().set({
+          name: 'role',
+          value: userInfo?.data?.role,
+          // value: '1',
+          httpOnly: true,
+          path: '/'
+        });
+
         // 返回从后端 API 获取的用户数据
         account.userData = { ...userInfo.data };
         // account = { ...account, role: 1 }

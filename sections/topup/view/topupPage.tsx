@@ -47,9 +47,11 @@ export default async function TopupPage() {
   );
   const upLinkData = await res2.json();
   // console.log('upLinkData', upLinkData);
-  const base64 = `data:image/png;base64,${upLinkData.data.qr_code}`;
-  topUpLink = base64;
-  paymentUri = upLinkData.data.payment_uri;
+  if (upLinkData.data?.qr_code) {
+    const base64 = `data:image/png;base64,${upLinkData.data?.qr_code}`;
+    topUpLink = base64;
+  }
+  paymentUri = upLinkData.data?.payment_uri;
 
   return (
     <PageContainer scrollable>
@@ -57,7 +59,7 @@ export default async function TopupPage() {
         <div className="flex items-center justify-between space-y-2">
           <h2 className="text-2xl font-bold tracking-tight">Billing</h2>
         </div>
-        <Label>Balance {renderQuota(data.quota)}</Label>
+        <Label>Balance {renderQuota(data?.quota || 0)}</Label>
         <TopupForm />
         <Card>
           <CardHeader>
