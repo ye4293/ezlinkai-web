@@ -21,6 +21,7 @@ export default async function OverViewPage() {
     time: Math.trunc(getUnixTime(new Date()))
   };
   const _cookie = 'session=' + cookies().get('session')?.value + '==';
+  console.log('----overview cookie', _cookie);
   const res = await fetch(
     process.env.NEXT_PUBLIC_API_BASE_URL +
       `/api/dashboard1/?time=${params.time}`,

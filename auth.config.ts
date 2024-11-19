@@ -8,6 +8,9 @@ const authConfig = {
     GithubProvider({
       clientId: process.env.GITHUB_ID ?? '',
       clientSecret: process.env.GITHUB_SECRET ?? ''
+      // authorization: {
+      //   url: 'https://github.com/login/oauth/authorize'
+      // }
     }),
     CredentialProvider({
       credentials: {
@@ -35,6 +38,7 @@ const authConfig = {
           }
         );
         const userLogin = await res.json();
+        console.log('账号密码登录', res, res.headers.get('set-cookie'));
         console.log('----userLogin----', userLogin);
         if (!userLogin?.success) return null;
         // console.log('userLogin', userLogin)
@@ -131,10 +135,13 @@ const authConfig = {
           }
         );
 
+        console.log('github登录', res, res.headers.get('set-cookie'));
+
         const userInfo = await res.json();
         if (!userInfo.success) return false;
 
         const apiCookies = res.headers.get('set-cookie')?.split(';');
+        console.log('apiCookies', apiCookies);
         let _session = '';
         let _path = '';
         let _expires = '';
