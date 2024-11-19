@@ -166,6 +166,13 @@ export const navItems: NavItem[] = [
     roles: [1, 10, 100]
   },
   {
+    title: 'Midjourney',
+    href: '/dashboard/midjourney',
+    icon: 'userPen',
+    label: 'midjourney',
+    roles: [1, 10, 100]
+  },
+  {
     title: 'File',
     href: '/dashboard/file',
     icon: 'file',
