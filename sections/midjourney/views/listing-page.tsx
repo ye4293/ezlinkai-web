@@ -51,7 +51,7 @@ export default async function MidjourneyListingPage({}: TMidjourneyListingPage) 
     ...(startTime && { start_timestamp: String(startTime * 1000) }), // 用毫秒
     ...(endTime && { end_timestamp: String(endTime * 1000) })
   });
-  console.log('Midjourney params', params);
+  // console.log('Midjourney params', params);
   const _cookie = 'session=' + cookies().get('session')?.value + '==';
   // 查看角色
   const _userRole = cookies().get('role')?.value;

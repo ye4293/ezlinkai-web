@@ -106,9 +106,15 @@ export const columns: ColumnDef<MidjourneyStat>[] = [
         <TooltipProvider>
           <Tooltip delayDuration={100}>
             <TooltipTrigger>
-              <div className="line-clamp-3 max-w-[200px] text-center">
-                {row.getValue('image_url')}
-              </div>
+              <a
+                href={row.getValue('image_url')}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <div className="line-clamp-3 max-w-[200px] text-center">
+                  {row.getValue('image_url')}
+                </div>
+              </a>
             </TooltipTrigger>
             <TooltipContent>
               <div className="max-w-[300px] break-words text-center">
