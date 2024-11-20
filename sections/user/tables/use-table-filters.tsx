@@ -27,6 +27,22 @@ export function useTableFilters() {
     searchParams.page.withDefault(1)
   );
 
+  const refetchData = useCallback(async () => {
+    // Force a URL params update which will trigger a new data fetch
+    await Promise.all([
+      setSearchQuery(searchQuery),
+      setStatusFilter(statusFilter),
+      setPage(page)
+    ]);
+  }, [
+    searchQuery,
+    statusFilter,
+    page,
+    setSearchQuery,
+    setStatusFilter,
+    setPage
+  ]);
+
   const resetFilters = useCallback(() => {
     setSearchQuery(null);
     setStatusFilter(null);
@@ -45,6 +61,7 @@ export function useTableFilters() {
     setStatusFilter,
     page,
     setPage,
+    refetchData,
     resetFilters,
     isAnyFilterActive
   };

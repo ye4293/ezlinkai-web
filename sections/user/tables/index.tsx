@@ -23,8 +23,15 @@ export default function UserTable({
     resetFilters,
     searchQuery,
     setPage,
+    refetchData,
     setSearchQuery
   } = useTableFilters();
+
+  const handleDataTableUpdate = () => {
+    // 在这里实现您的更新逻辑
+    console.log('Updating data list...');
+    refetchData();
+  };
 
   return (
     <div className="space-y-4 ">
@@ -47,7 +54,11 @@ export default function UserTable({
           onReset={resetFilters}
         />
       </div>
-      <DataTable columns={columns} data={data} totalItems={totalData} />
+      <DataTable
+        columns={columns(handleDataTableUpdate)}
+        data={data}
+        totalItems={totalData}
+      />
     </div>
   );
 }

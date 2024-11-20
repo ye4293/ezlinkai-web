@@ -10,15 +10,27 @@ import {
 } from '@/components/ui/dropdown-menu';
 // import { Channel } from '@/constants/data';
 import { UserSelf } from '@/lib/types';
-import { Edit, MoreHorizontal, Trash } from 'lucide-react';
+import {
+  Edit,
+  MoreHorizontal,
+  Trash,
+  Ban,
+  CircleSlash2,
+  MoveUp,
+  MoveDown
+} from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 interface CellActionProps {
   data: UserSelf;
+  onDataTableUpdate: () => void;
 }
 
-export const CellAction: React.FC<CellActionProps> = ({ data }) => {
+export const CellAction: React.FC<CellActionProps> = ({
+  data,
+  onDataTableUpdate
+}) => {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const router = useRouter();
@@ -42,6 +54,7 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
     const { data, success } = await res.json();
     console.log('data', data);
     if (success) {
+      // onDataTableUpdate();
       window.location.reload(); // Refresh the page on success
     }
   };
@@ -80,16 +93,23 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
               )
             }
           >
-            <span className="mr-2 h-4 w-4"></span>{' '}
-            {data.status === 1 ? 'Disable' : 'Enable'}
+            {data.status === 1 ? (
+              <>
+                <Ban className="mr-2 h-4 w-4" /> Disable
+              </>
+            ) : (
+              <>
+                <CircleSlash2 className="mr-2 h-4 w-4" /> Enable
+              </>
+            )}
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => manageUser(data.username, 'promote')}
           >
-            <span className="mr-2 h-4 w-4"></span> Increase
+            <MoveUp className="mr-2 h-4 w-4" /> Increase
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => manageUser(data.username, 'demote')}>
-            <span className="mr-2 h-4 w-4"></span> Lower
+            <MoveDown className="mr-2 h-4 w-4" /> Lower
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

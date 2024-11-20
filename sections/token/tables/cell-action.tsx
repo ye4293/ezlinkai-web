@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 // import { Channel } from '@/constants/data';
 import { Token } from '@/lib/types';
-import { Edit, MoreHorizontal, Trash } from 'lucide-react';
+import { Edit, MoreHorizontal, Trash, Ban, CircleSlash2 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -87,8 +87,15 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
             <Trash className="mr-2 h-4 w-4" /> Delete
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => manageToken(data)}>
-            <span className="mr-2 h-4 w-4"></span>{' '}
-            {data.status === 1 ? 'Disable' : 'Enable'}
+            {data.status === 1 ? (
+              <>
+                <Ban className="mr-2 h-4 w-4" /> Disable
+              </>
+            ) : (
+              <>
+                <CircleSlash2 className="mr-2 h-4 w-4" /> Enable
+              </>
+            )}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

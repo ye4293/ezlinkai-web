@@ -40,7 +40,9 @@ const renderRole = (role: number) => {
   }
 };
 
-export const columns: ColumnDef<Token>[] = [
+export const columns = (
+  handleDataTableUpdate: () => void
+): ColumnDef<Token>[] => [
   {
     id: 'select',
     header: ({ table }) => (
@@ -128,7 +130,10 @@ export const columns: ColumnDef<Token>[] = [
     header: () => <div className="text-center">Actions</div>,
     cell: ({ row }) => (
       <div className="text-center">
-        <CellAction data={row.original} />
+        <CellAction
+          data={row.original}
+          onDataTableUpdate={handleDataTableUpdate}
+        />
       </div>
     )
   }
