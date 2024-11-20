@@ -7,6 +7,7 @@ import {
   TooltipTrigger,
   TooltipProvider
 } from '@/components/ui/tooltip';
+import { Progress } from '@/components/ui/progress';
 import { MidjourneyStat } from '@/lib/types';
 import { ColumnDef } from '@tanstack/react-table';
 import { CellAction } from './cell-action';
@@ -78,7 +79,10 @@ export const columns: ColumnDef<MidjourneyStat>[] = [
     accessorKey: 'progress',
     header: () => <div className="text-center">Progress</div>,
     cell: ({ row }) => (
-      <div className="text-center">{row.getValue('progress')}</div>
+      <div className="text-center">
+        <div className="text-center">{row.getValue('progress')}</div>
+        <Progress value={parseInt(row.getValue('progress'), 10)} />
+      </div>
     )
   },
   {
@@ -91,29 +95,73 @@ export const columns: ColumnDef<MidjourneyStat>[] = [
         finishTime === 0 || startTime === 0
           ? 0
           : (finishTime - startTime) / 1000;
-      return <div className="text-center">{duration}</div>;
+      return <div className="text-center">{duration}s</div>;
     }
   },
   {
     accessorKey: 'image_url',
     header: () => <div className="text-center">Image</div>,
     cell: ({ row }) => (
-      <div className="text-center">Link</div>
-      // <div className="text-center">{row.getValue('image_url')}</div>
+      <div className="flex justify-center gap-2">
+        <TooltipProvider>
+          <Tooltip delayDuration={100}>
+            <TooltipTrigger>
+              <div className="line-clamp-3 max-w-[200px] text-center">
+                {row.getValue('image_url')}
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div className="max-w-[300px] break-words text-center">
+                {row.getValue('image_url')}
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
     )
   },
   {
     accessorKey: 'prompt_en',
     header: () => <div className="text-center">Prompt</div>,
     cell: ({ row }) => (
-      <div className="text-center">{row.getValue('prompt_en')}</div>
+      <div className="flex justify-center gap-2">
+        <TooltipProvider>
+          <Tooltip delayDuration={100}>
+            <TooltipTrigger>
+              <div className="line-clamp-3 max-w-[200px] text-center">
+                {row.getValue('prompt_en')}
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div className="max-w-[300px] break-words text-center">
+                {row.getValue('prompt_en')}
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
     )
   },
   {
     accessorKey: 'fail_reason',
     header: () => <div className="text-center">Failure Reason</div>,
     cell: ({ row }) => (
-      <div className="text-center">{row.getValue('fail_reason')}</div>
+      <div className="flex justify-center gap-2">
+        <TooltipProvider>
+          <Tooltip delayDuration={100}>
+            <TooltipTrigger>
+              <div className="line-clamp-3 max-w-[200px] text-center">
+                {row.getValue('fail_reason')}
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div className="max-w-[300px] break-words text-center">
+                {row.getValue('fail_reason')}
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
     )
   },
   {

@@ -76,7 +76,7 @@ export default async function MidjourneyListingPage({}: TMidjourneyListingPage) 
   // console.log('----params----', params)
   const totalUsers = (data && data.total) || 0;
   const mjData: Channel[] = (data && data.list) || [];
-  console.log('mjData', mjData);
+  // console.log('mjData', mjData);
   // mock api call
   // const data = await fakeUsers.getUsers(filters);
   // const totalUsers = data.total_users;

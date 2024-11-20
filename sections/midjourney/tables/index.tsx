@@ -54,18 +54,22 @@ export default function midjourneyTable({
           setSearchQuery={setMjId}
           setPage={setPage}
         />
-        <DataTableSearch
-          searchKey="Channel ID"
-          searchQuery={channelId}
-          setSearchQuery={setChannelId}
-          setPage={setPage}
-        />
-        <DataTableSearch
-          searchKey="User Name"
-          searchQuery={userName}
-          setSearchQuery={setUserName}
-          setPage={setPage}
-        />
+        {[10, 100].includes(session.user.role) && (
+          <>
+            <DataTableSearch
+              searchKey="Channel ID"
+              searchQuery={channelId}
+              setSearchQuery={setChannelId}
+              setPage={setPage}
+            />
+            <DataTableSearch
+              searchKey="User Name"
+              searchQuery={userName}
+              setSearchQuery={setUserName}
+              setPage={setPage}
+            />
+          </>
+        )}
         <CalendarDateRangePicker
           date={dateRange}
           onDateChange={(newDate) => {
