@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/tooltip';
 // import { Toaster } from '@/components/ui/toaster';
 import { Toaster, toast } from 'sonner';
-import { Token } from '@/lib/types';
+import { UserSelf } from '@/lib/types';
 import { ColumnDef } from '@tanstack/react-table';
 import { CellAction } from './cell-action';
 import { renderQuota, renderNumber } from '@/utils/render';
@@ -40,9 +40,7 @@ const renderRole = (role: number) => {
   }
 };
 
-export const columns = (
-  handleDataTableUpdate: () => void
-): ColumnDef<Token>[] => [
+export const columns: ColumnDef<UserSelf>[] = [
   {
     id: 'select',
     header: ({ table }) => (
@@ -130,10 +128,7 @@ export const columns = (
     header: () => <div className="text-center">Actions</div>,
     cell: ({ row }) => (
       <div className="text-center">
-        <CellAction
-          data={row.original}
-          onDataTableUpdate={handleDataTableUpdate}
-        />
+        <CellAction data={row.original} />
       </div>
     )
   }

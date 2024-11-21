@@ -8,7 +8,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-// import { Channel } from '@/constants/data';
 import { UserSelf } from '@/lib/types';
 import {
   Edit,
@@ -24,19 +23,14 @@ import { useState } from 'react';
 
 interface CellActionProps {
   data: UserSelf;
-  onDataTableUpdate: () => void;
 }
 
-export const CellAction: React.FC<CellActionProps> = ({
-  data,
-  onDataTableUpdate
-}) => {
+export const CellAction: React.FC<CellActionProps> = ({ data }) => {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const router = useRouter();
 
   const onConfirm = async (user: UserSelf) => {
-    // deleteUser(user);
     manageUser(user.username, 'delete');
   };
 
@@ -54,8 +48,7 @@ export const CellAction: React.FC<CellActionProps> = ({
     const { data, success } = await res.json();
     console.log('data', data);
     if (success) {
-      // onDataTableUpdate();
-      window.location.reload(); // Refresh the page on success
+      window.location.reload();
     }
   };
 

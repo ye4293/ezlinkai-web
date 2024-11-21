@@ -1,12 +1,11 @@
 import { cookies } from 'next/headers';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import PageContainer from '@/components/layout/page-container';
-import TokenTable from '../tables';
+import UserTable from '../tables';
 import { buttonVariants } from '@/components/ui/button';
 import { Heading } from '@/components/ui/heading';
 import { Separator } from '@/components/ui/separator';
-// import { Channel } from '@/constants/data';
-import { Channel } from '@/lib/types';
+import { UserSelf } from '@/lib/types';
 // import { fakeUsers } from '@/constants/mock-api';
 import { searchParamsCache } from '@/lib/searchparams';
 import { cn } from '@/lib/utils';
@@ -55,11 +54,12 @@ export default async function UserListingPage({}: TUserListingPage) {
     }
   );
   const { data } = await res.json();
-  console.log('---user data---', data);
+  // console.log('---user data---');
+  // console.log('---user data---', data);
   // console.log('----data----', data.currentPage)
   // console.log('----params----', params)
   const totalUsers = (data && data.total) || 0;
-  const token: Channel[] = (data && data.list) || [];
+  const user: UserSelf[] = (data && data.list) || [];
   // mock api call
   // const data = await fakeUsers.getUsers(filters);
   // const totalUsers = data.total_users;
@@ -84,7 +84,7 @@ export default async function UserListingPage({}: TUserListingPage) {
           </Link>
         </div>
         <Separator />
-        <TokenTable data={token} totalData={totalUsers} />
+        <UserTable data={user} totalData={totalUsers} />
       </div>
     </PageContainer>
   );

@@ -5,7 +5,7 @@ import { DataTableFilterBox } from '@/components/ui/table/data-table-filter-box'
 import { DataTableResetFilter } from '@/components/ui/table/data-table-reset-filter';
 import { DataTableSearch } from '@/components/ui/table/data-table-search';
 // import { Channel } from '@/constants/data';
-import { Channel } from '@/lib/types';
+import { UserSelf } from '@/lib/types';
 import { columns } from './columns';
 import { STATUS_OPTIONS, useTableFilters } from './use-table-filters';
 
@@ -13,7 +13,7 @@ export default function UserTable({
   data,
   totalData
 }: {
-  data: Channel[];
+  data: UserSelf[];
   totalData: number;
 }) {
   const {
@@ -23,15 +23,8 @@ export default function UserTable({
     resetFilters,
     searchQuery,
     setPage,
-    refetchData,
     setSearchQuery
   } = useTableFilters();
-
-  const handleDataTableUpdate = () => {
-    // 在这里实现您的更新逻辑
-    console.log('Updating data list...');
-    refetchData();
-  };
 
   return (
     <div className="space-y-4 ">
@@ -55,8 +48,8 @@ export default function UserTable({
         />
       </div>
       <DataTable
-        columns={columns(handleDataTableUpdate)}
-        data={data}
+        columns={columns}
+        data={data as UserSelf[]}
         totalItems={totalData}
       />
     </div>
