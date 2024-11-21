@@ -23,19 +23,10 @@ import {
   FormMessage
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { CalendarIcon } from '@radix-ui/react-icons';
 import { addDays, format, addMonths, addHours, addMinutes } from 'date-fns';
-// import { CHANNEL_OPTIONS } from '@/constants';
 import { renderQuotaWithPrompt } from '@/utils/render';
 
 const formSchema = z.object({
@@ -43,16 +34,8 @@ const formSchema = z.object({
     message: 'Name is required.'
   }),
   expired_time: z.date().optional(),
-  // expired_time_show: z.boolean().optional(),
   remain_quota: z.number().optional(), // 新增: 剩余配额
   unlimited_quota: z.boolean().optional() // 新增: 是否是无限配额
-  // token_remind_threshold: z.number().optional(),
-  // company: z.string().min(1, {
-  //   message: 'Company name is required.'
-  // }),
-  // gender: z.enum(['male', 'female', 'other'], {
-  //   required_error: 'Please select a gender.'
-  // })
 });
 
 interface ModelOption {
@@ -60,26 +43,25 @@ interface ModelOption {
   // 添加其他可能的字段
 }
 
-export default function ChannelForm() {
+export default function TokenForm() {
   const { tokenId } = useParams();
-  console.log('---id---', tokenId);
   console.log('---useParams()---', useParams());
-  // const [modelTypes, setModelTypes] = useState<string[]>([]);
-  // const [groupOptions, setGroupOptions] = useState<string[]>([]);
-  // const [modelOptions, setModelOptions] = useState<ModelOption[]>([]);
   const [isExpired, setIsExpired] = useState<Boolean | null>(null);
   const [tokenData, setTokenData] = useState<Object | null>(null);
 
   useEffect(() => {
     // 获取令牌详情
     const getTokenDetail = async () => {
+      if (tokenId === 'create') {
+        form.setValue('remain_quota', 500000);
+      }
       if (!tokenId || tokenId === 'create') return;
 
       const res = await fetch(`/api/token/${tokenId}`, {
         credentials: 'include'
       });
       const { data } = await res.json();
-      console.log('---data---', data);
+      // console.log('---data---', data);
       setTokenData(data);
       setIsExpired(data.expired_time === -1 ? true : false);
 
@@ -134,7 +116,7 @@ export default function ChannelForm() {
     console.log('params', params);
     params.expired_time = isExpired
       ? -1
-      : Math.floor(params.expired_time.getTime() / 1000); // Convert expired_time to timestamp in seconds
+      : Math.floor(params.expired_time.getTime() / 1000);
     // delete params.expired_time_show
     // params.type = Number(params.type);
     // delete params.id;

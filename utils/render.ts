@@ -76,6 +76,7 @@ export function renderQuotaNum(quota, digits = 2) {
 }
 
 export function renderQuotaWithPrompt(quota, digits = 2) {
+  if (quota === undefined) return `（Equivalent amount：$0.00）`;
   let displayInCurrency: string | boolean = localStorage.getItem(
     'display_in_currency'
   );

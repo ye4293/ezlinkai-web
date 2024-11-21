@@ -5,8 +5,7 @@ import TokenTable from '../tables';
 import { buttonVariants } from '@/components/ui/button';
 import { Heading } from '@/components/ui/heading';
 import { Separator } from '@/components/ui/separator';
-// import { Channel } from '@/constants/data';
-import { Channel } from '@/lib/types';
+import { Token } from '@/lib/types';
 // import { fakeUsers } from '@/constants/mock-api';
 import { searchParamsCache } from '@/lib/searchparams';
 import { cn } from '@/lib/utils';
@@ -18,9 +17,9 @@ const breadcrumbItems = [
   { title: 'Token', link: '/dashboard/token' }
 ];
 
-type TChannelListingPage = {};
+type TTokenListingPage = {};
 
-export default async function ChannelListingPage({}: TChannelListingPage) {
+export default async function TokenListingPage({}: TTokenListingPage) {
   // Showcasing the use of search params cache in nested RSCs
   const page = searchParamsCache.get('page');
   const search = searchParamsCache.get('q');
@@ -43,23 +42,18 @@ export default async function ChannelListingPage({}: TChannelListingPage) {
   const _cookie = 'session=' + cookies().get('session')?.value + '==';
   const baseUrl =
     process.env.NEXT_PUBLIC_API_BASE_URL + `/api/token/search?${params}`;
-  // console.log('baseUrl', baseUrl)
-  const res = await fetch(
-    // process.env.NEXT_PUBLIC_API_BASE_URL + `/api/channel/search?page=${params.page}&pagesize=${params.pagesize}`,
-    baseUrl,
-    {
-      credentials: 'include',
-      headers: {
-        Cookie: _cookie
-      }
+  const res = await fetch(baseUrl, {
+    credentials: 'include',
+    headers: {
+      Cookie: _cookie
     }
-  );
+  });
   const { data } = await res.json();
-  console.log('---token data---', data);
+  // console.log('---token data---', data);
   // console.log('----data----', data.currentPage)
   // console.log('----params----', params)
   const totalUsers = (data && data.total) || 0;
-  const token: Channel[] = (data && data.list) || [];
+  const token: Token[] = (data && data.list) || [];
   // mock api call
   // const data = await fakeUsers.getUsers(filters);
   // const totalUsers = data.total_users;
