@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 // import { Channel } from '@/constants/data';
 import { Channel } from '@/lib/types';
-import { Edit, MoreHorizontal, Trash } from 'lucide-react';
+import { Edit, MoreHorizontal, Trash, Lightbulb } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -23,14 +23,131 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
   const [open, setOpen] = useState(false);
   const router = useRouter();
 
-  const onConfirm = async () => {};
+  const onConfirm = async (channel: Channel) => {
+    // deleteChannel(channel);
+    manageChannel(channel.id, 'delete', '');
+  };
+
+  const manageChannel = async (id: string, action: string, value: string) => {
+    let _params = { id };
+    let res;
+    switch (action) {
+      case 'delete':
+        res = await fetch(`/api/channel/${id}`, {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+        break;
+      case 'enable':
+        _params.status = 1;
+        res = await fetch(`/api/channel/`, {
+          method: 'PUT',
+          body: JSON.stringify(_params),
+          credentials: 'include'
+        });
+        break;
+      case 'disable':
+        _params.status = 2;
+        res = await fetch(`/api/channel/`, {
+          method: 'PUT',
+          body: JSON.stringify(_params),
+          credentials: 'include'
+        });
+        break;
+      case 'priority':
+        if (value === '') {
+          return;
+        }
+        _params.priority = parseInt(value);
+        res = await fetch(`/api/channel/`, {
+          method: 'PUT',
+          body: JSON.stringify(_params),
+          credentials: 'include'
+        });
+        break;
+      case 'weight':
+        if (value === '') {
+          return;
+        }
+        _params.weight = parseInt(value);
+        if (_params.weight < 0) {
+          _params.weight = 0;
+        }
+        res = await fetch(`/api/channel/`, {
+          method: 'PUT',
+          body: JSON.stringify(_params),
+          credentials: 'include'
+        });
+        break;
+    }
+    const { data, success } = await res.json();
+    console.log('data', data);
+    if (success) {
+      setOpen(false);
+      window.location.reload();
+    }
+    // const { success, message } = res.data;
+    // if (success) {
+    //   showSuccess('操作成功完成！');
+    //   let channel = res.data.data;
+    //   let newChannels = [...channels];
+    //   let realIdx = (activePage - 1) * ITEMS_PER_PAGE + idx;
+    //   if (action === 'delete') {
+    //     newChannels[realIdx].deleted = true;
+    //   } else {
+    //     newChannels[realIdx].status = channel.status;
+    //   }
+    //   setChannels(newChannels);
+    // } else {
+    //   showError(message);
+    // }
+  };
+
+  const deleteChannel = async (channel: Channel) => {
+    const res = await fetch(`/api/channel/${channel.id}`, {
+      method: 'DELETE',
+      credentials: 'include'
+    });
+    const { data, success } = await res.json();
+    console.log('data', data);
+    if (success) {
+      setOpen(false);
+      window.location.reload();
+    }
+  };
+
+  const testChannel = async (id: string, name: string) => {
+    const res = await fetch(`/api/channel/test/${id}`, {
+      method: 'GET',
+      credentials: 'include'
+    });
+    const { success, message, time } = await res.json();
+    if (success) {
+      console.log(
+        `The channel ${name} test succeeds, taking ${time.toFixed(2)} seconds.`
+      );
+      // window.location.reload();
+    } else {
+      console.log(message);
+    }
+    // if (success) {
+    //   let newChannels = [...channels];
+    //   let realIdx = (activePage - 1) * ITEMS_PER_PAGE + idx;
+    //   newChannels[realIdx].response_time = time * 1000;
+    //   newChannels[realIdx].test_time = Date.now() / 1000;
+    //   setChannels(newChannels);
+    //   showInfo(`渠道 ${name} 测试成功，耗时 ${time.toFixed(2)} 秒。`);
+    // } else {
+    //   showError(message);
+    // }
+  };
 
   return (
     <>
       <AlertModal
         isOpen={open}
         onClose={() => setOpen(false)}
-        onConfirm={onConfirm}
+        onConfirm={() => onConfirm(data)}
         loading={loading}
       />
       <DropdownMenu modal={false}>
@@ -50,6 +167,9 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setOpen(true)}>
             <Trash className="mr-2 h-4 w-4" /> Delete
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => testChannel(data.id, data.name)}>
+            <Lightbulb className="mr-2 h-4 w-4" /> Test
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

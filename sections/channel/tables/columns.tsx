@@ -34,7 +34,7 @@ const renderResponseTime = (test_time: number, response_time: number) => {
     <TooltipProvider disableHoverableContent>
       <Tooltip delayDuration={100}>
         <TooltipTrigger asChild>
-          <span>{time}</span>
+          <span>{response_time === 0 ? 'Not tested' : time}</span>
         </TooltipTrigger>
         <TooltipContent side="bottom">
           {test_time
@@ -139,8 +139,11 @@ export const columns: ColumnDef<Channel>[] = [
   {
     accessorKey: 'balance',
     header: () => <div className="text-center">Balance</div>,
-    cell: ({ row }) =>
-      renderBalance(row.getValue('type'), row.getValue('balance'))
+    cell: ({ row }) => (
+      <div className="text-center">
+        {renderBalance(row.getValue('type'), row.getValue('balance'))}
+      </div>
+    )
   },
   {
     accessorKey: 'priority',

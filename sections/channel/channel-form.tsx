@@ -28,29 +28,40 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 // import { CHANNEL_OPTIONS } from '@/constants';
 
 const formSchema = z.object({
+  type: z.string().min(1, {
+    message: 'Type is required.'
+  }),
   name: z.string().min(1, {
     message: 'Name is required.'
   }),
-  type: z.string({
-    required_error: 'Please select a type.'
-  }),
-  groups: z.array(z.string(), {
-    required_error: 'Please select at least one group.'
+  groups: z.array(z.string()).min(1, {
+    message: 'Please select at least one group.'
   }),
   key: z.string(),
-  base_url: z.string(),
-  other: z.string(),
-  region: z.string(),
-  ak: z.string(),
-  sk: z.string(),
-  vertex_ai_project_id: z.string(),
-  vertex_ai_adc: z.string(),
-  user_id: z.string(),
-  model_mapping: z.string(),
+  // key: z.string().superRefine((val, ctx) => {
+  //   const type = (ctx.path[0] === 'type') ? ctx.path[0] : '';
+  //   if (type !== '33' && type !== '42' && !val) {
+  //     ctx.addIssue({
+  //       code: z.ZodIssueCode.custom,
+  //       message: 'Key is required for this channel type.'
+  //     });
+  //   }
+  // }),
+
+  base_url: z.string().optional(),
+  other: z.string().optional(),
+  region: z.string().optional(),
+  ak: z.string().optional(),
+  sk: z.string().optional(),
+  vertex_ai_project_id: z.string().optional(),
+  vertex_ai_adc: z.string().optional(),
+  user_id: z.string().optional(),
+  model_mapping: z.string().optional(),
   models: z.array(z.string(), {
     required_error: 'Please select at least one model.'
   }),
-  customModelName: z.string()
+  customModelName: z.string().optional()
+
   // company: z.string().min(1, {
   //   message: 'Company name is required.'
   // }),
@@ -67,79 +78,104 @@ interface ModelOption {
 export default function ChannelForm() {
   const { channelId } = useParams();
   console.log('---id---', channelId);
-  console.log('---useParams()---', useParams());
+  // console.log('---useParams()---', useParams());
   const [modelTypes, setModelTypes] = useState<string[]>([]);
   const [groupOptions, setGroupOptions] = useState<string[]>([]);
   const [modelOptions, setModelOptions] = useState<ModelOption[]>([]);
+  const [channelData, setChannelData] = useState<Object | null>(null);
 
   useEffect(() => {
-    // 获取渠道详情
-    const getChannelDetail = async () => {
-      if (!channelId || channelId === 'create') return;
+    const initializeData = async () => {
+      try {
+        // 准备所有需要的请求
+        const requests = [
+          // 查询模型类型
+          fetch('/api/channel/types', { credentials: 'include' })
+            .then((res) => res.json())
+            .then(({ data }) => data),
 
-      const res = await fetch(`/api/channel/${channelId}`, {
-        credentials: 'include'
-      });
-      const { data } = await res.json();
-      console.log('---data---', data);
+          // 查询分组
+          fetch('/api/group', { credentials: 'include' })
+            .then((res) => res.json())
+            .then(({ data }) => data),
 
-      // 填充表单数据
-      form.reset({
-        name: data.name,
-        type: String(data.type),
-        groups: data.group?.split(',') || [],
-        key: data.key,
-        base_url: data.base_url,
-        other: data.other,
-        region: data.region,
-        ak: data.ak,
-        sk: data.sk,
-        vertex_ai_project_id: data.vertex_ai_project_id,
-        vertex_ai_adc: data.vertex_ai_adc,
-        user_id: data.user_id,
-        model_mapping: data.model_mapping,
-        models: data.models?.split(',') || [],
-        customModelName: data.customModelName
-      });
+          // 查询模型
+          fetch('/api/channel/models', { credentials: 'include' })
+            .then((res) => res.json())
+            .then(({ data }) => data)
+        ];
+
+        // 如果需要获取渠道详情，将其加入请求数组
+        if (channelId && channelId !== 'create') {
+          requests.push(
+            fetch(`/api/channel/${channelId}`, { credentials: 'include' })
+              .then((res) => res.json())
+              .then(({ data }) => {
+                setChannelData(data);
+                return data;
+              })
+          );
+        }
+
+        // 同时发起所有请求
+        const [modelTypesData, groupData, modelData, channelData] =
+          await Promise.all(requests);
+
+        // 更新状态
+        setModelTypes(modelTypesData);
+        setGroupOptions(groupData);
+        setModelOptions([
+          ...new Map(modelData.map((item) => [item.id, item])).values()
+        ]);
+
+        // 如果有渠道数据，填充表单
+        if (channelData) {
+          form.reset({
+            type: String(channelData.type),
+            name: channelData.name,
+            groups: channelData.group?.split(',') || [],
+            key: channelData.key,
+            base_url: channelData.base_url,
+            other: channelData.other,
+            region: channelData.region,
+            ak: channelData.ak,
+            sk: channelData.sk,
+            vertex_ai_project_id: channelData.vertex_ai_project_id || '',
+            vertex_ai_adc: channelData.vertex_ai_adc || '',
+            user_id: channelData.user_id || '',
+            model_mapping: channelData.model_mapping || '',
+            models: channelData.models?.split(',') || [],
+            customModelName: channelData.customModelName
+          });
+        }
+      } catch (error) {
+        console.error('Error initializing data:', error);
+      }
     };
 
-    // 查询模型类型
-    const getModelType = async () => {
-      const res = await fetch(`/api/channel/types`, {
-        credentials: 'include'
-      });
-      const { data } = await res.json();
-      console.log('data', data);
-      setModelTypes(data);
-    };
+    initializeData();
+  }, [channelId]);
 
-    // 查询分组
-    const getGroupDict = async () => {
-      const res = await fetch(`/api/group`, {
-        credentials: 'include'
-      });
-      const { data } = await res.json();
-      console.log('data', data);
-      setGroupOptions(data);
-    };
-
-    // 查询模型
-    const getModelDict = async () => {
-      const res = await fetch(`/api/channel/models`, {
-        credentials: 'include'
-      });
-      const { data } = await res.json();
-      console.log('data', data);
-      setModelOptions([
-        ...new Map(data.map((item) => [item.id, item])).values()
-      ]);
-    };
-
-    getChannelDetail();
-    getModelType();
-    getGroupDict();
-    getModelDict();
-  }, []);
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      type: undefined,
+      name: undefined,
+      groups: undefined,
+      key: undefined,
+      base_url: undefined,
+      other: undefined,
+      region: undefined,
+      ak: undefined,
+      sk: undefined,
+      vertex_ai_project_id: undefined,
+      vertex_ai_adc: undefined,
+      user_id: undefined,
+      model_mapping: undefined,
+      models: undefined,
+      customModelName: undefined
+    }
+  });
 
   const handleTypeInputChange = (value) => {
     if (value !== '3') {
@@ -166,44 +202,28 @@ export default function ChannelForm() {
     }
   };
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: '',
-      type: '',
-      groups: [],
-      key: '',
-      base_url: '',
-      other: '',
-      region: '',
-      ak: '',
-      sk: '',
-      vertex_ai_project_id: '',
-      vertex_ai_adc: '',
-      user_id: '',
-      model_mapping: '',
-      models: [],
-      customModelName: ''
-    }
-  });
-
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values);
+    console.log('onSubmit', values);
     const params = {
+      ...channelData,
       ...values,
       group: values.groups.join(','),
       models: values.models.join(',')
     };
     params.type = Number(params.type);
-    delete params.id;
+    // delete params.id;
     delete params.groups;
+    console.log('******params*****', params);
     const res = await fetch(`/api/channel`, {
-      method: 'POST',
+      method: params.id ? 'PUT' : 'POST',
       body: JSON.stringify(params),
       credentials: 'include'
     });
-    const { data } = await res.json();
+    const { data, success } = await res.json();
     console.log('data', data);
+    if (success) {
+      window.location.href = '/dashboard/channel';
+    }
   }
 
   return (
