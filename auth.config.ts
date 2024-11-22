@@ -2,6 +2,50 @@ import { NextAuthConfig } from 'next-auth';
 import CredentialProvider from 'next-auth/providers/credentials';
 import GithubProvider from 'next-auth/providers/github';
 import { cookies } from 'next/headers';
+import { Account, Session, User as NextAuthUser } from 'next-auth';
+// import { JWT } from 'next-auth/jwt';
+
+// 首先在文件顶部添加类型定义
+interface UserData {
+  id: string | number;
+  username: string;
+  display_name: string;
+  email: string;
+  role: string | number;
+}
+
+// 扩展 Account 类型
+interface ExtendedAccount extends Account {
+  userData?: Record<string, string | number>;
+}
+
+// 扩展 User 类型
+interface User extends NextAuthUser {
+  username?: string;
+  display_name?: string;
+  role?: number;
+}
+
+// 扩展 JWT 类型
+// interface JWT {
+//   id: string;
+//   username: string;
+//   name?: string | null;
+//   display_name?: string;
+//   email?: string | null;
+//   role?: number;
+// }
+
+// 扩展 Session 类型
+interface ExtendedSession extends Session {
+  user: {
+    id: string;
+    username: string;
+    name?: string | null;
+    email?: string | null;
+    role?: number;
+  };
+}
 
 const authConfig = {
   providers: [
@@ -119,7 +163,7 @@ const authConfig = {
       // console.log('----account---', account)
       // console.log('----profile---', profile)
       // 处理 GitHub 登录成功后的回调
-      if (account.provider === 'github') {
+      if (account?.provider === 'github') {
         console.log('-----user****', user);
         // 可以在这里添加任何额外的逻辑，例如记录用户信息或进行其他验证
         // console.log('GitHub login successful:', user);
@@ -196,45 +240,37 @@ const authConfig = {
       // return 'http://localhost:3001'; // 替换为您需要的端口
       return params.url; // 替换为您需要的端口
     },
-    async jwt({ token, user, session, trigger, account }) {
-      // console.log('----jwt token----', token)
-      // console.log('----jwt user----', user)
-      // console.log('----jwt session----', session)
-      // console.log('----jwt trigger----', trigger)
-      // console.log('----jwt account----', account)
+    async jwt({ token, user, account }) {
       if (user) {
         console.log('user******', user, account);
-        token.id = user.id;
-        token.username = user.username || account?.userData?.username;
+        token.id = String(user.id);
+        token.username = String(
+          (user as User).username ||
+            (account as ExtendedAccount)?.userData?.username ||
+            ''
+        );
         token.name = user.name;
-        token.display_name =
-          user.display_name || account?.userData?.display_name;
-        token.email = user.email || account?.userData?.email;
-        token.role = user.role || account?.userData?.role;
-        // token.role = user.role || 1;
-        // token.accessToken = user.accessToken;
+        token.display_name = String(
+          (user as User).display_name ||
+            (account as ExtendedAccount)?.userData?.display_name ||
+            ''
+        );
+        token.email = String(
+          user.email || (account as ExtendedAccount)?.userData?.email || ''
+        );
+        token.role =
+          (user as User).role || (account as ExtendedAccount)?.userData?.role;
       }
       return token;
     },
     async session({ session, token, user }) {
-      // session.display_name = user.display_name;
-      // session.cookies = token[set-cookie];
-      // console.log('----session session----', session)
-      // console.log('----session token----', token)
-      // console.log('----session user----', user)
-      session.user.id = token.id;
-      session.user.username = token.username;
-      session.user.name = token.name || token.display_name;
-      session.user.email = token.email;
-      session.user.role = token.role;
-      // if (session?.user) {
-      //   session?.user?.display_name = token.display_name
-      // }
-      // session.user.id = token.id;
-      // if (token?.username && session.user) {
-      //   session.user = token.username
-      // }
-      return session;
+      const sess = session as ExtendedSession;
+      sess.user.id = String(token.id);
+      sess.user.username = String(token.username);
+      sess.user.name = String(token.name || token.display_name);
+      sess.user.email = String(token.email);
+      sess.user.role = token.role as number;
+      return sess;
     }
   },
   pages: {

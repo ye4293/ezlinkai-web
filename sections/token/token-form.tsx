@@ -28,6 +28,7 @@ import { cn } from '@/lib/utils';
 import { CalendarIcon } from '@radix-ui/react-icons';
 import { addDays, format, addMonths, addHours, addMinutes } from 'date-fns';
 import { renderQuotaWithPrompt } from '@/utils/render';
+import { Token } from '@/lib/types';
 
 const formSchema = z.object({
   name: z.string().min(1, {
@@ -41,6 +42,12 @@ const formSchema = z.object({
 interface ModelOption {
   id: string;
   // 添加其他可能的字段
+}
+
+interface ParamsOption extends Partial<Token> {
+  // group?: string;
+  // groups?: string[];
+  // models?: string;
 }
 
 export default function TokenForm() {
@@ -107,17 +114,21 @@ export default function TokenForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     console.log(values);
-    const params = {
+    const params: ParamsOption = {
       ...tokenData,
-      ...values
+      ...values,
+      expired_time: values.expired_time
+        ? Math.floor(values.expired_time.getTime() / 1000)
+        : undefined
       // group: values.groups.join(','),
       // models: values.models.join(',')
     };
     console.log('params', params);
-    params.expired_time = isExpired
-      ? -1
-      : Math.floor(params.expired_time.getTime() / 1000);
-    // delete params.expired_time_show
+    if (params.expired_time) {
+      // params.expired_time = isExpired ? -1 : Math.floor(params.expired_time.getTime() / 1000);
+      params.expired_time = isExpired ? -1 : params.expired_time;
+    }
+    // delete params.expired_time_show;
     // params.type = Number(params.type);
     // delete params.id;
     // delete params.groups;
@@ -174,7 +185,7 @@ export default function TokenForm() {
                               'w-[240px] pl-3 text-left font-normal',
                               !field.value && 'text-muted-foreground'
                             )}
-                            disabled={isExpired}
+                            disabled={isExpired === true}
                           >
                             {field.value ? (
                               format(field.value, 'PPP')
@@ -258,7 +269,9 @@ export default function TokenForm() {
                   <FormItem>
                     <FormLabel>
                       Amount{' '}
-                      {renderQuotaWithPrompt(form.getValues('remain_quota'))}
+                      {renderQuotaWithPrompt(
+                        form.getValues('remain_quota') || 0
+                      )}
                     </FormLabel>
                     <FormControl>
                       <Input

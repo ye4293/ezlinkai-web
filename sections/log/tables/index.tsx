@@ -24,8 +24,8 @@ export default function LogTable({
   // 根据角色权限过滤
   const filterColumns = columns.filter((item) => {
     if (
-      session.user.role === 1 &&
-      ['channel', 'content'].includes(item.accessorKey)
+      (session?.user as any).role === 1 &&
+      ['channel', 'content'].includes(item.id as string)
     )
       return false;
     return true;

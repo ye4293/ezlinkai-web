@@ -68,6 +68,7 @@ export const columns: ColumnDef<Channel>[] = [
   },
   // 管理员
   {
+    id: 'channel',
     accessorKey: 'channel',
     header: () => <div className="text-center">Channel</div>,
     cell: ({ row }) => (
@@ -131,6 +132,7 @@ export const columns: ColumnDef<Channel>[] = [
     )
   },
   {
+    id: 'content',
     accessorKey: 'content',
     header: () => <div className="text-center">Details</div>,
     cell: ({ row }) => (

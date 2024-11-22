@@ -36,6 +36,7 @@ import { cn } from '@/lib/utils';
 import { CalendarIcon } from '@radix-ui/react-icons';
 import { addDays, format, addMonths, addHours, addMinutes } from 'date-fns';
 // import { CHANNEL_OPTIONS } from '@/constants';
+import { UserSelf } from '@/lib/types';
 import { renderQuotaWithPrompt } from '@/utils/render';
 
 const formSchema = z.object({
@@ -52,6 +53,12 @@ const formSchema = z.object({
 interface ModelOption {
   id: string;
   // 添加其他可能的字段
+}
+
+interface ParamsOption extends Partial<UserSelf> {
+  quota?: number;
+  user_remind_threshold?: number;
+  password?: string;
 }
 
 export default function UserForm() {
@@ -101,7 +108,7 @@ export default function UserForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     console.log(values);
-    const params = {
+    const params: ParamsOption = {
       ...userData,
       ...values
     };

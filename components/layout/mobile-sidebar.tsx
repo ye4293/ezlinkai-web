@@ -15,7 +15,7 @@ interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
 export function MobileSidebar({ className }: SidebarProps) {
   const { data: session } = useSession();
   const filterNavItems = navItems.filter((item) => {
-    return item.roles?.includes(session.user.role);
+    return item.roles?.includes((session?.user as any)?.role as number);
   });
   const [open, setOpen] = useState(false);
   return (

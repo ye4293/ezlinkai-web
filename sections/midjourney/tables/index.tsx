@@ -6,7 +6,7 @@ import { DataTableResetFilter } from '@/components/ui/table/data-table-reset-fil
 import { DataTableSearch } from '@/components/ui/table/data-table-search';
 import { CalendarDateRangePicker } from '@/components/date-range-picker';
 // import { Channel } from '@/constants/data';
-import { Channel } from '@/lib/types';
+import { MidjourneyStat } from '@/lib/types';
 import { LOG_OPTIONS } from '@/constants';
 import { columns } from './columns';
 import { STATUS_OPTIONS, useTableFilters } from './use-table-filters';
@@ -16,7 +16,7 @@ export default function midjourneyTable({
   data,
   totalData
 }: {
-  data: Channel[];
+  data: MidjourneyStat[];
   totalData: number;
 }) {
   const { data: session } = useSession();
@@ -54,7 +54,7 @@ export default function midjourneyTable({
           setSearchQuery={setMjId}
           setPage={setPage}
         />
-        {[10, 100].includes(session.user.role) && (
+        {[10, 100].includes((session?.user as any).role) && (
           <>
             <DataTableSearch
               searchKey="Channel ID"

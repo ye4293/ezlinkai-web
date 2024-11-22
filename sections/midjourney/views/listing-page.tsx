@@ -5,7 +5,7 @@ import LogTable from '../tables';
 import { buttonVariants } from '@/components/ui/button';
 import { Heading } from '@/components/ui/heading';
 import { Separator } from '@/components/ui/separator';
-import { Channel } from '@/lib/types';
+import { MidjourneyStat } from '@/lib/types';
 // import { fakeUsers } from '@/constants/mock-api';
 import { searchParamsCache } from '@/lib/searchparams';
 import { cn } from '@/lib/utils';
@@ -48,8 +48,8 @@ export default async function MidjourneyListingPage({}: TMidjourneyListingPage) 
     ...(mjId && { mj_id: mjId }),
     ...(channel && { channel: String(channel) }),
     ...(username && { username }),
-    ...(startTime && { start_timestamp: String(startTime * 1000) }), // 用毫秒
-    ...(endTime && { end_timestamp: String(endTime * 1000) })
+    ...(startTime && { start_timestamp: String(Number(startTime) * 1000) }), // 用毫秒
+    ...(endTime && { end_timestamp: String(Number(endTime) * 1000) })
   });
   // console.log('Midjourney params', params);
   const _cookie = 'session=' + cookies().get('session')?.value + '==';
@@ -75,7 +75,7 @@ export default async function MidjourneyListingPage({}: TMidjourneyListingPage) 
   // console.log('----data----', data.currentPage)
   // console.log('----params----', params)
   const totalUsers = (data && data.total) || 0;
-  const mjData: Channel[] = (data && data.list) || [];
+  const mjData: MidjourneyStat[] = (data && data.list) || [];
   // console.log('mjData', mjData);
   // mock api call
   // const data = await fakeUsers.getUsers(filters);

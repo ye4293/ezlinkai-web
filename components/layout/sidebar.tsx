@@ -16,7 +16,7 @@ export default function Sidebar({ className }: SidebarProps) {
   const { isMinimized, toggle } = useSidebar();
 
   const filterNavItems = navItems.filter((item) => {
-    return item.roles?.includes(session.user.role);
+    return item.roles?.includes((session?.user as any)?.role as number);
   });
 
   const handleToggle = () => {

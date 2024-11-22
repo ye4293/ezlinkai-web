@@ -42,7 +42,7 @@ export default function EmployeeTable({
           title="Gender"
           options={GENDER_OPTIONS}
           setFilterValue={setGenderFilter}
-          filterValue={genderFilter}
+          filterValue={genderFilter as string}
         />
         <DataTableResetFilter
           isFilterActive={isAnyFilterActive}

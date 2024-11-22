@@ -7,7 +7,7 @@
  * @param {number} num - 要转换的数字。
  * @returns {string|number} - 转换后的字符串或原始数字。
  */
-export function renderNumber(num) {
+export function renderNumber(num: number) {
   if (num >= 1000000000) {
     // 检查数字是否大于等于10亿
     // 将数字转换为十亿形式，并保留一位小数，然后添加后缀“B”
@@ -64,22 +64,22 @@ export function renderQuota(quota: number, digits = 2, display = true) {
  * @param {number} digits - 小数点后要显示的位数。默认为 2。
  * @returns {number} - 渲染的配额数作为浮点数。
  */
-export function renderQuotaNum(quota, digits = 2) {
+export function renderQuotaNum(quota: number, digits = 2) {
   // 从本地存储中获取每单位配额
-  let quotaPerUnit: string | number = localStorage.getItem('quota_per_unit');
+  let quotaPerUnit: string | number =
+    localStorage.getItem('quota_per_unit') || 0;
   // 将每单位配额转换为浮点数
-  quotaPerUnit = parseFloat(quotaPerUnit);
+  quotaPerUnit = parseFloat(quotaPerUnit as string);
   // 计算结果并将其转换为具有指定位数的字符串
   const result = (quota / quotaPerUnit).toFixed(digits);
   // 将结果字符串转换回浮点数并返回
   return parseFloat(result);
 }
 
-export function renderQuotaWithPrompt(quota, digits = 2) {
+export function renderQuotaWithPrompt(quota: number, digits = 2) {
   if (quota === undefined) return `（Equivalent amount：$0.00）`;
-  let displayInCurrency: string | boolean = localStorage.getItem(
-    'display_in_currency'
-  );
+  let displayInCurrency: string | boolean =
+    localStorage.getItem('display_in_currency') || 'true';
   displayInCurrency = displayInCurrency === 'true';
   if (displayInCurrency) {
     return `（Equivalent amount：${renderQuota(quota, digits)}）`;
@@ -88,7 +88,7 @@ export function renderQuotaWithPrompt(quota, digits = 2) {
 }
 
 // 复制令牌
-export const onCopyToken = async (key) => {
+export const onCopyToken = async (key: string) => {
   navigator.clipboard
     .writeText(key)
     .then(() => {
@@ -100,7 +100,7 @@ export const onCopyToken = async (key) => {
 };
 
 // 复制
-export const onCopy = async (type, key) => {
+export const onCopy = async (type: string, key: string) => {
   let status: any = localStorage.getItem('status');
   let serverAddress = '';
   if (status) {
@@ -146,7 +146,7 @@ export const onCopy = async (type, key) => {
 };
 
 // 聊天
-export const onOpenLink = async (type, key) => {
+export const onOpenLink = async (type: string, key: string) => {
   let status: any = localStorage.getItem('status');
   let serverAddress = '';
   if (status) {
@@ -183,7 +183,7 @@ export const onOpenLink = async (type, key) => {
   window.open(url, '_blank');
 };
 
-export const verifyJSON = (str) => {
+export const verifyJSON = (str: string) => {
   try {
     JSON.parse(str);
   } catch (e) {

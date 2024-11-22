@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-// import { CHANNEL_OPTIONS } from '@/constants';
+import { Channel } from '@/lib/types';
 
 const formSchema = z.object({
   type: z.string().min(1, {
@@ -75,11 +75,25 @@ interface ModelOption {
   // 添加其他可能的字段
 }
 
+interface ModelTypesOption {
+  key: string;
+  value: string;
+  text: string;
+}
+
+// 使用 Omit 来从 Channel 接口中排除 type 字段，然后重新定义它。这样可以避免类型冲突。
+interface ParamsOption extends Omit<Channel, 'type'> {
+  type: number | string;
+  group?: string;
+  groups?: string[];
+  models?: string;
+}
+
 export default function ChannelForm() {
   const { channelId } = useParams();
   console.log('---id---', channelId);
   // console.log('---useParams()---', useParams());
-  const [modelTypes, setModelTypes] = useState<string[]>([]);
+  const [modelTypes, setModelTypes] = useState<ModelTypesOption[]>([]);
   const [groupOptions, setGroupOptions] = useState<string[]>([]);
   const [modelOptions, setModelOptions] = useState<ModelOption[]>([]);
   const [channelData, setChannelData] = useState<Object | null>(null);
@@ -124,9 +138,11 @@ export default function ChannelForm() {
         // 更新状态
         setModelTypes(modelTypesData);
         setGroupOptions(groupData);
-        setModelOptions([
-          ...new Map(modelData.map((item) => [item.id, item])).values()
-        ]);
+        setModelOptions(
+          Array.from(
+            new Map(modelData.map((item: any) => [item.id, item])).values()
+          ) as ModelOption[]
+        );
 
         // 如果有渠道数据，填充表单
         if (channelData) {
@@ -177,7 +193,7 @@ export default function ChannelForm() {
     }
   });
 
-  const handleTypeInputChange = (value) => {
+  const handleTypeInputChange = (value: string) => {
     if (value !== '3') {
       form.setValue('other', '');
     }
@@ -186,7 +202,7 @@ export default function ChannelForm() {
     }
   };
 
-  const type2secretPrompt = (type) => {
+  const type2secretPrompt = (type: string) => {
     // inputs.type === 15 ? '按照如下格式输入：APIKey|SecretKey' : (inputs.type === 18 ? '按照如下格式输入：APPID|APISecret|APIKey' : '请输入渠道对应的鉴权密钥')
     switch (type) {
       case '15':
@@ -204,7 +220,7 @@ export default function ChannelForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     console.log('onSubmit', values);
-    const params = {
+    const params: ParamsOption = {
       ...channelData,
       ...values,
       group: values.groups.join(','),

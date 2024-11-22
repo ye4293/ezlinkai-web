@@ -25,11 +25,16 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
 
   const onConfirm = async (channel: Channel) => {
     // deleteChannel(channel);
-    manageChannel(channel.id, 'delete', '');
+    manageChannel(channel.id as number, 'delete', '');
   };
 
-  const manageChannel = async (id: string, action: string, value: string) => {
-    let _params = { id };
+  const manageChannel = async (id: number, action: string, value: string) => {
+    let _params: {
+      id: number;
+      status?: number;
+      priority?: number;
+      weight?: number;
+    } = { id };
     let res;
     switch (action) {
       case 'delete':
@@ -80,11 +85,13 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
         });
         break;
     }
-    const { data, success } = await res.json();
-    console.log('data', data);
-    if (success) {
-      setOpen(false);
-      window.location.reload();
+    if (res) {
+      const { data, success } = await res.json();
+      console.log('data', data);
+      if (success) {
+        setOpen(false);
+        window.location.reload();
+      }
     }
     // const { success, message } = res.data;
     // if (success) {
@@ -116,7 +123,7 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
     }
   };
 
-  const testChannel = async (id: string, name: string) => {
+  const testChannel = async (id: number, name: string) => {
     const res = await fetch(`/api/channel/test/${id}`, {
       method: 'GET',
       credentials: 'include'
@@ -168,7 +175,9 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
           <DropdownMenuItem onClick={() => setOpen(true)}>
             <Trash className="mr-2 h-4 w-4" /> Delete
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => testChannel(data.id, data.name)}>
+          <DropdownMenuItem
+            onClick={() => testChannel(data.id as number, data.name as string)}
+          >
             <Lightbulb className="mr-2 h-4 w-4" /> Test
           </DropdownMenuItem>
         </DropdownMenuContent>
