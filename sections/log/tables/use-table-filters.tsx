@@ -46,11 +46,6 @@ export function useTableFilters() {
       .withDefault('')
   );
 
-  // const [statusFilter, setStatusFilter] = useQueryState(
-  //   'status',
-  //   searchParams.status.withOptions({ shallow: false }).withDefault('')
-  // );
-
   const [typeFilter, setTypeFilter] = useQueryState(
     'type',
     searchParams.type.withOptions({ shallow: false }).withDefault('')

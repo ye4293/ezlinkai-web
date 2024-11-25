@@ -1,15 +1,14 @@
 'use client';
 
 import { DataTable } from '@/components/ui/table/data-table';
-import { DataTableFilterBox } from '@/components/ui/table/data-table-filter-box';
+import { DataTableSingleFilterBox } from '@/components/ui/table/data-table-single-filter-box';
 import { DataTableResetFilter } from '@/components/ui/table/data-table-reset-filter';
 import { DataTableSearch } from '@/components/ui/table/data-table-search';
 import { CalendarDateRangePicker } from '@/components/date-range-picker';
-// import { Channel } from '@/constants/data';
 import { Channel } from '@/lib/types';
 import { LOG_OPTIONS } from '@/constants';
 import { columns } from './columns';
-import { STATUS_OPTIONS, useTableFilters } from './use-table-filters';
+import { useTableFilters } from './use-table-filters';
 import { useSession } from 'next-auth/react';
 
 export default function LogTable({
@@ -40,8 +39,6 @@ export default function LogTable({
     setChannelId,
     userName,
     setUserName,
-    // statusFilter,
-    // setStatusFilter,
     typeFilter,
     setTypeFilter,
     isAnyFilterActive,
@@ -78,14 +75,7 @@ export default function LogTable({
           setSearchQuery={setUserName}
           setPage={setPage}
         />
-        {/* <DataTableFilterBox
-          filterKey="status"
-          title="Status"
-          options={STATUS_OPTIONS}
-          setFilterValue={setStatusFilter}
-          filterValue={statusFilter}
-        /> */}
-        <DataTableFilterBox
+        <DataTableSingleFilterBox
           filterKey="type"
           title="Type"
           options={LOG_OPTIONS}

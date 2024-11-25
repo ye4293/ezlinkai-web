@@ -64,9 +64,9 @@ export const OPEN_LINK_OPTIONS = [
 
 /** 日志类型 */
 export const LOG_OPTIONS = [
-  { key: '0', label: '全部', value: '0' },
-  { key: '1', label: '充值', value: '1' },
-  { key: '2', label: '消费', value: '2' },
-  { key: '3', label: '管理', value: '3' },
-  { key: '4', label: '系统', value: '4' }
+  { key: '0', label: 'All', value: '0' },
+  { key: '1', label: 'Billing', value: '1' },
+  { key: '2', label: 'Consumption', value: '2' },
+  { key: '3', label: 'Management', value: '3' },
+  { key: '4', label: 'System', value: '4' }
 ];
