@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -90,6 +90,7 @@ interface ParamsOption extends Omit<Channel, 'type'> {
 }
 
 export default function ChannelForm() {
+  const router = useRouter();
   const { channelId } = useParams();
   console.log('---id---', channelId);
   // console.log('---useParams()---', useParams());
@@ -238,7 +239,9 @@ export default function ChannelForm() {
     const { data, success } = await res.json();
     console.log('data', data);
     if (success) {
-      window.location.href = '/dashboard/channel';
+      // window.location.href = '/dashboard/channel';
+      router.push('/dashboard/channel');
+      router.refresh();
     }
   }
 
