@@ -31,8 +31,8 @@ export default function UserAuthForm() {
   const [loading, startTransition] = useTransition();
   const defaultValues = {
     // email: 'demo@gmail.com'
-    username: 'root',
-    password: 'ezlinkai666'
+    username: '',
+    password: ''
     // username: process.env.NEXT_USERNAME,
     // password: process.env.NEXT_PASSWORD,
   };
