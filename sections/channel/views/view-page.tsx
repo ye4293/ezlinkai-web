@@ -1,6 +1,6 @@
 import PageContainer from '@/components/layout/page-container';
 import { Breadcrumbs } from '@/components/breadcrumbs';
-import { ScrollArea } from '@/components/ui/scroll-area';
+// import { ScrollArea } from '@/components/ui/scroll-area';
 import ChannelForm from '../channel-form';
 
 const breadcrumbItems = [

@@ -48,7 +48,8 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
     const { data, success } = await res.json();
     console.log('data', data);
     if (success) {
-      window.location.reload();
+      // window.location.reload();
+      router.refresh();
     }
   };
 

@@ -41,7 +41,8 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
     const { data, success } = await res.json();
     console.log('data', data);
     if (success) {
-      window.location.reload(); // Refresh the page on success
+      // window.location.reload(); // Refresh the page on success
+      router.refresh();
     }
   };
 
@@ -55,7 +56,8 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
     console.log('data', data);
     if (success) {
       setOpen(false);
-      window.location.reload(); // Refresh the page on success
+      // window.location.reload(); // Refresh the page on success
+      router.refresh();
     }
   };
 
