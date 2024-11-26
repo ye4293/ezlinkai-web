@@ -1,6 +1,7 @@
 import { NextAuthConfig } from 'next-auth';
 import CredentialProvider from 'next-auth/providers/credentials';
 import GithubProvider from 'next-auth/providers/github';
+import GoogleProvider from 'next-auth/providers/google';
 import { cookies } from 'next/headers';
 import { Account, Session, User as NextAuthUser } from 'next-auth';
 // import { JWT } from 'next-auth/jwt';
@@ -55,6 +56,10 @@ const authConfig = {
       // authorization: {
       //   url: 'https://github.com/login/oauth/authorize'
       // }
+    }),
+    GoogleProvider({
+      clientId: process.env.GOOGLE_ID ?? '',
+      clientSecret: process.env.GOOGLE_SECRET ?? ''
     }),
     CredentialProvider({
       credentials: {
@@ -164,7 +169,7 @@ const authConfig = {
       // console.log('----profile---', profile)
       // 处理 GitHub 登录成功后的回调
       if (account?.provider === 'github') {
-        console.log('-----user****', user);
+        console.log('-----github user****', user);
         // 可以在这里添加任何额外的逻辑，例如记录用户信息或进行其他验证
         // console.log('GitHub login successful:', user);
         const params = {
@@ -227,6 +232,9 @@ const authConfig = {
         // user = { ...user, ...userInfo.data }
         return true; // 返回 true 以允许登录
       }
+      if (account?.provider === 'google') {
+        console.log('-----google user****', user);
+      }
       // user = { ...user, role: 1 }
       // user = { role: 1, aaa: 222 }
 
@@ -275,7 +283,8 @@ const authConfig = {
   },
   pages: {
     signIn: '/' //sigin page
-  }
+  },
+  debug: true
 } satisfies NextAuthConfig;
 
 export default authConfig;
