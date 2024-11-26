@@ -5,47 +5,42 @@ import { DataTableFilterBox } from '@/components/ui/table/data-table-filter-box'
 import { DataTableResetFilter } from '@/components/ui/table/data-table-reset-filter';
 import { DataTableSearch } from '@/components/ui/table/data-table-search';
 import { CalendarDateRangePicker } from '@/components/date-range-picker';
-// import { Channel } from '@/constants/data';
-import { MidjourneyStat } from '@/lib/types';
+import { VideoStat } from '@/lib/types';
 import { LOG_OPTIONS } from '@/constants';
 import { columns } from './columns';
-import {
-  TYPE_OPTIONS,
-  STATUS_OPTIONS,
-  useTableFilters
-} from './use-table-filters';
+import { STATUS_OPTIONS, useTableFilters } from './use-table-filters';
 import { useSession } from 'next-auth/react';
 
-export default function MidjourneyTable({
+export default function VideoTable({
   data,
   totalData
 }: {
-  data: MidjourneyStat[];
+  data: VideoStat[];
   totalData: number;
 }) {
   const { data: session } = useSession();
 
-  // // 根据角色权限过滤
-  // const filterColumns = columns.filter((item) => {
-  //   if (
-  //     session.user.role === 1 &&
-  //     ['channel', 'content'].includes(item.accessorKey)
-  //   )
-  //     return false;
-  //   return true;
-  // });
+  // 根据角色权限过滤
+  const filterColumns = columns.filter((item) => {
+    if (
+      (session?.user as any).role === 1 &&
+      ['username', 'channel_id', 'user_id'].includes(item.id as string)
+    )
+      return false;
+    return true;
+  });
 
   const {
-    mjId,
-    setMjId,
+    taskId,
+    setTaskId,
+    provider,
+    setProvider,
+    modelName,
+    setModelName,
     channelId,
     setChannelId,
     userName,
     setUserName,
-    typeFilter,
-    setTypeFilter,
-    statusFilter,
-    setStatusFilter,
     isAnyFilterActive,
     resetFilters,
     setPage,
@@ -58,8 +53,20 @@ export default function MidjourneyTable({
       <div className="flex flex-wrap items-center gap-4">
         <DataTableSearch
           searchKey="Task Id"
-          searchQuery={mjId}
-          setSearchQuery={setMjId}
+          searchQuery={taskId}
+          setSearchQuery={setTaskId}
+          setPage={setPage}
+        />
+        <DataTableSearch
+          searchKey="Provider"
+          searchQuery={provider}
+          setSearchQuery={setProvider}
+          setPage={setPage}
+        />
+        <DataTableSearch
+          searchKey="Model Name"
+          searchQuery={modelName}
+          setSearchQuery={setModelName}
           setPage={setPage}
         />
         {[10, 100].includes((session?.user as any).role) && (
@@ -78,20 +85,6 @@ export default function MidjourneyTable({
             />
           </>
         )}
-        <DataTableFilterBox
-          filterKey="type"
-          title="Type"
-          options={TYPE_OPTIONS}
-          setFilterValue={setTypeFilter}
-          filterValue={typeFilter}
-        />
-        <DataTableFilterBox
-          filterKey="status"
-          title="Status"
-          options={STATUS_OPTIONS}
-          setFilterValue={setStatusFilter}
-          filterValue={statusFilter}
-        />
         <CalendarDateRangePicker
           date={dateRange}
           onDateChange={(newDate) => {
@@ -107,7 +100,7 @@ export default function MidjourneyTable({
           }}
         />
       </div>
-      <DataTable columns={columns} data={data} totalItems={totalData} />
+      <DataTable columns={filterColumns} data={data} totalItems={totalData} />
     </div>
   );
 }

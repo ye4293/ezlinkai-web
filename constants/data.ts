@@ -173,17 +173,17 @@ export const navItems: NavItem[] = [
     roles: [1, 10, 100]
   },
   {
-    title: 'File',
-    href: '/dashboard/file',
-    icon: 'file',
-    label: 'file',
-    roles: [10, 100]
-  },
-  {
     title: 'Videos',
     href: '/dashboard/video',
     icon: 'video',
     label: 'video',
+    roles: [1, 10, 100]
+  },
+  {
+    title: 'File',
+    href: '/dashboard/file',
+    icon: 'file',
+    label: 'file',
     roles: [10, 100]
   },
   {

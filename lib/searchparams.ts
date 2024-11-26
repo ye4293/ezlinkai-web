@@ -11,6 +11,8 @@ export const searchParams = {
   q: parseAsString,
   gender: parseAsString,
   mj_id: parseAsString,
+  task_id: parseAsString,
+  provider: parseAsString,
   status: parseAsString,
   categories: parseAsString,
   token_name: parseAsString,

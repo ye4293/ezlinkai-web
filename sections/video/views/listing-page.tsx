@@ -1,11 +1,11 @@
 import { cookies } from 'next/headers';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import PageContainer from '@/components/layout/page-container';
-import MidjourneyTable from '../tables';
+import VideoTable from '../tables';
 import { buttonVariants } from '@/components/ui/button';
 import { Heading } from '@/components/ui/heading';
 import { Separator } from '@/components/ui/separator';
-import { MidjourneyStat } from '@/lib/types';
+import { VideoStat } from '@/lib/types';
 // import { fakeUsers } from '@/constants/mock-api';
 import { searchParamsCache } from '@/lib/searchparams';
 import { cn } from '@/lib/utils';
@@ -14,12 +14,12 @@ import Link from 'next/link';
 
 const breadcrumbItems = [
   { title: 'Dashboard', link: '/dashboard' },
-  { title: 'Midjourney', link: '/dashboard/midjourney' }
+  { title: 'Video', link: '/dashboard/video' }
 ];
 
-type TMidjourneyListingPage = {};
+type TVideoListingPage = {};
 
-export default async function MidjourneyListingPage({}: TMidjourneyListingPage) {
+export default async function VideoListingPage({}: TVideoListingPage) {
   // Showcasing the use of search params cache in nested RSCs
   const page = searchParamsCache.get('page');
   const search = searchParamsCache.get('q');
@@ -27,21 +27,19 @@ export default async function MidjourneyListingPage({}: TMidjourneyListingPage) 
   const mjId = searchParamsCache.get('mj_id');
   const channel = searchParamsCache.get('channel');
   const username = searchParamsCache.get('username');
-  const type = searchParamsCache.get('type');
-  const status = searchParamsCache.get('status');
   const startTime = searchParamsCache.get('start_timestamp');
   const endTime = searchParamsCache.get('end_timestamp');
 
-  // const filters = {
-  //   page,
-  //   limit: pageLimit,
-  //   ...(search && { search }),
-  //   ...(mjId && { mj_id: mjId }),
-  //   ...(channel && { channel }),
-  //   ...(username && { username }),
-  //   ...(startTime && { start_timestamp: startTime }),
-  //   ...(endTime && { end_timestamp: endTime })
-  // };
+  const filters = {
+    page,
+    limit: pageLimit,
+    ...(search && { search }),
+    ...(mjId && { mj_id: mjId }),
+    ...(channel && { channel }),
+    ...(username && { username }),
+    ...(startTime && { start_timestamp: startTime }),
+    ...(endTime && { end_timestamp: endTime })
+  };
 
   const params = new URLSearchParams({
     page: String(page),
@@ -50,8 +48,6 @@ export default async function MidjourneyListingPage({}: TMidjourneyListingPage) 
     ...(mjId && { mj_id: mjId }),
     ...(channel && { channel: String(channel) }),
     ...(username && { username }),
-    ...(type && { type }),
-    ...(status && { status }),
     ...(startTime && { start_timestamp: String(Number(startTime) * 1000) }), // 用毫秒
     ...(endTime && { end_timestamp: String(Number(endTime) * 1000) })
   });
@@ -60,8 +56,8 @@ export default async function MidjourneyListingPage({}: TMidjourneyListingPage) 
   // 查看角色
   const _userRole = cookies().get('role')?.value;
   const userApi = [10, 100].includes(Number(_userRole))
-    ? `/api/mj`
-    : `/api/mj/self`;
+    ? `/api/video`
+    : `/api/video/self`;
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL + `${userApi}?${params}`;
   // console.log('baseUrl', baseUrl)
   const res = await fetch(
@@ -78,12 +74,12 @@ export default async function MidjourneyListingPage({}: TMidjourneyListingPage) 
   // console.log('----data----', data);
   // console.log('----data----', data.currentPage)
   // console.log('----params----', params)
-  const totalUsers = (data && data.total) || 0;
-  const mjData: MidjourneyStat[] = (data && data.list) || [];
-  // console.log('mjData', mjData);
+  const totalData = (data && data.total) || 0;
+  const videoData: VideoStat[] = (data && data.list) || [];
+  console.log('videoData', videoData);
   // mock api call
   // const data = await fakeUsers.getUsers(filters);
-  // const totalUsers = data.total_users;
+  // const totalData = data.total_users;
   // const channel: Channel[] = data.users;
 
   return (
@@ -93,7 +89,7 @@ export default async function MidjourneyListingPage({}: TMidjourneyListingPage) 
 
         {/* <div className="flex items-start justify-between">
           <Heading
-            title={`Channels (${totalUsers})`}
+            title={`Channels (${totalData})`}
             description="Manage channels (Server side table functionalities.)"
           />
 
@@ -105,7 +101,7 @@ export default async function MidjourneyListingPage({}: TMidjourneyListingPage) 
           </Link>
         </div> */}
         <Separator />
-        <MidjourneyTable data={mjData} totalData={totalUsers} />
+        <VideoTable data={videoData} totalData={totalData} />
       </div>
     </PageContainer>
   );

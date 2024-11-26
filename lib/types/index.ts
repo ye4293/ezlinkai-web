@@ -9,3 +9,4 @@ export * from './midjourney';
 export * from './operationalSettings';
 export * from './systemSettings';
 export * from './otherSettings';
+export * from './video';

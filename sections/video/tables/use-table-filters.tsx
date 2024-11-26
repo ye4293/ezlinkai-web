@@ -5,20 +5,9 @@ import { useQueryState } from 'nuqs';
 import { useCallback, useMemo, useState } from 'react';
 import { DateRange } from 'react-day-picker';
 
-export const TYPE_OPTIONS = [
-  { value: 'relax', label: 'Relax' },
-  { value: 'fast', label: 'Fast' },
-  { value: 'turbo', label: 'Turbo' }
-];
-
 export const STATUS_OPTIONS = [
-  { value: 'NOT_START', label: 'NotStart' },
-  { value: 'SUBMITTED', label: 'Submitted' },
-  { value: 'QUEUED', label: 'Queued' },
-  { value: 'IN_PROGRESS', label: 'Progress' },
-  { value: 'FAILURE', label: 'Failure' },
-  { value: 'SUCCESS', label: 'Success' },
-  { value: 'UNKNOWN', label: 'Unknown' }
+  { value: '1', label: 'Enabled' },
+  { value: '2', label: 'Disabled' }
 ];
 
 export function useTableFilters() {
@@ -29,9 +18,23 @@ export function useTableFilters() {
       .withDefault('')
   );
 
-  const [mjId, setMjId] = useQueryState(
-    'mj_id',
-    searchParams.mj_id
+  const [taskId, setTaskId] = useQueryState(
+    'task_id',
+    searchParams.task_id
+      .withOptions({ shallow: false, throttleMs: 1000 })
+      .withDefault('')
+  );
+
+  const [provider, setProvider] = useQueryState(
+    'provider',
+    searchParams.provider
+      .withOptions({ shallow: false, throttleMs: 1000 })
+      .withDefault('')
+  );
+
+  const [modelName, setModelName] = useQueryState(
+    'model_name',
+    searchParams.model_name
       .withOptions({ shallow: false, throttleMs: 1000 })
       .withDefault('')
   );
@@ -48,16 +51,6 @@ export function useTableFilters() {
     searchParams.username
       .withOptions({ shallow: false, throttleMs: 1000 })
       .withDefault('')
-  );
-
-  const [typeFilter, setTypeFilter] = useQueryState(
-    'type',
-    searchParams.type.withOptions({ shallow: false }).withDefault('')
-  );
-
-  const [statusFilter, setStatusFilter] = useQueryState(
-    'status',
-    searchParams.status.withOptions({ shallow: false }).withDefault('')
   );
 
   const [page, setPage] = useQueryState(
@@ -107,22 +100,22 @@ export function useTableFilters() {
 
   const resetFilters = useCallback(() => {
     setSearchQuery(null);
-    setMjId(null);
+    setTaskId(null);
+    setProvider(null);
+    setModelName(null);
     setChannelId(null);
     setUserName(null);
-    setTypeFilter(null);
-    setStatusFilter(null);
     setStartTimestamp(null);
     setEndTimestamp(null);
     setDateRange({ from: undefined, to: undefined });
 
     setPage(1);
   }, [
-    setMjId,
+    setTaskId,
+    setProvider,
+    setModelName,
     setChannelId,
     setUserName,
-    setTypeFilter,
-    setStatusFilter,
     setPage,
     setStartTimestamp,
     setEndTimestamp,
@@ -131,35 +124,35 @@ export function useTableFilters() {
 
   const isAnyFilterActive = useMemo(() => {
     return (
-      !!mjId ||
+      !!taskId ||
+      !!provider ||
+      !!modelName ||
       !!channelId ||
       !!userName ||
-      !!typeFilter ||
-      !!statusFilter ||
       !!startTimestamp ||
       !!endTimestamp
     );
   }, [
-    mjId,
+    taskId,
+    provider,
+    modelName,
     channelId,
     userName,
-    typeFilter,
-    statusFilter,
     startTimestamp,
     endTimestamp
   ]);
 
   return {
-    mjId,
-    setMjId,
+    taskId,
+    setTaskId,
+    provider,
+    setProvider,
+    modelName,
+    setModelName,
     channelId,
     setChannelId,
     userName,
     setUserName,
-    typeFilter,
-    setTypeFilter,
-    statusFilter,
-    setStatusFilter,
     page,
     setPage,
     resetFilters,
