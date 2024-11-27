@@ -30,7 +30,7 @@ export default async function TopupPage() {
     }
   );
   const { data } = await res.json();
-  // console.log('topup', data);
+  console.log('topup', data);
 
   let topUpLink = '';
   let paymentUri = '';
@@ -46,7 +46,7 @@ export default async function TopupPage() {
     }
   );
   const upLinkData = await res2.json();
-  // console.log('upLinkData', upLinkData);
+  console.log('upLinkData', upLinkData);
   if (upLinkData.data?.qr_code) {
     const base64 = `data:image/png;base64,${upLinkData.data?.qr_code}`;
     topUpLink = base64;

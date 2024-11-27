@@ -21,17 +21,18 @@ export default async function OverViewPage() {
     time: Math.trunc(getUnixTime(new Date()))
   };
   const _cookie = 'session=' + cookies().get('session')?.value + '==';
+  // 查看角色
+  const _userRole = cookies().get('role')?.value;
+  const userApi = [10, 100].includes(Number(_userRole))
+    ? `/api/dashboard/`
+    : `/api/dashboard/self`;
   console.log('----overview cookie', _cookie);
-  const res = await fetch(
-    process.env.NEXT_PUBLIC_API_BASE_URL +
-      `/api/dashboard1/?time=${params.time}`,
-    {
-      credentials: 'include',
-      headers: {
-        Cookie: _cookie
-      }
+  const res = await fetch(process.env.NEXT_PUBLIC_API_BASE_URL + userApi, {
+    credentials: 'include',
+    headers: {
+      Cookie: _cookie
     }
-  );
+  });
   const dashboard = await res.json();
   console.log('dashboard', dashboard);
   return (
