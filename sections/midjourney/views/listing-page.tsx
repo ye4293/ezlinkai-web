@@ -1,4 +1,5 @@
-import { cookies } from 'next/headers';
+// import { cookies } from 'next/headers';
+import { auth } from '@/auth';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import PageContainer from '@/components/layout/page-container';
 import MidjourneyTable from '../tables';
@@ -56,9 +57,10 @@ export default async function MidjourneyListingPage({}: TMidjourneyListingPage) 
     ...(endTime && { end_timestamp: String(Number(endTime) * 1000) })
   });
   // console.log('Midjourney params', params);
-  const _cookie = 'session=' + cookies().get('session')?.value + '==';
+  const session = await auth();
+  // const _cookie = 'session=' + cookies().get('session')?.value + '==';
   // 查看角色
-  const _userRole = cookies().get('role')?.value;
+  const _userRole = session?.user?.role;
   const userApi = [10, 100].includes(Number(_userRole))
     ? `/api/mj`
     : `/api/mj/self`;
@@ -70,7 +72,8 @@ export default async function MidjourneyListingPage({}: TMidjourneyListingPage) 
     {
       credentials: 'include',
       headers: {
-        Cookie: _cookie
+        // Cookie: _cookie,
+        Authorization: `Bearer ${session?.user?.accessToken}`
       }
     }
   );

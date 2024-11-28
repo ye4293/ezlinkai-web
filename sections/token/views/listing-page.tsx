@@ -1,4 +1,5 @@
-import { cookies } from 'next/headers';
+// import { cookies } from 'next/headers';
+import { auth } from '@/auth';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import PageContainer from '@/components/layout/page-container';
 import TokenTable from '../tables';
@@ -26,12 +27,12 @@ export default async function TokenListingPage({}: TTokenListingPage) {
   const status = searchParamsCache.get('status');
   const pageLimit = searchParamsCache.get('limit');
 
-  const filters = {
-    page,
-    limit: pageLimit,
-    ...(search && { search }),
-    ...(status && { genders: status })
-  };
+  // const filters = {
+  //   page,
+  //   limit: pageLimit,
+  //   ...(search && { search }),
+  //   ...(status && { genders: status })
+  // };
 
   const params = new URLSearchParams({
     page: String(page),
@@ -39,13 +40,15 @@ export default async function TokenListingPage({}: TTokenListingPage) {
     ...(search && { keyword: search }),
     ...(status && { status: status })
   });
-  const _cookie = 'session=' + cookies().get('session')?.value + '==';
+  const session = await auth();
+  // const _cookie = 'session=' + cookies().get('session')?.value + '==';
   const baseUrl =
     process.env.NEXT_PUBLIC_API_BASE_URL + `/api/token/search?${params}`;
   const res = await fetch(baseUrl, {
     credentials: 'include',
     headers: {
-      Cookie: _cookie
+      // Cookie: _cookie,
+      Authorization: `Bearer ${session?.user?.accessToken}`
     }
   });
   const { data } = await res.json();

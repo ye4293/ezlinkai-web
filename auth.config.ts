@@ -7,17 +7,18 @@ import { Account, Session, User as NextAuthUser } from 'next-auth';
 // import { JWT } from 'next-auth/jwt';
 
 // 首先在文件顶部添加类型定义
-interface UserData {
-  id: string | number;
-  username: string;
-  display_name: string;
-  email: string;
-  role: string | number;
-}
+// interface UserData {
+//   id: string | number;
+//   username: string;
+//   display_name: string;
+//   email: string;
+//   role: string | number;
+// }
 
 // 扩展 Account 类型
 interface ExtendedAccount extends Account {
   userData?: Record<string, string | number>;
+  accessToken?: string;
 }
 
 // 扩展 User 类型
@@ -25,6 +26,7 @@ interface User extends NextAuthUser {
   username?: string;
   display_name?: string;
   role?: number;
+  accessToken?: string;
 }
 
 // 扩展 JWT 类型
@@ -38,15 +40,16 @@ interface User extends NextAuthUser {
 // }
 
 // 扩展 Session 类型
-interface ExtendedSession extends Session {
-  user: {
-    id: string;
-    username: string;
-    name?: string | null;
-    email?: string | null;
-    role?: number;
-  };
-}
+// interface ExtendedSession extends Session {
+//   user: {
+//     id: string;
+//     username: string;
+//     name?: string | null;
+//     email?: string | null;
+//     role?: number;
+//     accessToken?: string;
+//   };
+// }
 
 const authConfig = {
   providers: [
@@ -140,7 +143,8 @@ const authConfig = {
           username: userLogin.data.username,
           display_name: userLogin.data.display_name,
           email: userLogin.data.email,
-          role: userLogin.data.role
+          role: userLogin.data.role,
+          accessToken: userLogin.data.access_token
           // password: credentials?.password as string,
           // 'set-cookie': res.headers.get('set-cookie'),
           // ...loginData.data
@@ -160,7 +164,9 @@ const authConfig = {
   ],
   session: {
     // 使用JWT来管理会话
-    strategy: 'jwt'
+    strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+    updateAge: 24 * 60 * 60 // 24 hours
   },
   callbacks: {
     async signIn({ user, account, profile }) {
@@ -226,7 +232,7 @@ const authConfig = {
         });
 
         // 返回从后端 API 获取的用户数据
-        account.userData = { ...userInfo.data };
+        (account as ExtendedAccount).userData = { ...userInfo.data };
         // account = { ...account, role: 1 }
         // console.log('*****account*****', account)
         // user = { ...user, ...userInfo.data }
@@ -268,16 +274,21 @@ const authConfig = {
         );
         token.role =
           (user as User).role || (account as ExtendedAccount)?.userData?.role;
+        token.accessToken =
+          (user as User).accessToken ||
+          (account as ExtendedAccount)?.userData?.access_token; // 添加访问令牌
       }
       return token;
     },
     async session({ session, token, user }) {
-      const sess = session as ExtendedSession;
+      // const sess = session as ExtendedSession;
+      const sess = session as Session;
       sess.user.id = String(token.id);
       sess.user.username = String(token.username);
       sess.user.name = String(token.name || token.display_name);
       sess.user.email = String(token.email);
       sess.user.role = token.role as number;
+      sess.user.accessToken = token.accessToken as string;
       return sess;
     }
   },

@@ -11,6 +11,10 @@ interface IUser extends DefaultUser {
    */
   // phone?: string | null
   username?: string | null;
+  name?: string | null;
+  email?: string | null;
+  role?: number;
+  accessToken?: string;
 }
 
 declare module 'next-auth' {
@@ -25,7 +29,7 @@ declare module 'next-auth' {
   //   password: string;
   // }
   interface Session {
-    user?: IUser & DefaultSession['user'];
+    user: IUser & DefaultSession['user'];
   }
 }
 

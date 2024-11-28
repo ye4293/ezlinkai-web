@@ -1,4 +1,5 @@
-import { cookies } from 'next/headers';
+// import { cookies } from 'next/headers';
+import { auth } from '@/auth';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import PageContainer from '@/components/layout/page-container';
 import VideoTable from '../tables';
@@ -30,16 +31,16 @@ export default async function VideoListingPage({}: TVideoListingPage) {
   const startTime = searchParamsCache.get('start_timestamp');
   const endTime = searchParamsCache.get('end_timestamp');
 
-  const filters = {
-    page,
-    limit: pageLimit,
-    ...(search && { search }),
-    ...(mjId && { mj_id: mjId }),
-    ...(channel && { channel }),
-    ...(username && { username }),
-    ...(startTime && { start_timestamp: startTime }),
-    ...(endTime && { end_timestamp: endTime })
-  };
+  // const filters = {
+  //   page,
+  //   limit: pageLimit,
+  //   ...(search && { search }),
+  //   ...(mjId && { mj_id: mjId }),
+  //   ...(channel && { channel }),
+  //   ...(username && { username }),
+  //   ...(startTime && { start_timestamp: startTime }),
+  //   ...(endTime && { end_timestamp: endTime })
+  // };
 
   const params = new URLSearchParams({
     page: String(page),
@@ -52,9 +53,10 @@ export default async function VideoListingPage({}: TVideoListingPage) {
     ...(endTime && { end_timestamp: String(Number(endTime) * 1000) })
   });
   // console.log('Midjourney params', params);
-  const _cookie = 'session=' + cookies().get('session')?.value + '==';
+  const session = await auth();
+  // const _cookie = 'session=' + cookies().get('session')?.value + '==';
   // 查看角色
-  const _userRole = cookies().get('role')?.value;
+  const _userRole = session?.user?.role;
   const userApi = [10, 100].includes(Number(_userRole))
     ? `/api/video`
     : `/api/video/self`;
@@ -66,7 +68,8 @@ export default async function VideoListingPage({}: TVideoListingPage) {
     {
       credentials: 'include',
       headers: {
-        Cookie: _cookie
+        // Cookie: _cookie,
+        Authorization: `Bearer ${session?.user?.accessToken}`
       }
     }
   );
@@ -76,7 +79,7 @@ export default async function VideoListingPage({}: TVideoListingPage) {
   // console.log('----params----', params)
   const totalData = (data && data.total) || 0;
   const videoData: VideoStat[] = (data && data.list) || [];
-  console.log('videoData', videoData);
+  // console.log('videoData', videoData);
   // mock api call
   // const data = await fakeUsers.getUsers(filters);
   // const totalData = data.total_users;

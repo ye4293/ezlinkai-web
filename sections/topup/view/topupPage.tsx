@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers';
+import { auth } from '@/auth';
 import Image from 'next/image';
 import { getUnixTime } from 'date-fns';
 import { CalendarDateRangePicker } from '@/components/date-range-picker';
@@ -19,18 +20,20 @@ import StripePage from '../stripePage';
 import TopupForm from '../topup-form';
 
 export default async function TopupPage() {
+  const session = await auth();
   const _cookie = 'session=' + cookies().get('session')?.value + '==';
   const res = await fetch(
     process.env.NEXT_PUBLIC_API_BASE_URL + `/api/user/self`,
     {
       credentials: 'include',
       headers: {
-        Cookie: _cookie
+        // Cookie: _cookie,
+        Authorization: `Bearer ${session?.user?.accessToken}`
       }
     }
   );
   const { data } = await res.json();
-  console.log('topup', data);
+  // console.log('topup', data);
 
   let topUpLink = '';
   let paymentUri = '';
@@ -41,12 +44,13 @@ export default async function TopupPage() {
     {
       credentials: 'include',
       headers: {
-        Cookie: _cookie
+        // Cookie: _cookie,
+        Authorization: `Bearer ${session?.user?.accessToken}`
       }
     }
   );
   const upLinkData = await res2.json();
-  console.log('upLinkData', upLinkData);
+  // console.log('upLinkData', upLinkData);
   if (upLinkData.data?.qr_code) {
     const base64 = `data:image/png;base64,${upLinkData.data?.qr_code}`;
     topUpLink = base64;

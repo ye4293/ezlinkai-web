@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers';
+import { auth } from '@/auth';
 import { getUnixTime } from 'date-fns';
 import { AreaGraph } from '../area-graph';
 import { BarGraph } from '../bar-graph';
@@ -15,26 +16,33 @@ import {
   CardTitle
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { renderQuota } from '@/utils/render';
 
 export default async function OverViewPage() {
+  const session = await auth();
+  // console.log('----session', session);
   const params = {
     time: Math.trunc(getUnixTime(new Date()))
   };
-  const _cookie = 'session=' + cookies().get('session')?.value + '==';
+  // const _cookie = 'session=' + cookies().get('session')?.value + '==';
   // 查看角色
   const _userRole = cookies().get('role')?.value;
   const userApi = [10, 100].includes(Number(_userRole))
     ? `/api/dashboard/`
     : `/api/dashboard/self`;
-  console.log('----overview cookie', _cookie);
+  // console.log('----overview cookie', _cookie);
   const res = await fetch(process.env.NEXT_PUBLIC_API_BASE_URL + userApi, {
     credentials: 'include',
     headers: {
-      Cookie: _cookie
+      // Cookie: _cookie,
+      Authorization: `Bearer ${session?.user?.accessToken}`
     }
   });
+  // console.log('----dashboard res', res);
   const dashboard = await res.json();
   console.log('dashboard', dashboard);
+  const dashboardData = dashboard.data || {};
+
   return (
     <PageContainer scrollable>
       <div className="space-y-2">
@@ -55,11 +63,11 @@ export default async function OverViewPage() {
             </TabsTrigger>
           </TabsList>
           <TabsContent value="overview" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
-                    Total Revenue
+                    Available Credits
                   </CardTitle>
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -75,17 +83,18 @@ export default async function OverViewPage() {
                   </svg>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">$45,231.89</div>
-                  <p className="text-xs text-muted-foreground">
-                    +20.1% from last month
-                  </p>
+                  <div className="text-2xl font-bold">
+                    {renderQuota(dashboardData.used_quota || 0)}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Used Credits</p>
+                  <div className="text-xl font-bold">
+                    {dashboardData.used_quota || 0}
+                  </div>
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Subscriptions
-                  </CardTitle>
+                  <CardTitle className="text-sm font-medium">TPM</CardTitle>
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 24 24"
@@ -102,15 +111,20 @@ export default async function OverViewPage() {
                   </svg>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">+2350</div>
-                  <p className="text-xs text-muted-foreground">
-                    +180.1% from last month
-                  </p>
+                  <div className="text-2xl font-bold">
+                    {renderQuota(dashboardData.current_quota || 0)}
+                  </div>
+                  <p className="text-xs text-muted-foreground">QuotaPM</p>
+                  <div className="text-xl font-bold">
+                    {dashboardData.current_quota || 0}
+                  </div>
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Sales</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    RequestPD
+                  </CardTitle>
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 24 24"
@@ -126,13 +140,16 @@ export default async function OverViewPage() {
                   </svg>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">+12,234</div>
-                  <p className="text-xs text-muted-foreground">
-                    +19% from last month
-                  </p>
+                  <div className="text-2xl font-bold">
+                    {dashboardData.quota_pm || 0}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Today's Usage</p>
+                  <div className="text-xl font-bold">
+                    {dashboardData.quota_pm || 0}
+                  </div>
                 </CardContent>
               </Card>
-              <Card>
+              {/* <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
                     Active Now
@@ -151,12 +168,12 @@ export default async function OverViewPage() {
                   </svg>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">+573</div>
+                  <div className="text-2xl font-bold">{ dashboardData.used_pd || 0 }</div>
                   <p className="text-xs text-muted-foreground">
                     +201 since last hour
                   </p>
                 </CardContent>
-              </Card>
+              </Card> */}
             </div>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-7">
               <div className="col-span-4">

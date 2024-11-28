@@ -1,9 +1,11 @@
-import { cookies } from 'next/headers';
+// import { cookies } from 'next/headers';
+import { auth } from '@/auth';
 import { NextRequest } from 'next/server';
 
 // 通用的请求处理函数
 async function handleRequest(req: NextRequest, method: string) {
-  const _cookie = 'session=' + cookies().get('session')?.value + '==';
+  const session = await auth();
+  // const _cookie = 'session=' + cookies().get('session')?.value + '==';
   try {
     const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL + `/api/channel`;
 
@@ -11,7 +13,8 @@ async function handleRequest(req: NextRequest, method: string) {
       method: method,
       headers: {
         ...req.headers,
-        Cookie: _cookie
+        // Cookie: _cookie
+        Authorization: `Bearer ${session?.user?.accessToken}`
       },
       body: method !== 'GET' ? await req.text() : undefined,
       redirect: 'follow'
