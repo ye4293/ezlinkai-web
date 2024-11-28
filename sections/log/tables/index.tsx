@@ -5,7 +5,7 @@ import { DataTableSingleFilterBox } from '@/components/ui/table/data-table-singl
 import { DataTableResetFilter } from '@/components/ui/table/data-table-reset-filter';
 import { DataTableSearch } from '@/components/ui/table/data-table-search';
 import { CalendarDateRangePicker } from '@/components/date-range-picker';
-import { Channel } from '@/lib/types';
+import { LogStat } from '@/lib/types';
 import { LOG_OPTIONS } from '@/constants';
 import { columns } from './columns';
 import { useTableFilters } from './use-table-filters';
@@ -15,7 +15,7 @@ export default function LogTable({
   data,
   totalData
 }: {
-  data: Channel[];
+  data: LogStat[];
   totalData: number;
 }) {
   const { data: session } = useSession();
@@ -63,18 +63,22 @@ export default function LogTable({
           setSearchQuery={setModelName}
           setPage={setPage}
         />
-        <DataTableSearch
-          searchKey="Channel ID"
-          searchQuery={channelId}
-          setSearchQuery={setChannelId}
-          setPage={setPage}
-        />
-        <DataTableSearch
-          searchKey="User Name"
-          searchQuery={userName}
-          setSearchQuery={setUserName}
-          setPage={setPage}
-        />
+        {[10, 100].includes((session?.user as any).role) && (
+          <>
+            <DataTableSearch
+              searchKey="Channel ID"
+              searchQuery={channelId}
+              setSearchQuery={setChannelId}
+              setPage={setPage}
+            />
+            <DataTableSearch
+              searchKey="User Name"
+              searchQuery={userName}
+              setSearchQuery={setUserName}
+              setPage={setPage}
+            />
+          </>
+        )}
         <DataTableSingleFilterBox
           filterKey="type"
           title="Type"

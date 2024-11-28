@@ -97,41 +97,43 @@ const authConfig = {
         // console.log('res', res.json())
         // console.log('---res.headers---', res.headers)
         // console.log("---res.headers.get('set-cookie')---", res.headers.get('set-cookie'))
-        const apiCookies = res.headers.get('set-cookie')?.split(';');
-        let _session = '';
-        let _path = '';
-        let _expires = '';
-        let _maxAge = '';
-        apiCookies &&
-          apiCookies.forEach((item) => {
-            if (item.includes('session')) {
-              _session = item.split('=')[1];
-            }
-            if (item.includes('Path')) {
-              _path = item.split('=')[1];
-            }
-            if (item.includes('Expires')) {
-              _expires = item.split('=')[1];
-            }
-            if (item.includes('Max-Age')) {
-              _maxAge = item.split('=')[1];
-            }
-          });
-        // console.log(_session, _path, _expires, _maxAge)
-        // console.log('---cookies---', cookies())
-        cookies().set({
-          name: 'session',
-          value: _session,
-          httpOnly: true,
-          path: '/'
-        });
-        // 设置角色
-        cookies().set({
-          name: 'role',
-          value: userLogin.data.role,
-          httpOnly: true,
-          path: '/'
-        });
+
+        // const apiCookies = res.headers.get('set-cookie')?.split(';');
+        // let _session = '';
+        // let _path = '';
+        // let _expires = '';
+        // let _maxAge = '';
+        // apiCookies &&
+        //   apiCookies.forEach((item) => {
+        //     if (item.includes('session')) {
+        //       _session = item.split('=')[1];
+        //     }
+        //     if (item.includes('Path')) {
+        //       _path = item.split('=')[1];
+        //     }
+        //     if (item.includes('Expires')) {
+        //       _expires = item.split('=')[1];
+        //     }
+        //     if (item.includes('Max-Age')) {
+        //       _maxAge = item.split('=')[1];
+        //     }
+        //   });
+        // // console.log(_session, _path, _expires, _maxAge)
+        // // console.log('---cookies---', cookies())
+        // cookies().set({
+        //   name: 'session',
+        //   value: _session,
+        //   httpOnly: true,
+        //   path: '/'
+        // });
+        // // 设置角色
+        // cookies().set({
+        //   name: 'role',
+        //   value: userLogin.data.role,
+        //   httpOnly: true,
+        //   path: '/'
+        // });
+
         // const loginData = await res.json()
         // console.log('loginData', loginData)
         const user = {
@@ -195,41 +197,41 @@ const authConfig = {
         const userInfo = await res.json();
         if (!userInfo.success) return false;
 
-        const apiCookies = res.headers.get('set-cookie')?.split(';');
-        console.log('apiCookies', apiCookies);
-        let _session = '';
-        let _path = '';
-        let _expires = '';
-        let _maxAge = '';
-        apiCookies &&
-          apiCookies.forEach((item) => {
-            if (item.includes('session')) {
-              _session = item.split('=')[1];
-            }
-            if (item.includes('Path')) {
-              _path = item.split('=')[1];
-            }
-            if (item.includes('Expires')) {
-              _expires = item.split('=')[1];
-            }
-            if (item.includes('Max-Age')) {
-              _maxAge = item.split('=')[1];
-            }
-          });
-        cookies().set({
-          name: 'session',
-          value: _session,
-          httpOnly: true,
-          path: '/'
-        });
-        // 设置角色
-        cookies().set({
-          name: 'role',
-          value: userInfo?.data?.role,
-          // value: '1',
-          httpOnly: true,
-          path: '/'
-        });
+        // const apiCookies = res.headers.get('set-cookie')?.split(';');
+        // console.log('apiCookies', apiCookies);
+        // let _session = '';
+        // let _path = '';
+        // let _expires = '';
+        // let _maxAge = '';
+        // apiCookies &&
+        //   apiCookies.forEach((item) => {
+        //     if (item.includes('session')) {
+        //       _session = item.split('=')[1];
+        //     }
+        //     if (item.includes('Path')) {
+        //       _path = item.split('=')[1];
+        //     }
+        //     if (item.includes('Expires')) {
+        //       _expires = item.split('=')[1];
+        //     }
+        //     if (item.includes('Max-Age')) {
+        //       _maxAge = item.split('=')[1];
+        //     }
+        //   });
+        // cookies().set({
+        //   name: 'session',
+        //   value: _session,
+        //   httpOnly: true,
+        //   path: '/'
+        // });
+        // // 设置角色
+        // cookies().set({
+        //   name: 'role',
+        //   value: userInfo?.data?.role,
+        //   // value: '1',
+        //   httpOnly: true,
+        //   path: '/'
+        // });
 
         // 返回从后端 API 获取的用户数据
         (account as ExtendedAccount).userData = { ...userInfo.data };
@@ -240,6 +242,28 @@ const authConfig = {
       }
       if (account?.provider === 'google') {
         console.log('-----google user****', user);
+
+        const params = {
+          ...user
+        };
+        const res = await fetch(
+          process.env.NEXT_PUBLIC_API_BASE_URL + '/api/google/login',
+          {
+            method: 'POST',
+            body: JSON.stringify(params),
+            headers: { 'Content-Type': 'application/json' }
+          }
+        );
+
+        console.log('google登录', res, res.headers.get('set-cookie'));
+
+        const userInfo = await res.json();
+        if (!userInfo.success) return false;
+
+        // 返回从后端 API 获取的用户数据
+        (account as ExtendedAccount).userData = { ...userInfo.data };
+
+        return true;
       }
       // user = { ...user, role: 1 }
       // user = { role: 1, aaa: 222 }

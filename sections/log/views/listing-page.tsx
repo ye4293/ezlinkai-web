@@ -6,7 +6,7 @@ import LogTable from '../tables';
 import { buttonVariants } from '@/components/ui/button';
 import { Heading } from '@/components/ui/heading';
 import { Separator } from '@/components/ui/separator';
-import { Channel } from '@/lib/types';
+import { LogStat } from '@/lib/types';
 // import { fakeUsers } from '@/constants/mock-api';
 import { searchParamsCache } from '@/lib/searchparams';
 import { cn } from '@/lib/utils';
@@ -80,11 +80,11 @@ export default async function LogListingPage({}: TLogListingPage) {
     }
   );
   const { data } = await res.json();
-  // console.log('----data----', data);
+  console.log('----data----', data);
   // console.log('----data----', data.currentPage)
   // console.log('----params----', params)
   const totalUsers = (data && data.total) || 0;
-  const logData: Channel[] = (data && data.list) || [];
+  const logData: LogStat[] = (data && data.list) || [];
   // mock api call
   // const data = await fakeUsers.getUsers(filters);
   // const totalUsers = data.total_users;

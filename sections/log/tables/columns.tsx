@@ -7,7 +7,7 @@ import {
   TooltipTrigger,
   TooltipProvider
 } from '@/components/ui/tooltip';
-import { Channel } from '@/lib/types';
+import { LogStat } from '@/lib/types';
 import { ColumnDef } from '@tanstack/react-table';
 import { CellAction } from './cell-action';
 
@@ -34,7 +34,7 @@ const processQuota = (quota: number) => {
   return `$${parseFloat(processedQuota)}`;
 };
 
-export const columns: ColumnDef<Channel>[] = [
+export const columns: ColumnDef<LogStat>[] = [
   {
     id: 'select',
     header: ({ table }) => (

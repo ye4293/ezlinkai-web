@@ -1,4 +1,5 @@
 export interface LogStat {
+  id: number;
   /** 类型 */
   type: number;
   /** 用户名 */

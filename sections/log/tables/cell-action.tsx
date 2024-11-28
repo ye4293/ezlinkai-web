@@ -8,14 +8,13 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-// import { Channel } from '@/constants/data';
-import { Channel } from '@/lib/types';
+import { LogStat } from '@/lib/types';
 import { Edit, MoreHorizontal, Trash } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 interface CellActionProps {
-  data: Channel;
+  data: LogStat;
 }
 
 export const CellAction: React.FC<CellActionProps> = ({ data }) => {
