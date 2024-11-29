@@ -43,31 +43,6 @@ export default async function OverViewPage() {
   // console.log('dashboard', dashboard);
   const dashboardData = dashboard.data || {};
 
-  // 获取图表数据
-  const graphApi = [10, 100].includes(Number(_userRole))
-    ? `/api/dashboard/graph`
-    : `/api/dashboard/graph/self`;
-  const params = new URLSearchParams({
-    time: String(Math.trunc(getUnixTime(new Date()))),
-    target: 'quota'
-  });
-  console.log('params', params);
-  console.log(
-    'graphApi',
-    process.env.NEXT_PUBLIC_API_BASE_URL + `${graphApi}?${params}`
-  );
-  const graphRes = await fetch(
-    process.env.NEXT_PUBLIC_API_BASE_URL + `${graphApi}?${params}`,
-    {
-      credentials: 'include',
-      headers: {
-        Authorization: `Bearer ${session?.user?.accessToken}`
-      }
-    }
-  );
-  const graphData = await graphRes.json();
-  console.log('graphData', graphData);
-
   return (
     <PageContainer scrollable>
       <div className="space-y-2">
@@ -224,13 +199,13 @@ export default async function OverViewPage() {
             </div>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-7">
               <div className="col-span-4">
-                <BarGraph />
+                <BarGraph session={session} />
               </div>
               <Card className="col-span-4 md:col-span-3">
                 <CardHeader>
                   <CardTitle>Most Popular AI Models</CardTitle>
                   <CardDescription>
-                    {dashboardData.model_stats.length} models today.
+                    {dashboardData.model_stats?.length || 0} models today.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
