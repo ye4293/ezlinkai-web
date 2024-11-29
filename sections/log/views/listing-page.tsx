@@ -80,7 +80,7 @@ export default async function LogListingPage({}: TLogListingPage) {
     }
   );
   const { data } = await res.json();
-  console.log('----data----', data);
+  // console.log('----data----', data);
   // console.log('----data----', data.currentPage)
   // console.log('----params----', params)
   const totalUsers = (data && data.total) || 0;

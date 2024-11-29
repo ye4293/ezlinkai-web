@@ -1,9 +1,9 @@
-import { cookies } from 'next/headers';
+// import { cookies } from 'next/headers';
 import { auth } from '@/auth';
 import { getUnixTime } from 'date-fns';
-import { AreaGraph } from '../area-graph';
+// import { AreaGraph } from '../area-graph';
 import { BarGraph } from '../bar-graph';
-import { PieGraph } from '../pie-graph';
+// import { PieGraph } from '../pie-graph';
 import { CalendarDateRangePicker } from '@/components/date-range-picker';
 import PageContainer from '@/components/layout/page-container';
 import { RecentSales } from '../recent-sales';
@@ -21,12 +21,12 @@ import { renderQuota } from '@/utils/render';
 export default async function OverViewPage() {
   const session = await auth();
   // console.log('----session', session);
-  const params = {
-    time: Math.trunc(getUnixTime(new Date()))
-  };
+  // const params = {
+  //   time: Math.trunc(getUnixTime(new Date()))
+  // };
   // const _cookie = 'session=' + cookies().get('session')?.value + '==';
   // 查看角色
-  const _userRole = cookies().get('role')?.value;
+  const _userRole = session?.user?.role;
   const userApi = [10, 100].includes(Number(_userRole))
     ? `/api/dashboard/`
     : `/api/dashboard/self`;
@@ -40,8 +40,33 @@ export default async function OverViewPage() {
   });
   // console.log('----dashboard res', res);
   const dashboard = await res.json();
-  console.log('dashboard', dashboard);
+  // console.log('dashboard', dashboard);
   const dashboardData = dashboard.data || {};
+
+  // 获取图表数据
+  const graphApi = [10, 100].includes(Number(_userRole))
+    ? `/api/dashboard/graph`
+    : `/api/dashboard/graph/self`;
+  const params = new URLSearchParams({
+    time: String(Math.trunc(getUnixTime(new Date()))),
+    target: 'quota'
+  });
+  console.log('params', params);
+  console.log(
+    'graphApi',
+    process.env.NEXT_PUBLIC_API_BASE_URL + `${graphApi}?${params}`
+  );
+  const graphRes = await fetch(
+    process.env.NEXT_PUBLIC_API_BASE_URL + `${graphApi}?${params}`,
+    {
+      credentials: 'include',
+      headers: {
+        Authorization: `Bearer ${session?.user?.accessToken}`
+      }
+    }
+  );
+  const graphData = await graphRes.json();
+  console.log('graphData', graphData);
 
   return (
     <PageContainer scrollable>
@@ -66,9 +91,7 @@ export default async function OverViewPage() {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Available Credits
-                  </CardTitle>
+                  <CardTitle className="text-sm font-medium">Credits</CardTitle>
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 24 24"
@@ -83,18 +106,24 @@ export default async function OverViewPage() {
                   </svg>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">
-                    {renderQuota(dashboardData.used_quota || 0)}
+                  {/* <div className="text-2xl font-bold">
+                    {renderQuota(dashboardData.current_quota || 0)}
+                  </div> */}
+                  <p className="text-xs text-muted-foreground">
+                    Available Credits
+                  </p>
+                  <div className="text-xl font-bold">
+                    {renderQuota(dashboardData.current_quota || 0)}
                   </div>
                   <p className="text-xs text-muted-foreground">Used Credits</p>
                   <div className="text-xl font-bold">
-                    {dashboardData.used_quota || 0}
+                    {renderQuota(dashboardData.used_quota || 0)}
                   </div>
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">TPM</CardTitle>
+                  <CardTitle className="text-sm font-medium">PM</CardTitle>
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 24 24"
@@ -111,20 +140,32 @@ export default async function OverViewPage() {
                   </svg>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">
+                  {/* <div className="text-2xl font-bold">
                     {renderQuota(dashboardData.current_quota || 0)}
+                  </div> */}
+                  <div className="flex flex-wrap gap-2">
+                    <div className="flex-1">
+                      <p className="text-xs text-muted-foreground">TPM</p>
+                      <div className="text-xl font-bold">
+                        {dashboardData.tpm || 0}
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs text-muted-foreground">RPM</p>
+                      <div className="text-xl font-bold">
+                        {dashboardData.rpm || 0}
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-xs text-muted-foreground">QuotaPM</p>
+                  <p className="text-xs text-muted-foreground">QPM</p>
                   <div className="text-xl font-bold">
-                    {dashboardData.current_quota || 0}
+                    {renderQuota(dashboardData.quota_pm || 0)}
                   </div>
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    RequestPD
-                  </CardTitle>
+                  <CardTitle className="text-sm font-medium">PD</CardTitle>
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 24 24"
@@ -140,12 +181,18 @@ export default async function OverViewPage() {
                   </svg>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">
+                  {/* <div className="text-2xl font-bold">
                     {dashboardData.quota_pm || 0}
+                  </div> */}
+                  <p className="text-xs text-muted-foreground">
+                    Today's Request
+                  </p>
+                  <div className="text-xl font-bold">
+                    {dashboardData.request_pd || 0}
                   </div>
                   <p className="text-xs text-muted-foreground">Today's Usage</p>
                   <div className="text-xl font-bold">
-                    {dashboardData.quota_pm || 0}
+                    {renderQuota(dashboardData.used_pd || 0)}
                   </div>
                 </CardContent>
               </Card>
@@ -181,21 +228,21 @@ export default async function OverViewPage() {
               </div>
               <Card className="col-span-4 md:col-span-3">
                 <CardHeader>
-                  <CardTitle>Recent Sales</CardTitle>
+                  <CardTitle>Most Popular AI Models</CardTitle>
                   <CardDescription>
-                    You made 265 sales this month.
+                    {dashboardData.model_stats.length} models today.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <RecentSales />
+                  <RecentSales dataList={dashboardData.model_stats || []} />
                 </CardContent>
               </Card>
-              <div className="col-span-4">
+              {/* <div className="col-span-4">
                 <AreaGraph />
               </div>
               <div className="col-span-4 md:col-span-3">
                 <PieGraph />
-              </div>
+              </div> */}
             </div>
           </TabsContent>
         </Tabs>
