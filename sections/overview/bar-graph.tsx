@@ -174,10 +174,10 @@ export function BarGraph({ session }: BarGraphProps) {
     fetchData();
   }, [session, activeChart]);
 
-  const total = React.useMemo(
-    () => graphData.reduce((acc: number, curr: any) => acc + curr.amount, 0),
-    [graphData]
-  );
+  // const total = React.useMemo(
+  //   () => graphData.reduce((acc: number, curr: any) => acc + curr.amount, 0),
+  //   [graphData]
+  // );
   // const total = React.useMemo(
   //   () => ({
   //     quota: graphData.reduce((acc: number, curr: any) => acc + curr.amount, 0),

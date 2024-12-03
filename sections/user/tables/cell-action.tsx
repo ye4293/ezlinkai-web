@@ -49,6 +49,7 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
     console.log('data', data);
     if (success) {
       // window.location.reload();
+      setOpen(false);
       router.refresh();
     }
   };
