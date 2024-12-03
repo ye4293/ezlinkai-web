@@ -7,12 +7,39 @@ import {
   TooltipTrigger,
   TooltipProvider
 } from '@/components/ui/tooltip';
-// import { Channel } from '@/constants/data';
 import { Channel } from '@/lib/types';
 import { ColumnDef } from '@tanstack/react-table';
 import { CellAction } from './cell-action';
-import { CHANNEL_OPTIONS } from '@/constants';
 import { renderNumber } from '@/utils/render';
+import { useState, useEffect, useContext } from 'react';
+import React from 'react';
+
+type ChannelType = {
+  key: number;
+  text: string;
+  value: number;
+};
+
+function useChannelTypes() {
+  const [types, setTypes] = useState<ChannelType[]>([]);
+
+  useEffect(() => {
+    const fetchTypes = async () => {
+      try {
+        const res = await fetch('/api/channel/types', {
+          credentials: 'include'
+        });
+        const { data } = await res.json();
+        setTypes(data);
+      } catch (error) {
+        console.error('Failed to fetch channel types:', error);
+      }
+    };
+    fetchTypes();
+  }, []);
+
+  return types;
+}
 
 const renderStatus = (status: number) => {
   switch (status) {
@@ -67,6 +94,28 @@ const renderBalance = (type: number, balance: number) => {
   }
 };
 
+// 创建 Context
+const ChannelTypesContext = React.createContext<ChannelType[]>([]);
+
+// 创建 Provider 组件
+export function ChannelTypesProvider({
+  children
+}: {
+  children: React.ReactNode;
+}) {
+  const types = useChannelTypes();
+  return (
+    <ChannelTypesContext.Provider value={types}>
+      {children}
+    </ChannelTypesContext.Provider>
+  );
+}
+
+// 创建自定义 hook 来使用 context
+const useChannelTypesContext = () => {
+  return useContext(ChannelTypesContext);
+};
+
 export const columns: ColumnDef<Channel>[] = [
   {
     id: 'select',
@@ -107,15 +156,14 @@ export const columns: ColumnDef<Channel>[] = [
   {
     accessorKey: 'type',
     header: () => <div className="text-center">Type</div>,
-    cell: ({ row }) => (
-      <div className="text-center">
-        {
-          [...CHANNEL_OPTIONS].filter(
-            (item) => item.key === row.getValue('type')
-          )[0]?.text
-        }
-      </div>
-    )
+    cell: ({ row }) => {
+      const types = useChannelTypesContext();
+      const typeText =
+        types.find((item) => item.key === row.getValue('type'))?.text ||
+        'Unknown';
+
+      return <div className="text-center">{typeText}</div>;
+    }
   },
   {
     accessorKey: 'status',

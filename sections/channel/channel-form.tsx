@@ -265,7 +265,7 @@ export default function ChannelForm() {
                     <Select
                       onValueChange={(value) => {
                         field.onChange(value);
-                        handleTypeInputChange(value); // Call the function to handle type changes
+                        handleTypeInputChange(value);
                       }}
                       value={field.value}
                     >

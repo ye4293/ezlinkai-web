@@ -319,7 +319,7 @@ const authConfig = {
   pages: {
     signIn: '/' //sigin page
   },
-  debug: true,
+  debug: process.env.NODE_ENV === 'development',
   logger: {
     error(code, ...message) {
       console.error(code, ...message);

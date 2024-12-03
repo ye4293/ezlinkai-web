@@ -4,17 +4,20 @@ import { NextRequest } from 'next/server';
 interface ApiHandlerOptions {
   requireAuth?: boolean;
   endpoint: string;
+  useParams?: boolean;
 }
 
 export class ApiHandler {
   private baseUrl: string;
   private endpoint: string;
   private requireAuth: boolean;
+  private useParams: boolean;
 
   constructor(options: ApiHandlerOptions) {
     this.baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '';
     this.endpoint = options.endpoint;
     this.requireAuth = options.requireAuth ?? true;
+    this.useParams = options.useParams ?? false;
   }
 
   private async getAuthHeaders() {
@@ -26,38 +29,57 @@ export class ApiHandler {
 
   private async handleRequest(req: NextRequest, method: string) {
     try {
-      // 构建完整的 URL
-      const url = new URL(this.baseUrl + this.endpoint);
+      let endpoint = this.endpoint;
 
-      // 添加所有查询参数
+      // 处理路由参数
+      if (this.useParams) {
+        const url = new URL(req.url);
+        const pathParts = url.pathname.split('/');
+        const paramPattern = /:[a-zA-Z]+/g;
+
+        // 替换所有 :param 形式的参数
+        endpoint = endpoint.replace(paramPattern, (match) => {
+          const paramName = match.slice(1); // 移除 : 前缀
+          const paramValue = pathParts[pathParts.length - 1]; // 获取URL最后一段作为参数值
+          return paramValue;
+        });
+      }
+
+      const url = new URL(this.baseUrl + endpoint);
       req.nextUrl.searchParams.forEach((value, key) => {
         url.searchParams.set(key, value);
       });
 
-      // 获取认证头
       const authHeaders = this.requireAuth ? await this.getAuthHeaders() : {};
-
-      // 只保留需要的请求头
       const headers = new Headers();
-      ['content-type', 'accept', 'user-agent'].forEach((header) => {
-        const value = req.headers.get(header);
-        if (value) headers.set(header, value);
-      });
 
       // 合并认证头
       Object.entries(authHeaders).forEach(([key, value]) => {
         headers.set(key, value);
       });
 
-      const response = await fetch(url.toString(), {
+      // 构建请求选项
+      const fetchOptions: RequestInit = {
         method,
         headers,
-        body: method !== 'GET' ? await req.text() : undefined,
         redirect: 'follow'
-      });
+      };
+
+      // 只对非 GET 请求处理请求体
+      if (method !== 'GET') {
+        const contentType = req.headers.get('content-type');
+        const body = await req.text();
+
+        if (body) {
+          fetchOptions.body = body;
+          headers.set('content-type', contentType || 'application/json');
+          headers.set('content-length', Buffer.byteLength(body).toString());
+        }
+      }
+
+      const response = await fetch(url.toString(), fetchOptions);
 
       if (!response.ok) {
-        // 尝试解析错误响应
         const errorData = await response.json().catch(() => null);
         return new Response(
           JSON.stringify({

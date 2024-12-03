@@ -4,9 +4,8 @@ import { DataTable } from '@/components/ui/table/data-table';
 import { DataTableFilterBox } from '@/components/ui/table/data-table-filter-box';
 import { DataTableResetFilter } from '@/components/ui/table/data-table-reset-filter';
 import { DataTableSearch } from '@/components/ui/table/data-table-search';
-// import { Channel } from '@/constants/data';
 import { Channel } from '@/lib/types';
-import { columns } from './columns';
+import { columns, ChannelTypesProvider } from './columns';
 import { STATUS_OPTIONS, useTableFilters } from './use-table-filters';
 
 export default function ChannelTable({
@@ -47,7 +46,9 @@ export default function ChannelTable({
           onReset={resetFilters}
         />
       </div>
-      <DataTable columns={columns} data={data} totalItems={totalData} />
+      <ChannelTypesProvider>
+        <DataTable columns={columns} data={data} totalItems={totalData} />
+      </ChannelTypesProvider>
     </div>
   );
 }
