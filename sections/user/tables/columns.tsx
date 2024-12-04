@@ -73,6 +73,20 @@ export const columns: ColumnDef<UserSelf>[] = [
     )
   },
   {
+    accessorKey: 'display_name',
+    header: () => <div className="text-center">Display name</div>,
+    cell: ({ row }) => (
+      <div className="text-center">{row.getValue('display_name')}</div>
+    )
+  },
+  {
+    accessorKey: 'email',
+    header: () => <div className="text-center">Email</div>,
+    cell: ({ row }) => (
+      <div className="text-center">{row.getValue('email')}</div>
+    )
+  },
+  {
     accessorKey: 'group',
     header: () => <div className="text-center">Group</div>,
     cell: ({ row }) => (

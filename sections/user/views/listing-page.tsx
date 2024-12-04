@@ -1,4 +1,3 @@
-import { cookies } from 'next/headers';
 import { auth } from '@/auth';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import PageContainer from '@/components/layout/page-container';
@@ -21,18 +20,10 @@ const breadcrumbItems = [
 type TUserListingPage = {};
 
 export default async function UserListingPage({}: TUserListingPage) {
-  // Showcasing the use of search params cache in nested RSCs
   const page = searchParamsCache.get('page');
   const search = searchParamsCache.get('q');
   const status = searchParamsCache.get('status');
   const pageLimit = searchParamsCache.get('limit');
-
-  // const filters = {
-  //   page,
-  //   limit: pageLimit,
-  //   ...(search && { search }),
-  //   ...(status && { genders: status })
-  // };
 
   const params = new URLSearchParams({
     page: String(page),
@@ -41,32 +32,19 @@ export default async function UserListingPage({}: TUserListingPage) {
     ...(status && { status: status })
   });
   const session = await auth();
-  // const _cookie = 'session=' + cookies().get('session')?.value + '==';
   const baseUrl =
     process.env.NEXT_PUBLIC_API_BASE_URL + `/api/user/search?${params}`;
-  // console.log('baseUrl', baseUrl)
-  const res = await fetch(
-    // process.env.NEXT_PUBLIC_API_BASE_URL + `/api/channel/search?page=${params.page}&pagesize=${params.pagesize}`,
-    baseUrl,
-    {
-      credentials: 'include',
-      headers: {
-        // Cookie: _cookie
-        Authorization: `Bearer ${session?.user?.accessToken}`
-      }
+  const res = await fetch(baseUrl, {
+    credentials: 'include',
+    headers: {
+      Authorization: `Bearer ${session?.user?.accessToken}`
     }
-  );
+  });
   const { data } = await res.json();
-  // console.log('---user data---');
-  // console.log('---user data---', data);
-  // console.log('----data----', data.currentPage)
-  // console.log('----params----', params)
   const totalUsers = (data && data.total) || 0;
   const user: UserSelf[] = (data && data.list) || [];
   // mock api call
   // const data = await fakeUsers.getUsers(filters);
-  // const totalUsers = data.total_users;
-  // const channel: Channel[] = data.users;
 
   return (
     <PageContainer scrollable>

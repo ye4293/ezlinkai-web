@@ -159,9 +159,7 @@ export const columns: ColumnDef<Channel>[] = [
     cell: ({ row }) => {
       const types = useChannelTypesContext();
       const typeText =
-        types.find((item) => item.key === row.getValue('type'))?.text ||
-        'Unknown';
-
+        types.find((item) => item.key === row.getValue('type'))?.text || '';
       return <div className="text-center">{typeText}</div>;
     }
   },

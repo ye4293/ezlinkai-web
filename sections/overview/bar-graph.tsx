@@ -153,11 +153,6 @@ export function BarGraph({ session }: BarGraphProps) {
         time: String(Math.trunc(getUnixTime(new Date()))),
         target: activeChart
       });
-      console.log('params', params);
-      console.log(
-        'graphApi',
-        process.env.NEXT_PUBLIC_API_BASE_URL + `${graphApi}?${params}`
-      );
       const graphRes = await fetch(
         process.env.NEXT_PUBLIC_API_BASE_URL + `${graphApi}?${params}`,
         {
@@ -169,7 +164,7 @@ export function BarGraph({ session }: BarGraphProps) {
       );
       const { data } = await graphRes.json();
       setGraphData(data);
-      console.log('graphData', graphData);
+      // console.log('graphData', graphData);
     };
     fetchData();
   }, [session, activeChart]);

@@ -6,8 +6,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   Popover,
   PopoverContent,
@@ -30,11 +28,8 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { CalendarIcon } from '@radix-ui/react-icons';
-import { addDays, format, addMonths, addHours, addMinutes } from 'date-fns';
 import { UserSelf } from '@/lib/types';
 import { renderQuotaWithPrompt } from '@/utils/render';
 
@@ -43,7 +38,10 @@ const formSchema = z.object({
     message: 'Username is required.'
   }),
   display_name: z.string().optional(),
-  password: z.string().optional()
+  password: z.string().optional(),
+  github_id: z.string().optional(),
+  google_id: z.string().optional(),
+  email: z.string().optional()
   // password: z.string().min(8, {
   //   message: 'Password is required.'
   // })
@@ -58,11 +56,13 @@ interface ParamsOption extends Partial<UserSelf> {
   quota?: number;
   user_remind_threshold?: number;
   password?: string;
+  github_id?: string;
+  google_id?: string;
+  email?: string;
 }
 
 export default function UserForm() {
   const { userId } = useParams();
-  console.log('---id---', userId);
   console.log('---useParams()---', useParams());
 
   const [userData, setUserData] = useState<Object | null>(null);
@@ -84,7 +84,10 @@ export default function UserForm() {
         /** 名称 */
         username: data.username,
         display_name: data.display_name,
-        password: ''
+        password: '',
+        github_id: data.github_id,
+        google_id: data.google_id,
+        email: data.email
       });
     };
 
@@ -96,7 +99,10 @@ export default function UserForm() {
     defaultValues: {
       username: '',
       display_name: '',
-      password: ''
+      password: '',
+      github_id: '',
+      google_id: '',
+      email: ''
     }
   });
 
@@ -185,6 +191,54 @@ export default function UserForm() {
                         placeholder="Enter your password"
                         {...field}
                       />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <div className="grid grid-cols-1 gap-6">
+              <FormField
+                control={form.control}
+                name="github_id"
+                disabled
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>GitHub ID</FormLabel>
+                    <FormControl>
+                      <Input placeholder="This is read-only" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <div className="grid grid-cols-1 gap-6">
+              <FormField
+                control={form.control}
+                name="google_id"
+                disabled
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Google ID</FormLabel>
+                    <FormControl>
+                      <Input placeholder="This is read-only" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <div className="grid grid-cols-1 gap-6">
+              <FormField
+                control={form.control}
+                name="email"
+                disabled
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input placeholder="This is read-only" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

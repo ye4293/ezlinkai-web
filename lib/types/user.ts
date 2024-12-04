@@ -24,6 +24,7 @@ export interface UserSelf {
   display_name: string;
   email: string;
   github_id: string;
+  google_id: string;
   group: string;
   id: number;
   inviter_id: number;

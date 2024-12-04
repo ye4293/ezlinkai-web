@@ -18,7 +18,7 @@ import {
   MoveUp,
   MoveDown
 } from 'lucide-react';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 interface CellActionProps {
@@ -31,6 +31,7 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
   const router = useRouter();
 
   const onConfirm = async (user: UserSelf) => {
+    setLoading(true);
     manageUser(user.username, 'delete');
   };
 
@@ -39,19 +40,17 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
       action: action,
       username: username
     };
-    // Implement disable logic here
     const res = await fetch(`/api/user/manage`, {
       method: 'POST',
       body: JSON.stringify(params),
       credentials: 'include'
     });
-    const { data, success } = await res.json();
-    console.log('data', data);
+    const { success } = await res.json();
     if (success) {
-      // window.location.reload();
       setOpen(false);
       router.refresh();
     }
+    setLoading(false);
   };
 
   return (
