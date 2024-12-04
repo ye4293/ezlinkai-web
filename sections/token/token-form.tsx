@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -51,6 +51,7 @@ interface ParamsOption extends Partial<Token> {
 }
 
 export default function TokenForm() {
+  const router = useRouter();
   const { tokenId } = useParams();
   console.log('---useParams()---', useParams());
   const [isExpired, setIsExpired] = useState<Boolean | null>(null);
@@ -140,7 +141,8 @@ export default function TokenForm() {
     const { data, success } = await res.json();
     console.log('data', data);
     if (success) {
-      window.location.href = '/dashboard/token';
+      router.push('/dashboard/token');
+      router.refresh();
     }
   }
 
