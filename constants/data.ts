@@ -179,47 +179,47 @@ export const navItems: NavItem[] = [
     label: 'video',
     roles: [1, 10, 100]
   },
-  {
-    title: 'File',
-    href: '/dashboard/file',
-    icon: 'file',
-    label: 'file',
-    roles: [10, 100]
-  },
-  {
-    title: 'Images',
-    icon: 'images',
-    label: 'images',
-    roles: [10, 100],
-    children: [
-      {
-        title: 'Midjourney',
-        href: '/dashboard/profile',
-        icon: 'userPen',
-        label: 'profile',
-        roles: [10, 100]
-      },
-      {
-        title: 'SD',
-        href: '/',
-        icon: 'login',
-        label: 'login',
-        roles: [10, 100]
-      }
-    ]
-  },
+  // {
+  //   title: 'File',
+  //   href: '/dashboard/file',
+  //   icon: 'file',
+  //   label: 'file',
+  //   roles: [10, 100]
+  // },
+  // {
+  //   title: 'Images',
+  //   icon: 'images',
+  //   label: 'images',
+  //   roles: [10, 100],
+  //   children: [
+  //     {
+  //       title: 'Midjourney',
+  //       href: '/dashboard/profile',
+  //       icon: 'userPen',
+  //       label: 'profile',
+  //       roles: [10, 100]
+  //     },
+  //     {
+  //       title: 'SD',
+  //       href: '/',
+  //       icon: 'login',
+  //       label: 'login',
+  //       roles: [10, 100]
+  //     }
+  //   ]
+  // },
   {
     title: 'Setting',
-    href: '/dashboard/kanban',
+    href: '/dashboard/setting',
     icon: 'setting',
-    label: 'kanban',
-    roles: [10, 100]
-  },
-  {
-    title: 'Kanban',
-    href: '/dashboard/kanban',
-    icon: 'kanban',
-    label: 'kanban',
+    label: 'setting',
     roles: [10, 100]
   }
+  // {
+  //   title: 'Kanban',
+  //   href: '/dashboard/kanban',
+  //   icon: 'kanban',
+  //   label: 'kanban',
+  //   roles: [10, 100]
+  // }
 ];
