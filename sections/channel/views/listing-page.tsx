@@ -60,7 +60,7 @@ export default async function ChannelListingPage({}: TChannelListingPage) {
   const { data } = await res.json();
   // console.log('----data----', data.currentPage)
   // console.log('----params----', params)
-  const totalUsers = (data && data.total) || 0;
+  const totalData = (data && data.total) || 0;
   const channel: Channel[] = (data && data.list) || [];
   // mock api call
   // const data = await fakeUsers.getUsers(filters);
@@ -74,7 +74,7 @@ export default async function ChannelListingPage({}: TChannelListingPage) {
 
         <div className="flex items-start justify-between">
           <Heading
-            title={`Channels (${totalUsers})`}
+            title={`Channels (${totalData})`}
             description="Manage channels (Server side table functionalities.)"
           />
 
@@ -86,7 +86,7 @@ export default async function ChannelListingPage({}: TChannelListingPage) {
           </Link>
         </div>
         <Separator />
-        <ChannelTable data={channel} totalData={totalUsers} />
+        <ChannelTable data={channel} totalData={totalData} />
       </div>
     </PageContainer>
   );

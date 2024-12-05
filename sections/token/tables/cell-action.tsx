@@ -10,8 +10,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Token } from '@/lib/types';
 import { Edit, MoreHorizontal, Trash, Ban, CircleSlash2 } from 'lucide-react';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 interface CellActionProps {
   data: Token;
@@ -38,11 +39,12 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
       body: JSON.stringify(params),
       credentials: 'include'
     });
-    const { data, success } = await res.json();
-    console.log('data', data);
+    const { success, message } = await res.json();
     if (success) {
-      // window.location.reload(); // Refresh the page on success
       router.refresh();
+      toast.success('Operation completed successfully!');
+    } else {
+      toast.error(message || 'Operation failed!');
     }
   };
 
@@ -56,7 +58,6 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
     console.log('data', data);
     if (success) {
       setOpen(false);
-      // window.location.reload(); // Refresh the page on success
       router.refresh();
     }
   };
