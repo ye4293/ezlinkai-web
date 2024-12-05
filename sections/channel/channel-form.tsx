@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Channel } from '@/lib/types';
 
 const formSchema = z.object({
@@ -92,14 +93,16 @@ interface ParamsOption extends Omit<Channel, 'type'> {
 export default function ChannelForm() {
   const router = useRouter();
   const { channelId } = useParams();
-  console.log('---id---', channelId);
-  // console.log('---useParams()---', useParams());
+
+  const [isLoading, setIsLoading] = useState(true);
   const [modelTypes, setModelTypes] = useState<ModelTypesOption[]>([]);
   const [groupOptions, setGroupOptions] = useState<string[]>([]);
   const [modelOptions, setModelOptions] = useState<ModelOption[]>([]);
   const [channelData, setChannelData] = useState<Object | null>(null);
 
   useEffect(() => {
+    setIsLoading(true);
+
     const initializeData = async () => {
       try {
         // 准备所有需要的请求
@@ -134,7 +137,9 @@ export default function ChannelForm() {
 
         // 同时发起所有请求
         const [modelTypesData, groupData, modelData, channelData] =
-          await Promise.all(requests);
+          await Promise.all(requests).finally(() => {
+            setIsLoading(false);
+          });
 
         // 更新状态
         setModelTypes(modelTypesData);
@@ -219,8 +224,32 @@ export default function ChannelForm() {
     }
   };
 
+  if (isLoading && channelId !== 'create') {
+    return (
+      <Card className="mx-auto w-full">
+        <CardHeader>
+          <CardTitle className="text-left text-2xl font-bold">
+            <Skeleton className="h-8 w-48" />
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-8">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="space-y-2">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          ))}
+          <div className="flex gap-4">
+            <Skeleton className="h-10 w-24" />
+            <Skeleton className="h-10 w-24" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log('onSubmit', values);
+    // console.log('onSubmit', values);
     const params: ParamsOption = {
       ...channelData,
       ...values,
@@ -230,14 +259,14 @@ export default function ChannelForm() {
     params.type = Number(params.type);
     // delete params.id;
     delete params.groups;
-    console.log('******params*****', params);
+    // console.log('******params*****', params);
     const res = await fetch(`/api/channel`, {
       method: params.id ? 'PUT' : 'POST',
       body: JSON.stringify(params),
       credentials: 'include'
     });
     const { data, success } = await res.json();
-    console.log('data', data);
+    // console.log('data', data);
     if (success) {
       // window.location.href = '/dashboard/channel';
       router.push('/dashboard/channel');

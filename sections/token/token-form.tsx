@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { CalendarIcon } from '@radix-ui/react-icons';
 import { addDays, format, addMonths, addHours, addMinutes } from 'date-fns';
@@ -39,11 +40,6 @@ const formSchema = z.object({
   unlimited_quota: z.boolean().optional() // 新增: 是否是无限配额
 });
 
-interface ModelOption {
-  id: string;
-  // 添加其他可能的字段
-}
-
 interface ParamsOption extends Partial<Token> {
   // group?: string;
   // groups?: string[];
@@ -53,11 +49,14 @@ interface ParamsOption extends Partial<Token> {
 export default function TokenForm() {
   const router = useRouter();
   const { tokenId } = useParams();
-  console.log('---useParams()---', useParams());
+
+  const [isLoading, setIsLoading] = useState(true);
   const [isExpired, setIsExpired] = useState<Boolean | null>(null);
   const [tokenData, setTokenData] = useState<Object | null>(null);
 
   useEffect(() => {
+    setIsLoading(true);
+
     // 获取令牌详情
     const getTokenDetail = async () => {
       if (tokenId === 'create') {
@@ -69,9 +68,9 @@ export default function TokenForm() {
         credentials: 'include'
       });
       const { data } = await res.json();
-      // console.log('---data---', data);
       setTokenData(data);
       setIsExpired(data.expired_time === -1 ? true : false);
+      setIsLoading(false);
 
       // 填充表单数据
       form.reset({
@@ -113,8 +112,32 @@ export default function TokenForm() {
     form.setValue('remain_quota', form.getValues('remain_quota'));
   }, [form.getValues('unlimited_quota')]);
 
+  if (isLoading && tokenId !== 'create') {
+    return (
+      <Card className="mx-auto w-full">
+        <CardHeader>
+          <CardTitle className="text-left text-2xl font-bold">
+            <Skeleton className="h-8 w-48" />
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-8">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="space-y-2">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          ))}
+          <div className="flex gap-4">
+            <Skeleton className="h-10 w-24" />
+            <Skeleton className="h-10 w-24" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values);
+    // console.log(values);
     const params: ParamsOption = {
       ...tokenData,
       ...values,
@@ -124,7 +147,7 @@ export default function TokenForm() {
       // group: values.groups.join(','),
       // models: values.models.join(',')
     };
-    console.log('params', params);
+    // console.log('params', params);
     if (params.expired_time) {
       // params.expired_time = isExpired ? -1 : Math.floor(params.expired_time.getTime() / 1000);
       params.expired_time = isExpired ? -1 : params.expired_time;
@@ -139,7 +162,7 @@ export default function TokenForm() {
       credentials: 'include'
     });
     const { data, success } = await res.json();
-    console.log('data', data);
+    // console.log('data', data);
     if (success) {
       router.push('/dashboard/token');
       router.refresh();

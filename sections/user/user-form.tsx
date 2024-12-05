@@ -29,11 +29,11 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 // import { cn } from '@/lib/utils';
 import { UserSelf } from '@/lib/types';
 import { renderQuotaWithPrompt } from '@/utils/render';
 import { toast } from 'sonner';
-import { Skeleton } from '@/components/ui/skeleton';
 
 const formSchema = z.object({
   username: z.string().min(1, {
