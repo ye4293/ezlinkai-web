@@ -30,6 +30,7 @@ import { CalendarIcon } from '@radix-ui/react-icons';
 import { addDays, format, addMonths, addHours, addMinutes } from 'date-fns';
 import { renderQuotaWithPrompt } from '@/utils/render';
 import { Token } from '@/lib/types';
+import { toast } from 'sonner';
 
 const formSchema = z.object({
   name: z.string().min(1, {
@@ -42,7 +43,6 @@ const formSchema = z.object({
 
 interface ParamsOption extends Partial<Token> {
   // group?: string;
-  // groups?: string[];
   // models?: string;
 }
 
@@ -81,8 +81,6 @@ export default function TokenForm() {
           data.expired_time === -1
             ? undefined
             : new Date(data.expired_time * 1000),
-        /** 过期时间显示 */
-        // expired_time_show: data.expired_time === -1 ? true : undefined,
         /** 额度 */
         remain_quota: data.remain_quota,
         /** 是否是无限额度 */
@@ -100,7 +98,6 @@ export default function TokenForm() {
     defaultValues: {
       name: '',
       expired_time: undefined,
-      // expired_time_show: undefined,
       remain_quota: undefined,
       unlimited_quota: false
       // token_remind_threshold: undefined
@@ -144,28 +141,25 @@ export default function TokenForm() {
       expired_time: values.expired_time
         ? Math.floor(values.expired_time.getTime() / 1000)
         : undefined
-      // group: values.groups.join(','),
-      // models: values.models.join(',')
     };
-    // console.log('params', params);
-    if (params.expired_time) {
-      // params.expired_time = isExpired ? -1 : Math.floor(params.expired_time.getTime() / 1000);
-      params.expired_time = isExpired ? -1 : params.expired_time;
-    }
-    // delete params.expired_time_show;
+    // if (params.expired_time) {
+    //   // params.expired_time = isExpired ? -1 : Math.floor(params.expired_time.getTime() / 1000);
+    //   params.expired_time = isExpired ? -1 : params.expired_time;
+    // }
+    if (isExpired) params.expired_time = -1;
     // params.type = Number(params.type);
-    // delete params.id;
-    // delete params.groups;
     const res = await fetch(`/api/token`, {
       method: params.id ? 'PUT' : 'POST',
       body: JSON.stringify(params),
       credentials: 'include'
     });
-    const { data, success } = await res.json();
+    const { success, message } = await res.json();
     // console.log('data', data);
     if (success) {
       router.push('/dashboard/token');
       router.refresh();
+    } else {
+      toast.error(message || 'Submit failed');
     }
   }
 

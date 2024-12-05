@@ -47,7 +47,7 @@ export default function ChannelTable({
         />
       </div>
       <ChannelTypesProvider>
-        <DataTable columns={columns} data={data} totalItems={totalData} />
+        <DataTable columns={columns()} data={data} totalItems={totalData} />
       </ChannelTypesProvider>
     </div>
   );
