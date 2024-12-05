@@ -3,7 +3,8 @@ import dayjs from 'dayjs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 // import { Toaster } from '@/components/ui/toaster';
-import { Toaster, toast } from 'sonner';
+// import { Toaster, toast } from 'sonner';
+import { toast } from 'sonner';
 import { Token } from '@/lib/types';
 import { ColumnDef } from '@tanstack/react-table';
 import { CellAction } from './cell-action';
@@ -124,7 +125,7 @@ export const columns: ColumnDef<Token>[] = [
           <Button onClick={handleCopy} className="copy-button">
             Copy
           </Button>
-          <Toaster position="top-center" />
+          {/* <Toaster position="top-center" /> */}
         </div>
       );
     }
