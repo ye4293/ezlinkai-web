@@ -52,8 +52,8 @@ request.interceptors.response.use(
     // 对响应数据做点什么
     const { data, status } = response;
     // 根据后端约定的状态码判断请求是否成功
-    console.log(response.status);
-    console.log(response.statusText);
+    // console.log(response.status);
+    // console.log(response.statusText);
     if (status === 200) {
       return data;
     }
@@ -62,7 +62,7 @@ request.interceptors.response.use(
   (error) => {
     // 处理错误响应
     if (error.response) {
-      console.log(error.response);
+      // console.log(error.response);
       switch (error.response.status) {
         case 401:
           // 未授权处理
@@ -77,8 +77,8 @@ request.interceptors.response.use(
           // 其他错误处理
           break;
       }
-      console.log(error.response.status);
-      console.log(error.response.statusText);
+      // console.log(error.response.status);
+      // console.log(error.response.statusText);
       // console.log('error.response', error.response)
       return error.response;
     }

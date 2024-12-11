@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Channel } from '@/lib/types';
@@ -394,38 +394,40 @@ export default function ChannelForm() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Groups</FormLabel>
-                    <Select
-                      onValueChange={(value) => {
-                        const values = field.value ?? [];
-                        const newValues = values.includes(value)
-                          ? values.filter((v) => v !== value)
-                          : [...values, value];
-                        field.onChange(newValues);
-                      }}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select groups">
-                            {field.value?.length
-                              ? `${field.value.length} group(s) selected`
-                              : 'Select groups'}
-                          </SelectValue>
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
+                    <FormControl>
+                      <div className="flex flex-row flex-wrap space-x-2">
                         {groupOptions.map((item) => (
-                          <SelectItem
-                            key={item}
-                            value={item}
-                            className={
-                              field.value?.includes(item) ? 'bg-accent' : ''
-                            }
-                          >
-                            {item}
-                          </SelectItem>
+                          <div key={item} className="flex items-center">
+                            <Checkbox
+                              key={item}
+                              id={item}
+                              checked={field.value?.includes(item)}
+                              onCheckedChange={(checked) => {
+                                const values = field.value ?? [];
+                                const newValues = checked
+                                  ? [...values, item]
+                                  : values.filter((v) => v !== item);
+                                newValues.sort(
+                                  (a, b) =>
+                                    groupOptions.indexOf(a) -
+                                    groupOptions.indexOf(b)
+                                );
+                                field.onChange(newValues);
+                              }}
+                              className="mr-2"
+                            >
+                              {item}
+                            </Checkbox>
+                            <label
+                              htmlFor={item}
+                              className="cursor-pointer text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                            >
+                              {item}
+                            </label>
+                          </div>
                         ))}
-                      </SelectContent>
-                    </Select>
+                      </div>
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -528,41 +530,36 @@ export default function ChannelForm() {
                   name="models"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Model</FormLabel>
-                      <Select
-                        onValueChange={(value) => {
-                          const values = field.value ?? [];
-                          const newValues = values.includes(value)
-                            ? values.filter((v) => v !== value)
-                            : [...values, value];
-                          field.onChange(newValues);
-                        }}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select models">
-                              {field.value?.length
-                                ? `${field.value.length} model(s) selected`
-                                : 'Select models'}
-                            </SelectValue>
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent style={{ height: '300px' }}>
+                      <FormLabel>Models</FormLabel>
+                      <FormControl>
+                        <div className="flex flex-row flex-wrap gap-4">
                           {modelOptions.map((item) => (
-                            <SelectItem
-                              key={item.id}
-                              value={item.id}
-                              className={
-                                field.value?.includes(item.id)
-                                  ? 'bg-accent'
-                                  : ''
-                              }
-                            >
-                              {item.id}
-                            </SelectItem>
+                            <div key={item.id} className="flex items-center">
+                              <Checkbox
+                                key={item.id}
+                                id={item.id}
+                                checked={field.value?.includes(item.id)}
+                                onCheckedChange={(checked) => {
+                                  const values = field.value ?? [];
+                                  const newValues = checked
+                                    ? [...values, item.id]
+                                    : values.filter((v) => v !== item.id);
+                                  field.onChange(newValues);
+                                }}
+                                className="mr-2"
+                              >
+                                {item.id}
+                              </Checkbox>
+                              <label
+                                htmlFor={item.id}
+                                className="cursor-pointer text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                              >
+                                {item.id}
+                              </label>
+                            </div>
                           ))}
-                        </SelectContent>
-                      </Select>
+                        </div>
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
