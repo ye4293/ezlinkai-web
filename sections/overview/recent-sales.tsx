@@ -1,11 +1,12 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { renderQuota } from '@/utils/render';
+import { ModelStat } from '@/lib/types/dashboard';
 
 // 首先定义数据类型（根据你的实际数据结构调整）
-interface ModelStat {
-  model_name: string;
-  quota_sum: number;
-}
+// interface ModelStat {
+//   model_name: string;
+//   quota_sum: number;
+// }
 
 interface RecentSalesProps {
   dataList: ModelStat[];

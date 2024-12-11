@@ -17,6 +17,8 @@ import {
   ChartTooltip,
   ChartTooltipContent
 } from '@/components/ui/chart';
+import request from '@/app/lib/clientFetch';
+import { GraphData, GraphResult } from '@/lib/types/dashboard';
 
 interface BarGraphProps {
   session: any;
@@ -139,7 +141,7 @@ const chartConfig = {
 export function BarGraph({ session }: BarGraphProps) {
   const [activeChart, setActiveChart] =
     React.useState<keyof typeof chartConfig>('quota');
-  const [graphData, setGraphData] = React.useState<any>([]);
+  const [graphData, setGraphData] = React.useState<GraphData[]>([]);
 
   // 数据获取移到 useEffect 中
   React.useEffect(() => {
@@ -153,17 +155,23 @@ export function BarGraph({ session }: BarGraphProps) {
         time: String(Math.trunc(getUnixTime(new Date()))),
         target: activeChart
       });
-      const graphRes = await fetch(
-        process.env.NEXT_PUBLIC_API_BASE_URL + `${graphApi}?${params}`,
-        {
-          credentials: 'include',
-          headers: {
-            Authorization: `Bearer ${session?.user?.accessToken}`
-          }
-        }
-      );
-      const { data } = await graphRes.json();
-      setGraphData(data);
+      // const res = await fetch(`${graphApi}?${params}`, {
+      //   credentials: 'include'
+      // });
+      // const { data } = await res.json();
+      const res: GraphResult = await request.get(`${graphApi}?${params}`);
+      setGraphData(res.data);
+      // const graphRes = await fetch(
+      //   process.env.NEXT_PUBLIC_API_BASE_URL + `${graphApi}?${params}`,
+      //   {
+      //     credentials: 'include',
+      //     headers: {
+      //       Authorization: `Bearer ${session?.user?.accessToken}`
+      //     }
+      //   }
+      // );
+      // const { data } = await graphRes.json();
+      // setGraphData(data);
       // console.log('graphData', graphData);
     };
     fetchData();
