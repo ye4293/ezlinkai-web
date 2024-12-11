@@ -532,32 +532,53 @@ export default function ChannelForm() {
                     <FormItem>
                       <FormLabel>Models</FormLabel>
                       <FormControl>
-                        <div className="flex flex-row flex-wrap gap-4">
-                          {modelOptions.map((item) => (
-                            <div key={item.id} className="flex items-center">
-                              <Checkbox
-                                key={item.id}
-                                id={item.id}
-                                checked={field.value?.includes(item.id)}
-                                onCheckedChange={(checked) => {
-                                  const values = field.value ?? [];
-                                  const newValues = checked
-                                    ? [...values, item.id]
-                                    : values.filter((v) => v !== item.id);
-                                  field.onChange(newValues);
-                                }}
-                                className="mr-2"
-                              >
-                                {item.id}
-                              </Checkbox>
-                              <label
-                                htmlFor={item.id}
-                                className="cursor-pointer text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                              >
-                                {item.id}
-                              </label>
-                            </div>
-                          ))}
+                        <div className="space-y-2">
+                          <div className="flex flex-row flex-wrap gap-4">
+                            {modelOptions.map((item) => (
+                              <div key={item.id} className="flex items-center">
+                                <Checkbox
+                                  key={item.id}
+                                  id={item.id}
+                                  checked={field.value?.includes(item.id)}
+                                  onCheckedChange={(checked) => {
+                                    const values = field.value ?? [];
+                                    const newValues = checked
+                                      ? [...values, item.id]
+                                      : values.filter((v) => v !== item.id);
+                                    field.onChange(newValues);
+                                  }}
+                                  className="mr-2"
+                                >
+                                  {item.id}
+                                </Checkbox>
+                                <label
+                                  htmlFor={item.id}
+                                  className="cursor-pointer text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                >
+                                  {item.id}
+                                </label>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              onClick={() => {
+                                const allModelIds = modelOptions.map(
+                                  (m) => m.id
+                                );
+                                field.onChange(allModelIds);
+                              }}
+                            >
+                              Select all
+                            </Button>
+                            <Button
+                              type="button"
+                              onClick={() => field.onChange([])}
+                            >
+                              Clear all
+                            </Button>
+                          </div>
                         </div>
                       </FormControl>
                       <FormMessage />
