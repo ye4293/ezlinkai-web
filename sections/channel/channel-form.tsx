@@ -27,6 +27,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Channel } from '@/lib/types';
+import request from '@/app/lib/clientFetch';
 
 const formSchema = z.object({
   type: z.string().min(1, {
@@ -98,6 +99,9 @@ export default function ChannelForm() {
   const [modelTypes, setModelTypes] = useState<ModelTypesOption[]>([]);
   const [groupOptions, setGroupOptions] = useState<string[]>([]);
   const [modelOptions, setModelOptions] = useState<ModelOption[]>([]);
+  const [relatedModels, setRelatedModels] = useState<Record<string, string[]>>(
+    {}
+  );
   const [channelData, setChannelData] = useState<Object | null>(null);
 
   useEffect(() => {
@@ -120,7 +124,10 @@ export default function ChannelForm() {
           // 查询模型
           fetch('/api/channel/models', { credentials: 'include' })
             .then((res) => res.json())
-            .then(({ data }) => data)
+            .then(({ data }) => data),
+
+          // 查询相关模型
+          request.get('/api/models').then(({ data }) => data)
         ];
 
         // 如果需要获取渠道详情，将其加入请求数组
@@ -136,19 +143,35 @@ export default function ChannelForm() {
         }
 
         // 同时发起所有请求
-        const [modelTypesData, groupData, modelData, channelData] =
-          await Promise.all(requests).finally(() => {
-            setIsLoading(false);
-          });
+        const [
+          modelTypesData,
+          groupData,
+          modelData,
+          relatedModelsData,
+          channelData
+        ] = await Promise.all(requests).finally(() => {
+          setIsLoading(false);
+        });
+
+        // const modelMap = modelData.map((item: any) => [item.id, item]);
+        // console.log('modelMap', modelMap);
+        // const modelMap1 = new Map(modelMap);
+        // console.log('modelMap1', modelMap1);
+        // const modelMap2 = modelMap1.values();
+        // console.log('modelMap2', modelMap2);
+        // const modelMap3 = Array.from(modelMap2);
+        // console.log('modelMap3', modelMap3);
 
         // 更新状态
         setModelTypes(modelTypesData);
         setGroupOptions(groupData);
+        // 模型数据去重
         setModelOptions(
           Array.from(
             new Map(modelData.map((item: any) => [item.id, item])).values()
           ) as ModelOption[]
         );
+        setRelatedModels(relatedModelsData);
 
         // 如果有渠道数据，填充表单
         if (channelData) {
@@ -561,6 +584,22 @@ export default function ChannelForm() {
                             ))}
                           </div>
                           <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              onClick={() => {
+                                const currentType = form.watch('type');
+                                const allRelatedModelIds =
+                                  relatedModels[currentType];
+                                const relatedModelIds = modelOptions
+                                  .filter((m) =>
+                                    allRelatedModelIds.includes(m.id)
+                                  )
+                                  .map((m) => m.id);
+                                field.onChange(relatedModelIds);
+                              }}
+                            >
+                              Fill in the relevant model
+                            </Button>
                             <Button
                               type="button"
                               onClick={() => {
