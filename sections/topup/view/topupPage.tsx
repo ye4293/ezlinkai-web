@@ -1,5 +1,7 @@
 import { cookies } from 'next/headers';
 import { auth } from '@/auth';
+import { Breadcrumbs } from '@/components/breadcrumbs';
+import { Separator } from '@/components/ui/separator';
 import Image from 'next/image';
 import { getUnixTime } from 'date-fns';
 import { CalendarDateRangePicker } from '@/components/date-range-picker';
@@ -18,6 +20,11 @@ import { Label } from '@/components/ui/label';
 import { renderQuota } from '@/utils/render';
 import StripePage from '../stripePage';
 import TopupForm from '../topup-form';
+
+const breadcrumbItems = [
+  { title: 'Dashboard', link: '/dashboard' },
+  { title: 'Topup', link: '/dashboard/topup' }
+];
 
 export default async function TopupPage() {
   const session = await auth();
@@ -60,10 +67,13 @@ export default async function TopupPage() {
   return (
     <PageContainer scrollable>
       <div className="space-y-2">
-        <div className="flex items-center justify-between space-y-2">
-          <h2 className="text-2xl font-bold tracking-tight">Billing</h2>
+        <Breadcrumbs items={breadcrumbItems} />
+        <Separator />
+
+        <div className="flex items-center justify-between space-y-4">
+          {/* <h2 className="text-2xl font-bold tracking-tight">Billing</h2> */}
+          <Label>Balance {renderQuota(data?.quota || 0)}</Label>
         </div>
-        <Label>Balance {renderQuota(data?.quota || 0)}</Label>
         <TopupForm />
         <Card>
           <CardHeader>

@@ -284,7 +284,9 @@ const authConfig = {
     async jwt({ token, user, account }) {
       if (user) {
         console.log('user******', user, account);
-        token.id = String(user.id);
+        token.id = String(
+          (account as ExtendedAccount)?.userData?.id || user.id
+        );
         token.username = String(
           (user as User).username ||
             (account as ExtendedAccount)?.userData?.username ||

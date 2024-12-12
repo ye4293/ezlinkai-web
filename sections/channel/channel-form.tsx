@@ -231,6 +231,12 @@ export default function ChannelForm() {
     }
   };
 
+  const MODEL_MAPPING_EXAMPLE = {
+    'gpt-3.5-turbo-0301': 'gpt-3.5-turbo',
+    'gpt-4-0314': 'gpt-4',
+    'gpt-4-32k-0314': 'gpt-4-32k'
+  };
+
   const type2secretPrompt = (type: string) => {
     // inputs.type === 15 ? '按照如下格式输入：APIKey|SecretKey' : (inputs.type === 18 ? '按照如下格式输入：APPID|APISecret|APIKey' : '请输入渠道对应的鉴权密钥')
     switch (type) {
@@ -635,8 +641,12 @@ export default function ChannelForm() {
                       <FormLabel>Model redirection</FormLabel>
                       <FormControl>
                         <Textarea
-                          className="h-auto max-h-64 min-h-32 resize-none overflow-auto"
-                          placeholder="This option is optional to modify the name of the model in the request body, which is a JSON string, the key is the name of the model in the request, and the value is the name of the model to be replaced, for example {}"
+                          className="h-auto max-h-64 min-h-40 resize-none overflow-auto"
+                          placeholder={`This option is optional to modify the name of the model in the request body, which is a JSON string, the key is the name of the model in the request, and the value is the name of the model to be replaced, for example \n${JSON.stringify(
+                            MODEL_MAPPING_EXAMPLE,
+                            null,
+                            2
+                          )}`}
                           {...field}
                         />
                       </FormControl>
