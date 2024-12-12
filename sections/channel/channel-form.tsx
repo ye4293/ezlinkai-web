@@ -23,10 +23,11 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Channel } from '@/lib/types';
+import request from '@/app/lib/clientFetch';
 
 const formSchema = z.object({
   type: z.string().min(1, {
@@ -98,6 +99,9 @@ export default function ChannelForm() {
   const [modelTypes, setModelTypes] = useState<ModelTypesOption[]>([]);
   const [groupOptions, setGroupOptions] = useState<string[]>([]);
   const [modelOptions, setModelOptions] = useState<ModelOption[]>([]);
+  const [relatedModels, setRelatedModels] = useState<Record<string, string[]>>(
+    {}
+  );
   const [channelData, setChannelData] = useState<Object | null>(null);
 
   useEffect(() => {
@@ -120,7 +124,10 @@ export default function ChannelForm() {
           // 查询模型
           fetch('/api/channel/models', { credentials: 'include' })
             .then((res) => res.json())
-            .then(({ data }) => data)
+            .then(({ data }) => data),
+
+          // 查询相关模型
+          request.get('/api/models').then(({ data }) => data)
         ];
 
         // 如果需要获取渠道详情，将其加入请求数组
@@ -136,19 +143,35 @@ export default function ChannelForm() {
         }
 
         // 同时发起所有请求
-        const [modelTypesData, groupData, modelData, channelData] =
-          await Promise.all(requests).finally(() => {
-            setIsLoading(false);
-          });
+        const [
+          modelTypesData,
+          groupData,
+          modelData,
+          relatedModelsData,
+          channelData
+        ] = await Promise.all(requests).finally(() => {
+          setIsLoading(false);
+        });
+
+        // const modelMap = modelData.map((item: any) => [item.id, item]);
+        // console.log('modelMap', modelMap);
+        // const modelMap1 = new Map(modelMap);
+        // console.log('modelMap1', modelMap1);
+        // const modelMap2 = modelMap1.values();
+        // console.log('modelMap2', modelMap2);
+        // const modelMap3 = Array.from(modelMap2);
+        // console.log('modelMap3', modelMap3);
 
         // 更新状态
         setModelTypes(modelTypesData);
         setGroupOptions(groupData);
+        // 模型数据去重
         setModelOptions(
           Array.from(
             new Map(modelData.map((item: any) => [item.id, item])).values()
           ) as ModelOption[]
         );
+        setRelatedModels(relatedModelsData);
 
         // 如果有渠道数据，填充表单
         if (channelData) {
@@ -206,6 +229,12 @@ export default function ChannelForm() {
     if (value !== '3' && value !== '8') {
       form.setValue('base_url', '');
     }
+  };
+
+  const MODEL_MAPPING_EXAMPLE = {
+    'gpt-3.5-turbo-0301': 'gpt-3.5-turbo',
+    'gpt-4-0314': 'gpt-4',
+    'gpt-4-32k-0314': 'gpt-4-32k'
   };
 
   const type2secretPrompt = (type: string) => {
@@ -394,38 +423,40 @@ export default function ChannelForm() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Groups</FormLabel>
-                    <Select
-                      onValueChange={(value) => {
-                        const values = field.value ?? [];
-                        const newValues = values.includes(value)
-                          ? values.filter((v) => v !== value)
-                          : [...values, value];
-                        field.onChange(newValues);
-                      }}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select groups">
-                            {field.value?.length
-                              ? `${field.value.length} group(s) selected`
-                              : 'Select groups'}
-                          </SelectValue>
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
+                    <FormControl>
+                      <div className="flex flex-row flex-wrap space-x-2">
                         {groupOptions.map((item) => (
-                          <SelectItem
-                            key={item}
-                            value={item}
-                            className={
-                              field.value?.includes(item) ? 'bg-accent' : ''
-                            }
-                          >
-                            {item}
-                          </SelectItem>
+                          <div key={item} className="flex items-center">
+                            <Checkbox
+                              key={item}
+                              id={item}
+                              checked={field.value?.includes(item)}
+                              onCheckedChange={(checked) => {
+                                const values = field.value ?? [];
+                                const newValues = checked
+                                  ? [...values, item]
+                                  : values.filter((v) => v !== item);
+                                newValues.sort(
+                                  (a, b) =>
+                                    groupOptions.indexOf(a) -
+                                    groupOptions.indexOf(b)
+                                );
+                                field.onChange(newValues);
+                              }}
+                              className="mr-2"
+                            >
+                              {item}
+                            </Checkbox>
+                            <label
+                              htmlFor={item}
+                              className="cursor-pointer text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                            >
+                              {item}
+                            </label>
+                          </div>
                         ))}
-                      </SelectContent>
-                    </Select>
+                      </div>
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -528,41 +559,73 @@ export default function ChannelForm() {
                   name="models"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Model</FormLabel>
-                      <Select
-                        onValueChange={(value) => {
-                          const values = field.value ?? [];
-                          const newValues = values.includes(value)
-                            ? values.filter((v) => v !== value)
-                            : [...values, value];
-                          field.onChange(newValues);
-                        }}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select models">
-                              {field.value?.length
-                                ? `${field.value.length} model(s) selected`
-                                : 'Select models'}
-                            </SelectValue>
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent style={{ height: '300px' }}>
-                          {modelOptions.map((item) => (
-                            <SelectItem
-                              key={item.id}
-                              value={item.id}
-                              className={
-                                field.value?.includes(item.id)
-                                  ? 'bg-accent'
-                                  : ''
-                              }
+                      <FormLabel>Models</FormLabel>
+                      <FormControl>
+                        <div className="space-y-2">
+                          <div className="flex flex-row flex-wrap gap-4">
+                            {modelOptions.map((item) => (
+                              <div key={item.id} className="flex items-center">
+                                <Checkbox
+                                  key={item.id}
+                                  id={item.id}
+                                  checked={field.value?.includes(item.id)}
+                                  onCheckedChange={(checked) => {
+                                    const values = field.value ?? [];
+                                    const newValues = checked
+                                      ? [...values, item.id]
+                                      : values.filter((v) => v !== item.id);
+                                    field.onChange(newValues);
+                                  }}
+                                  className="mr-2"
+                                >
+                                  {item.id}
+                                </Checkbox>
+                                <label
+                                  htmlFor={item.id}
+                                  className="cursor-pointer text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                >
+                                  {item.id}
+                                </label>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              onClick={() => {
+                                const currentType = form.watch('type');
+                                const allRelatedModelIds =
+                                  relatedModels[currentType];
+                                const relatedModelIds = modelOptions
+                                  .filter((m) =>
+                                    allRelatedModelIds.includes(m.id)
+                                  )
+                                  .map((m) => m.id);
+                                field.onChange(relatedModelIds);
+                              }}
                             >
-                              {item.id}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                              Fill in the relevant model
+                            </Button>
+                            <Button
+                              type="button"
+                              onClick={() => {
+                                const allModelIds = modelOptions.map(
+                                  (m) => m.id
+                                );
+                                field.onChange(allModelIds);
+                              }}
+                            >
+                              Select all
+                            </Button>
+                            <Button
+                              type="button"
+                              onClick={() => field.onChange([])}
+                            >
+                              Clear all
+                            </Button>
+                          </div>
+                        </div>
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -578,8 +641,12 @@ export default function ChannelForm() {
                       <FormLabel>Model redirection</FormLabel>
                       <FormControl>
                         <Textarea
-                          className="h-auto max-h-64 min-h-32 resize-none overflow-auto"
-                          placeholder="This option is optional to modify the name of the model in the request body, which is a JSON string, the key is the name of the model in the request, and the value is the name of the model to be replaced, for example {}"
+                          className="h-auto max-h-64 min-h-40 resize-none overflow-auto"
+                          placeholder={`This option is optional to modify the name of the model in the request body, which is a JSON string, the key is the name of the model in the request, and the value is the name of the model to be replaced, for example \n${JSON.stringify(
+                            MODEL_MAPPING_EXAMPLE,
+                            null,
+                            2
+                          )}`}
                           {...field}
                         />
                       </FormControl>
