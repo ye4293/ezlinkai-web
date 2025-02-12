@@ -87,6 +87,25 @@ export function renderQuotaWithPrompt(quota: number, digits = 2) {
   return '';
 }
 
+// // Update renderQuotaNum to convert from quota to dollar amount
+// export function renderQuotaNum(quota: number, digits = 2) {
+//   let quotaPerUnit = parseFloat(localStorage.getItem('quota_per_unit') || '500000');
+//   // Convert quota to dollar amount
+//   return parseFloat((quota / quotaPerUnit).toFixed(digits));
+// }
+
+// // Update renderQuotaWithPrompt to show the actual quota value
+// export function renderQuotaWithPrompt(quota: number, digits = 2) {
+//   if (quota === undefined) return `(Quota: 0)`;
+//   let displayInCurrency: string | boolean = localStorage.getItem('display_in_currency') || 'true';
+//   displayInCurrency = displayInCurrency === 'true';
+
+//   if (displayInCurrency) {
+//     return `(Quota: ${renderNumber(quota)})`;
+//   }
+//   return '';
+// }
+
 // 复制令牌
 export const onCopyToken = async (key: string) => {
   navigator.clipboard

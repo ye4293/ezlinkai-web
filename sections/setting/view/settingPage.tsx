@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui/button';
 import { Edit } from 'lucide-react';
 import { GitHubSignInButton } from './GitHubSignInButton';
-
+import SelectMultiple from './selectMultiple';
 const breadcrumbItems = [
   { title: 'Dashboard', link: '/dashboard' },
   { title: 'Setting', link: '/dashboard/setting' }
@@ -47,6 +47,7 @@ export default async function SettingPage() {
           </Link>
 
           {/* <GitHubSignInButton /> */}
+          {/* <SelectMultiple /> */}
         </div>
       </div>
     </PageContainer>
