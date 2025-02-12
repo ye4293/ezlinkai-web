@@ -10,9 +10,9 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { signIn } from 'next-auth/react';
-import { useSearchParams } from 'next/navigation';
-import { useState, useTransition, useMemo } from 'react';
+import { signIn, useSession } from 'next-auth/react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { useEffect, useState, useTransition, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import GithubSignInButton from './github-auth-button';
@@ -20,6 +20,9 @@ import GoogleSignInButton from './google-auth-button';
 import { toast } from 'sonner';
 
 export default function UserAuthForm() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl');
   const [loading, startTransition] = useTransition();
@@ -27,6 +30,14 @@ export default function UserAuthForm() {
   const [isResetPassword, setIsResetPassword] = useState(false);
   const [codeSending, setCodeSending] = useState(false);
   const [countdown, setCountdown] = useState(0);
+
+  console.log('session', session, status);
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      router.replace(callbackUrl ?? '/dashboard');
+    }
+  }, [status, router]);
 
   const defaultValues = {
     username: '',

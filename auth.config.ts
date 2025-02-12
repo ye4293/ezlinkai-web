@@ -170,6 +170,9 @@ const authConfig = {
     maxAge: 30 * 24 * 60 * 60, // 30 days
     updateAge: 24 * 60 * 60 // 24 hours
   },
+  jwt: {
+    maxAge: 30 * 24 * 60 * 60 // 30 天
+  },
   callbacks: {
     async signIn({ user, account, profile }) {
       // console.log('----user---', user)
@@ -281,7 +284,9 @@ const authConfig = {
     async jwt({ token, user, account }) {
       if (user) {
         console.log('user******', user, account);
-        token.id = String(user.id);
+        token.id = String(
+          (account as ExtendedAccount)?.userData?.id || user.id
+        );
         token.username = String(
           (user as User).username ||
             (account as ExtendedAccount)?.userData?.username ||

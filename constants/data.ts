@@ -213,7 +213,7 @@ export const navItems: NavItem[] = [
     href: '/dashboard/setting',
     icon: 'setting',
     label: 'setting',
-    roles: [10, 100]
+    roles: [1, 10, 100]
   }
   // {
   //   title: 'Kanban',

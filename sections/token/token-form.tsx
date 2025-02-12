@@ -28,7 +28,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { CalendarIcon } from '@radix-ui/react-icons';
 import { addDays, format, addMonths, addHours, addMinutes } from 'date-fns';
-import { renderQuotaWithPrompt } from '@/utils/render';
+import { renderQuotaWithPrompt,renderQuotaNum } from '@/utils/render';
 import { Token } from '@/lib/types';
 import { toast } from 'sonner';
 
@@ -282,26 +282,50 @@ export default function TokenForm() {
             </div>
             <div className="grid grid-cols-1 gap-6">
               <FormField
+                // control={form.control}
+                // name="remain_quota"
+                // render={({ field }) => (
+                //   <FormItem>
+                //     <FormLabel>
+                //       Amount{' '}
+                // {renderQuotaWithPrompt(
+                //         form.getValues('remain_quota') || 0
+                //       )}
+                //     </FormLabel>
+                //     <FormControl>
+                //       <Input
+                //         type="number"
+                //         placeholder="please enter Limit"
+                //         {...field}
+                //         onChange={(e) => {
+                //           const value = e.target.value;
+                //           field.onChange(value ? Number(value) : undefined); // Parse to number
+                //         }}
+                //         disabled={form.getValues('unlimited_quota')}
+                //       />
                 control={form.control}
                 name="remain_quota"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      Amount{' '}
-                      {renderQuotaWithPrompt(
-                        form.getValues('remain_quota') || 0
-                      )}
+                      Amount {renderQuotaWithPrompt(field.value || 0)}
                     </FormLabel>
                     <FormControl>
                       <Input
-                        type="number"
-                        placeholder="please enter Limit"
                         {...field}
+                        type="number"
+                        step="0.01"
+                        value={renderQuotaNum(field.value || 0)}
                         onChange={(e) => {
-                          const value = e.target.value;
-                          field.onChange(value ? Number(value) : undefined); // Parse to number
+                          const dollarAmount = parseFloat(e.target.value) || 0;
+                          const quotaPerUnit = parseFloat(
+                            localStorage.getItem('quota_per_unit') || '500000'
+                          );
+                          const quotaAmount = Math.round(
+                            dollarAmount * quotaPerUnit
+                          );
+                          field.onChange(quotaAmount);
                         }}
-                        disabled={form.getValues('unlimited_quota')}
                       />
                     </FormControl>
                     <FormDescription>

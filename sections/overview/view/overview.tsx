@@ -17,6 +17,8 @@ import {
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { renderQuota } from '@/utils/render';
+import request from '@/app/lib/serverFetch';
+import { DashboardResult } from '@/lib/types/dashboard';
 
 export default async function OverViewPage() {
   const session = await auth();
@@ -31,17 +33,20 @@ export default async function OverViewPage() {
     ? `/api/dashboard/`
     : `/api/dashboard/self`;
   // console.log('----overview cookie', _cookie);
-  const res = await fetch(process.env.NEXT_PUBLIC_API_BASE_URL + userApi, {
-    credentials: 'include',
-    headers: {
-      // Cookie: _cookie,
-      Authorization: `Bearer ${session?.user?.accessToken}`
-    }
-  });
+  const res: DashboardResult = await request.get(userApi);
+  // console.log('res****', res);
+  const dashboardData = res.data || {};
+  // const res = await fetch(process.env.NEXT_PUBLIC_API_BASE_URL + userApi, {
+  //   credentials: 'include',
+  //   headers: {
+  //     // Cookie: _cookie,
+  //     Authorization: `Bearer ${session?.user?.accessToken}`
+  //   }
+  // });
   // console.log('----dashboard res', res);
-  const dashboard = await res.json();
+  // const dashboard = await res.json();
   // console.log('dashboard', dashboard);
-  const dashboardData = dashboard.data || {};
+  // const dashboardData = dashboard.data || {};
 
   return (
     <PageContainer scrollable>
