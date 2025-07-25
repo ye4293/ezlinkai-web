@@ -179,6 +179,13 @@ export const navItems: NavItem[] = [
     label: 'video',
     roles: [1, 10, 100]
   },
+  {
+    title: 'Images',
+    href: '/dashboard/image',
+    icon: 'images',
+    label: 'image',
+    roles: [1, 10, 100]
+  },
   // {
   //   title: 'File',
   //   href: '/dashboard/file',

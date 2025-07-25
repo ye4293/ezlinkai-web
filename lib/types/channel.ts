@@ -11,12 +11,15 @@ export interface ChannelForm {
   base_url: string;
   /** 其他 */
   other: string;
+
   /** 模型重定向 */
   model_mapping: string;
   /** 模型 */
   models: Array<string>;
   /** 分组 */
   groups: Array<string>;
+  /** 渠道倍率 */
+  channel_ratio?: number;
 }
 
 /** 渠道返回结果 */
@@ -44,8 +47,12 @@ export interface Channel {
   priority?: number;
   /** 权重 */
   weight?: number;
+  /** 渠道倍率 */
+  channel_ratio?: number;
   response_time?: number;
   test_time?: number;
+  /** 已使用配额 */
+  used_quota?: number;
 }
 
 export type ModelResult = {

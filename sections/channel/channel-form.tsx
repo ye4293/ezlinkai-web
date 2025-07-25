@@ -39,7 +39,10 @@ const formSchema = z.object({
   groups: z.array(z.string()).min(1, {
     message: 'Please select at least one group.'
   }),
-  key: z.string(),
+  key: z.string().optional(),
+  // 新增批量创建相关字段
+  batch_create: z.boolean().default(false),
+  batch_keys: z.string().optional(),
   // key: z.string().superRefine((val, ctx) => {
   //   const type = (ctx.path[0] === 'type') ? ctx.path[0] : '';
   //   if (type !== '33' && type !== '42' && !val) {
@@ -62,7 +65,25 @@ const formSchema = z.object({
   models: z.array(z.string(), {
     required_error: 'Please select at least one model.'
   }),
-  customModelName: z.string().optional()
+  customModelName: z.string().optional(),
+  channel_ratio: z
+    .number()
+    .min(0.1, {
+      message: '渠道倍率必须大于0.1'
+    })
+    .optional(),
+  priority: z
+    .number()
+    .min(0, {
+      message: '优先级必须大于等于0'
+    })
+    .optional(),
+  weight: z
+    .number()
+    .min(0, {
+      message: '权重必须大于等于0'
+    })
+    .optional()
 
   // company: z.string().min(1, {
   //   message: 'Company name is required.'
@@ -89,6 +110,11 @@ interface ParamsOption extends Omit<Channel, 'type'> {
   group?: string;
   groups?: string[];
   models?: string;
+  channel_ratio?: number;
+  priority?: number;
+  weight?: number;
+  batch_create?: boolean;
+  batch_keys?: string;
 }
 
 export default function ChannelForm() {
@@ -96,6 +122,8 @@ export default function ChannelForm() {
   const { channelId } = useParams();
 
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0 });
   const [modelTypes, setModelTypes] = useState<ModelTypesOption[]>([]);
   const [groupOptions, setGroupOptions] = useState<string[]>([]);
   const [modelOptions, setModelOptions] = useState<ModelOption[]>([]);
@@ -190,7 +218,10 @@ export default function ChannelForm() {
             user_id: channelData.user_id || '',
             model_mapping: channelData.model_mapping || '',
             models: channelData.models?.split(',') || [],
-            customModelName: channelData.customModelName
+            customModelName: channelData.customModelName,
+            channel_ratio: channelData.channel_ratio || 1,
+            priority: channelData.priority || 0,
+            weight: channelData.weight || 0
           });
         }
       } catch (error) {
@@ -208,6 +239,8 @@ export default function ChannelForm() {
       name: undefined,
       groups: undefined,
       key: undefined,
+      batch_create: false,
+      batch_keys: undefined,
       base_url: undefined,
       other: undefined,
       region: undefined,
@@ -218,7 +251,10 @@ export default function ChannelForm() {
       user_id: undefined,
       model_mapping: undefined,
       models: undefined,
-      customModelName: undefined
+      customModelName: undefined,
+      channel_ratio: 1,
+      priority: 0,
+      weight: 0
     }
   });
 
@@ -278,28 +314,232 @@ export default function ChannelForm() {
   }
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    // console.log('onSubmit', values);
-    const params: ParamsOption = {
-      ...channelData,
-      ...values,
-      group: values.groups.join(','),
-      models: values.models.join(',')
-    };
-    params.type = Number(params.type);
-    // delete params.id;
-    delete params.groups;
-    // console.log('******params*****', params);
-    const res = await fetch(`/api/channel`, {
-      method: params.id ? 'PUT' : 'POST',
-      body: JSON.stringify(params),
-      credentials: 'include'
-    });
-    const { data, success } = await res.json();
-    // console.log('data', data);
-    if (success) {
-      // window.location.href = '/dashboard/channel';
-      router.push('/dashboard/channel');
-      router.refresh();
+    console.log('=== 开始提交 ===');
+
+    // 防止重复提交
+    if (isSubmitting) {
+      console.log('正在提交中，忽略重复提交');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setBatchProgress({ current: 0, total: 0 });
+
+    try {
+      if (values.batch_create && values.batch_keys && channelId === 'create') {
+        console.log('=== 批量创建模式（并行处理）===');
+        const startTime = Date.now();
+
+        // 批量创建逻辑 - 并行处理
+        const keys = values.batch_keys
+          .split('\n')
+          .map((key) => key.trim())
+          .filter((key) => key.length > 0);
+
+        console.log('解析到的keys:', keys);
+
+        if (keys.length === 0) {
+          alert('请输入至少一个有效的key');
+          setIsSubmitting(false);
+          return;
+        }
+
+        setBatchProgress({ current: 0, total: keys.length });
+
+        let successCount = 0;
+        let failCount = 0;
+        const errors: string[] = [];
+
+        // 准备基础参数
+        const baseParams = {
+          type: Number(values.type),
+          name: values.name,
+          group: values.groups.join(','),
+          models: values.models.join(','),
+          base_url: values.base_url || '',
+          other: values.other || '',
+          region: values.region || '',
+          ak: values.ak || '',
+          sk: values.sk || '',
+          vertex_ai_project_id: values.vertex_ai_project_id || '',
+          vertex_ai_adc: values.vertex_ai_adc || '',
+          user_id: values.user_id || '',
+          model_mapping: values.model_mapping || '',
+          customModelName: values.customModelName || '',
+          channel_ratio: values.channel_ratio || 1,
+          priority: values.priority || 0,
+          weight: values.weight || 0
+        };
+
+        // 创建单个渠道的函数
+        const createChannel = async (key: string, index: number) => {
+          const channelParams = {
+            ...baseParams,
+            key: key,
+            name: keys.length > 1 ? `${values.name}_${index + 1}` : values.name
+          };
+
+          const res = await fetch(`/api/channel`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(channelParams),
+            credentials: 'include'
+          });
+
+          if (!res.ok) {
+            throw new Error(`HTTP错误: ${res.status} ${res.statusText}`);
+          }
+
+          const result = await res.json();
+
+          if (!result.success) {
+            throw new Error(result.message || '创建失败');
+          }
+
+          return { success: true, index, key };
+        };
+
+        // 分批并行处理，每批10个
+        const BATCH_SIZE = 10;
+        const batches = [];
+
+        for (let i = 0; i < keys.length; i += BATCH_SIZE) {
+          const batch = keys.slice(i, i + BATCH_SIZE);
+          batches.push(batch);
+        }
+
+        console.log(`分${batches.length}批处理，每批最多${BATCH_SIZE}个`);
+
+        // 逐批处理
+        for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+          const batch = batches[batchIndex];
+
+          console.log(`处理第${batchIndex + 1}批，包含${batch.length}个渠道`);
+
+          // 并行处理当前批次
+          const batchPromises = batch.map((key, keyIndex) => {
+            const globalIndex = batchIndex * BATCH_SIZE + keyIndex;
+            return createChannel(key, globalIndex).catch((error) => ({
+              success: false,
+              index: globalIndex,
+              key,
+              error: error.message
+            }));
+          });
+
+          const batchResults = await Promise.allSettled(batchPromises);
+
+          // 处理批次结果
+          batchResults.forEach((result) => {
+            if (result.status === 'fulfilled') {
+              const value = result.value as any;
+              if (value.success) {
+                successCount++;
+              } else {
+                failCount++;
+                errors.push(
+                  `第${value.index + 1}个key(${value.key})失败: ${value.error}`
+                );
+              }
+            } else {
+              failCount++;
+              errors.push(`处理失败: ${result.reason}`);
+            }
+
+            // 更新进度
+            setBatchProgress({
+              current: successCount + failCount,
+              total: keys.length
+            });
+          });
+
+          // 批次间稍微延迟，避免服务器压力过大
+          if (batchIndex < batches.length - 1) {
+            await new Promise((resolve) => setTimeout(resolve, 100));
+          }
+        }
+
+        const endTime = Date.now();
+        const duration = ((endTime - startTime) / 1000).toFixed(2);
+        const avgTime = (parseFloat(duration) / keys.length).toFixed(2);
+
+        // 显示批量创建结果
+        const resultMessage = `批量创建完成！
+总数: ${keys.length}个
+成功: ${successCount}个
+失败: ${failCount}个
+用时: ${duration}秒
+平均: ${avgTime}秒/个${
+          errors.length > 0
+            ? '\n\n错误详情:\n' +
+              errors.slice(0, 5).join('\n') +
+              (errors.length > 5 ? '\n...' : '')
+            : ''
+        }`;
+
+        alert(resultMessage);
+
+        // 如果有成功的，跳转到渠道列表
+        if (successCount > 0) {
+          router.push('/dashboard/channel');
+          router.refresh();
+        }
+      } else {
+        console.log('=== 单个创建/编辑模式 ===');
+        // 单个创建逻辑（原有逻辑）
+        const params = {
+          type: Number(values.type),
+          name: values.name,
+          group: values.groups.join(','),
+          models: values.models.join(','),
+          key: values.key || '',
+          base_url: values.base_url || '',
+          other: values.other || '',
+          region: values.region || '',
+          ak: values.ak || '',
+          sk: values.sk || '',
+          vertex_ai_project_id: values.vertex_ai_project_id || '',
+          vertex_ai_adc: values.vertex_ai_adc || '',
+          user_id: values.user_id || '',
+          model_mapping: values.model_mapping || '',
+          customModelName: values.customModelName || '',
+          channel_ratio: values.channel_ratio || 1,
+          priority: values.priority || 0,
+          weight: values.weight || 0,
+          // 如果是编辑模式，包含id
+          ...(channelData && { id: (channelData as any).id })
+        };
+
+        const res = await fetch(`/api/channel`, {
+          method: (channelData as any)?.id ? 'PUT' : 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(params),
+          credentials: 'include'
+        });
+
+        if (!res.ok) {
+          throw new Error(`HTTP错误: ${res.status} ${res.statusText}`);
+        }
+
+        const result = await res.json();
+
+        if (result.success) {
+          router.push('/dashboard/channel');
+          router.refresh();
+        } else {
+          alert(`操作失败: ${result.message || '未知错误'}`);
+        }
+      }
+    } catch (error) {
+      console.error('提交过程中发生错误:', error);
+      alert(`操作失败: ${error instanceof Error ? error.message : '未知错误'}`);
+    } finally {
+      setIsSubmitting(false);
+      setBatchProgress({ current: 0, total: 0 });
     }
   }
 
@@ -775,22 +1015,122 @@ export default function ChannelForm() {
               )}
 
               {form.watch('type') !== '33' && form.watch('type') !== '42' && (
-                <FormField
-                  control={form.control}
-                  name="key"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>密钥</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder={type2secretPrompt(field.value)}
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+                <>
+                  {/* 批量创建开关 - 仅在创建模式下显示 */}
+                  {channelId === 'create' && (
+                    <>
+                      <FormField
+                        control={form.control}
+                        name="batch_create"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                              <FormLabel className="text-base">
+                                批量创建
+                              </FormLabel>
+                              <div className="text-[0.8rem] text-muted-foreground">
+                                开启后可以批量输入多个key来创建多个渠道（并行处理，速度更快）
+                              </div>
+                            </div>
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+
+                      {/* 批量创建进度显示 */}
+                      {form.watch('batch_create') &&
+                        isSubmitting &&
+                        batchProgress.total > 0 && (
+                          <div className="rounded border border-green-200 bg-green-50 p-4">
+                            <div className="mb-2 flex items-center justify-between">
+                              <span className="text-sm font-medium text-green-800">
+                                批量创建进度
+                              </span>
+                              <span className="text-sm text-green-600">
+                                {batchProgress.current} / {batchProgress.total}
+                              </span>
+                            </div>
+                            <div className="h-2 w-full rounded-full bg-green-200">
+                              <div
+                                className="h-2 rounded-full bg-green-600 transition-all duration-300"
+                                style={{
+                                  width: `${
+                                    batchProgress.total > 0
+                                      ? (batchProgress.current /
+                                          batchProgress.total) *
+                                        100
+                                      : 0
+                                  }%`
+                                }}
+                              ></div>
+                            </div>
+                            <div className="mt-1 text-xs text-green-600">
+                              {batchProgress.current === batchProgress.total
+                                ? '处理完成，正在跳转...'
+                                : '正在并行创建渠道...'}
+                            </div>
+                          </div>
+                        )}
+                    </>
                   )}
-                />
+
+                  {/* 根据批量创建开关显示不同的密钥输入界面 */}
+                  {form.watch('batch_create') && channelId === 'create' ? (
+                    <FormField
+                      control={form.control}
+                      name="batch_keys"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>批量密钥</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              className="h-auto max-h-64 min-h-32 resize-none overflow-auto"
+                              placeholder={`请按行输入多个密钥，每行一个密钥。
+
+🚀 性能优化：
+• 采用并行处理，速度快10倍
+• 每批处理10个，避免服务器压力
+• 自动显示创建进度
+
+示例格式：
+sk-1234567890abcdef
+sk-0987654321fedcba
+sk-abcdef1234567890
+
+${type2secretPrompt(form.watch('type'))}`}
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  ) : (
+                    <FormField
+                      control={form.control}
+                      name="key"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>密钥</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder={type2secretPrompt(
+                                form.watch('type')
+                              )}
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+                </>
               )}
 
               {form.watch('type') === '37' && (
@@ -856,6 +1196,85 @@ export default function ChannelForm() {
 
               <FormField
                 control={form.control}
+                name="channel_ratio"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>渠道倍率</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        min="0.1"
+                        placeholder="请输入渠道倍率，默认为1"
+                        {...field}
+                        value={field.value || ''}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          field.onChange(
+                            value === '' ? undefined : parseFloat(value)
+                          );
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="priority"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>优先级</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min="0"
+                        placeholder="请输入优先级，默认为0"
+                        {...field}
+                        value={field.value || ''}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          field.onChange(
+                            value === '' ? undefined : parseInt(value)
+                          );
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="weight"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>权重</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min="0"
+                        placeholder="请输入权重，默认为0"
+                        {...field}
+                        value={field.value || ''}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          field.onChange(
+                            value === '' ? undefined : parseInt(value)
+                          );
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
                 name="customModelName"
                 render={({ field }) => (
                   <FormItem>
@@ -875,7 +1294,17 @@ export default function ChannelForm() {
               <Button type="button" onClick={() => window.history.back()}>
                 Go Back
               </Button>
-              <Button type="submit">Submit</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting
+                  ? form.watch('batch_create') && batchProgress.total > 0
+                    ? `创建中... (${batchProgress.current}/${batchProgress.total})`
+                    : '提交中...'
+                  : channelId !== 'create'
+                  ? '更新渠道'
+                  : form.watch('batch_create')
+                  ? '批量创建渠道'
+                  : '创建渠道'}
+              </Button>
             </div>
           </form>
         </Form>

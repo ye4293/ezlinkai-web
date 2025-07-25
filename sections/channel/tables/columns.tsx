@@ -15,11 +15,13 @@ import { renderNumber } from '@/utils/render';
 import { useState, useEffect, useContext } from 'react';
 import React from 'react';
 import { toast } from 'sonner';
+import { CHANNEL_OPTIONS } from '@/constants';
 
 type ChannelType = {
   key: number;
   text: string;
   value: number;
+  color: string;
 };
 
 function useChannelTypes() {
@@ -35,6 +37,8 @@ function useChannelTypes() {
         setTypes(data);
       } catch (error) {
         console.error('Failed to fetch channel types:', error);
+        // 如果API失败，使用本地常量作为fallback
+        setTypes(CHANNEL_OPTIONS);
       }
     };
     fetchTypes();
@@ -96,6 +100,25 @@ const renderBalance = (type: number, balance: number) => {
   }
 };
 
+// 颜色映射函数
+const getColorStyle = (colorName: string) => {
+  const colorMap: { [key: string]: string } = {
+    green: '#10b981',
+    blue: '#3b82f6',
+    orange: '#f97316',
+    black: '#1f2937',
+    olive: '#84cc16',
+    brown: '#a3a3a3',
+    violet: '#8b5cf6',
+    purple: '#a855f7',
+    teal: '#14b8a6',
+    red: '#ef4444',
+    pink: '#ec4899',
+    yellow: '#eab308'
+  };
+  return colorMap[colorName] || '#6b7280';
+};
+
 // 创建 Context
 const ChannelTypesContext = React.createContext<ChannelType[]>([]);
 
@@ -118,8 +141,191 @@ const useChannelTypesContext = () => {
   return useContext(ChannelTypesContext);
 };
 
-export const columns = (): ColumnDef<Channel>[] => {
+// Priority Cell Component
+const PriorityCell = ({ row }: { row: any }) => {
+  const [value, setValue] = useState(row.getValue('priority') as number);
   const router = useRouter();
+
+  const handleBlur = async () => {
+    try {
+      const params = {
+        id: row.original.id,
+        priority: parseInt(String(value))
+      };
+      const res = await fetch(`/api/channel`, {
+        method: 'PUT',
+        body: JSON.stringify(params),
+        credentials: 'include'
+      });
+      if (!res.ok) throw new Error('Failed to update priority');
+
+      router.refresh();
+    } catch (error) {
+      console.error('Error updating priority:', error);
+      setValue(row.getValue('priority'));
+    }
+  };
+
+  return (
+    <div className="text-center">
+      <input
+        type="number"
+        value={value}
+        onChange={(e) => setValue(Number(e.target.value))}
+        onBlur={handleBlur}
+        className="w-16 rounded border text-center"
+      />
+    </div>
+  );
+};
+
+// Weight Cell Component
+const WeightCell = ({ row }: { row: any }) => {
+  const [value, setValue] = useState(row.getValue('weight') as number);
+  const router = useRouter();
+
+  const handleBlur = async () => {
+    try {
+      const params = {
+        id: row.original.id,
+        weight: parseInt(String(value))
+      };
+      const res = await fetch(`/api/channel`, {
+        method: 'PUT',
+        body: JSON.stringify(params),
+        credentials: 'include'
+      });
+      if (!res.ok) throw new Error('Failed to update weight');
+
+      router.refresh();
+    } catch (error) {
+      console.error('Error updating weight:', error);
+      setValue(row.getValue('weight'));
+    }
+  };
+
+  return (
+    <div className="text-center">
+      <input
+        type="number"
+        value={value}
+        onChange={(e) => setValue(Number(e.target.value))}
+        onBlur={handleBlur}
+        className="w-16 rounded border text-center"
+      />
+    </div>
+  );
+};
+
+// Channel Ratio Cell Component
+const ChannelRatioCell = ({ row }: { row: any }) => {
+  const [value, setValue] = useState(row.getValue('channel_ratio') as number);
+  const router = useRouter();
+
+  const handleBlur = async () => {
+    try {
+      const params = {
+        id: row.original.id,
+        channel_ratio: parseFloat(String(value))
+      };
+      const res = await fetch(`/api/channel`, {
+        method: 'PUT',
+        body: JSON.stringify(params),
+        credentials: 'include'
+      });
+      if (!res.ok) throw new Error('Failed to update channel ratio');
+
+      router.refresh();
+    } catch (error) {
+      console.error('Error updating channel ratio:', error);
+      setValue(row.getValue('channel_ratio'));
+    }
+  };
+
+  return (
+    <div className="text-center">
+      <input
+        type="number"
+        step="0.1"
+        min="0.1"
+        value={value}
+        onChange={(e) => setValue(Number(e.target.value))}
+        onBlur={handleBlur}
+        className="w-20 rounded border text-center"
+      />
+    </div>
+  );
+};
+
+// Type Cell Component with Color
+const TypeCell = ({ row }: { row: any }) => {
+  const types = useChannelTypesContext();
+  const typeValue = row.getValue('type') as number;
+  const typeInfo = types.find((item) => item.key === typeValue);
+  const typeText = typeInfo?.text || '';
+  const typeColor = typeInfo?.color || 'gray';
+
+  return (
+    <div className="flex items-center justify-center">
+      <div
+        className="rounded border px-2 py-1 text-sm font-medium text-white"
+        style={{
+          backgroundColor: getColorStyle(typeColor),
+          borderColor: getColorStyle(typeColor)
+        }}
+        title={typeText}
+      >
+        {typeText}
+      </div>
+    </div>
+  );
+};
+
+// Actions Cell Component
+const ActionsCell = ({ row }: { row: any }) => {
+  return (
+    <div className="text-center">
+      <CellAction data={row.original} />
+    </div>
+  );
+};
+
+// Balance Cell Component
+const BalanceCell = ({ row }: { row: any }) => {
+  const router = useRouter();
+
+  const updateBalance = async () => {
+    const params = {
+      id: row.original.id
+    };
+    const res = await fetch(`/api/channel/update_balance/${params.id}`, {
+      method: 'GET',
+      credentials: 'include'
+    });
+    const { success, message } = await res.json();
+    if (!success) {
+      toast.error(message);
+    }
+
+    router.refresh();
+  };
+
+  return (
+    <TooltipProvider disableHoverableContent>
+      <Tooltip delayDuration={100}>
+        <TooltipTrigger asChild>
+          <div className="cursor-pointer text-center" onClick={updateBalance}>
+            {renderBalance(row.getValue('type'), row.getValue('balance'))}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">Update balance</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+};
+
+export const columns = (): ColumnDef<Channel>[] => {
+  // 移除这里的useRouter，将其移到需要的组件中
 
   return [
     {
@@ -163,11 +369,15 @@ export const columns = (): ColumnDef<Channel>[] => {
     {
       accessorKey: 'type',
       header: () => <div className="text-center">Type</div>,
+      cell: ({ row }) => <TypeCell row={row} />
+    },
+    {
+      accessorKey: 'used_quota',
+      header: () => <div className="text-center">Used Quota</div>,
       cell: ({ row }) => {
-        const types = useChannelTypesContext();
-        const typeText =
-          types.find((item) => item.key === row.getValue('type'))?.text || '';
-        return <div className="text-center">{typeText}</div>;
+        const usedQuota = row.getValue('used_quota') as number;
+        const displayValue = (usedQuota / 500000).toFixed(2);
+        return <div className="text-center">${displayValue}</div>;
       }
     },
     {
@@ -194,126 +404,33 @@ export const columns = (): ColumnDef<Channel>[] => {
     {
       accessorKey: 'balance',
       header: () => <div className="text-center">Balance</div>,
-      cell: ({ row }) => {
-        const updateBalance = async () => {
-          const params = {
-            id: row.original.id
-          };
-          const res = await fetch(`/api/channel/update_balance/${params.id}`, {
-            method: 'GET',
-            credentials: 'include'
-          });
-          const { success, message } = await res.json();
-          if (!success) {
-            toast.error(message);
-          }
-
-          router.refresh();
-        };
-
-        return (
-          <TooltipProvider disableHoverableContent>
-            <Tooltip delayDuration={100}>
-              <TooltipTrigger asChild>
-                <div
-                  className="cursor-pointer text-center"
-                  onClick={updateBalance}
-                >
-                  {renderBalance(row.getValue('type'), row.getValue('balance'))}
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">Update balance</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        );
-      }
+      cell: ({ row }) => <BalanceCell row={row} />
     },
     {
       accessorKey: 'priority',
       header: () => <div className="text-center">Priority</div>,
       cell: ({ row }) => {
-        const [value, setValue] = useState(row.getValue('priority') as number);
-
-        const handleBlur = async () => {
-          try {
-            const params = {
-              id: row.original.id,
-              priority: parseInt(String(value))
-            };
-            const res = await fetch(`/api/channel`, {
-              method: 'PUT',
-              body: JSON.stringify(params),
-              credentials: 'include'
-            });
-            if (!res.ok) throw new Error('Failed to update priority');
-
-            router.refresh();
-          } catch (error) {
-            console.error('Error updating priority:', error);
-            setValue(row.getValue('priority'));
-          }
-        };
-
-        return (
-          <div className="text-center">
-            <input
-              type="number"
-              value={value}
-              onChange={(e) => setValue(Number(e.target.value))}
-              onBlur={handleBlur}
-              className="w-16 rounded border text-center"
-            />
-          </div>
-        );
+        return <PriorityCell row={row} />;
       }
     },
     {
       accessorKey: 'weight',
       header: () => <div className="text-center">Weight</div>,
       cell: ({ row }) => {
-        const [value, setValue] = useState(row.getValue('weight') as number);
-
-        const handleBlur = async () => {
-          try {
-            const params = {
-              id: row.original.id,
-              weight: parseInt(String(value))
-            };
-            const res = await fetch(`/api/channel`, {
-              method: 'PUT',
-              body: JSON.stringify(params),
-              credentials: 'include'
-            });
-            if (!res.ok) throw new Error('Failed to update weight');
-
-            router.refresh();
-          } catch (error) {
-            console.error('Error updating weight:', error);
-            setValue(row.getValue('weight'));
-          }
-        };
-
-        return (
-          <div className="text-center">
-            <input
-              type="number"
-              value={value}
-              onChange={(e) => setValue(Number(e.target.value))}
-              onBlur={handleBlur}
-              className="w-16 rounded border text-center"
-            />
-          </div>
-        );
+        return <WeightCell row={row} />;
+      }
+    },
+    {
+      accessorKey: 'channel_ratio',
+      header: () => <div className="text-center">Channel Ratio</div>,
+      cell: ({ row }) => {
+        return <ChannelRatioCell row={row} />;
       }
     },
     {
       id: 'actions',
       header: () => <div className="text-center">Actions</div>,
-      cell: ({ row }) => (
-        <div className="text-center">
-          <CellAction data={row.original} />
-        </div>
-      )
+      cell: ({ row }) => <ActionsCell row={row} />
     }
   ];
 };
