@@ -1,6 +1,6 @@
-import { searchParamsCache, serialize } from '@/lib/searchparams';
+import { searchParamsCache } from '@/lib/searchparams';
 import { ImageListingPage } from '@/sections/image/views';
-import { SearchParams } from 'nuqs';
+import { SearchParams } from 'nuqs/parsers';
 
 type pageProps = {
   searchParams: SearchParams;
