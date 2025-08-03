@@ -36,7 +36,6 @@ function useChannelTypes() {
         const { data } = await res.json();
         setTypes(data);
       } catch (error) {
-        console.error('Failed to fetch channel types:', error);
         // 如果API失败，使用本地常量作为fallback
         setTypes(CHANNEL_OPTIONS);
       }
@@ -161,7 +160,6 @@ const PriorityCell = ({ row }: { row: any }) => {
 
       router.refresh();
     } catch (error) {
-      console.error('Error updating priority:', error);
       setValue(row.getValue('priority'));
     }
   };
@@ -199,7 +197,6 @@ const WeightCell = ({ row }: { row: any }) => {
 
       router.refresh();
     } catch (error) {
-      console.error('Error updating weight:', error);
       setValue(row.getValue('weight'));
     }
   };
@@ -237,7 +234,6 @@ const ChannelRatioCell = ({ row }: { row: any }) => {
 
       router.refresh();
     } catch (error) {
-      console.error('Error updating channel ratio:', error);
       setValue(row.getValue('channel_ratio'));
     }
   };

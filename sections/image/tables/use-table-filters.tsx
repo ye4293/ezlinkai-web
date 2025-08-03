@@ -11,16 +11,23 @@ export const STATUS_OPTIONS = [
 ];
 
 export function useTableFilters() {
-  // const [searchQuery, setSearchQuery] = useQueryState(
-  //   'q',
-  //   searchParams.q
-  //     .withOptions({ shallow: false, throttleMs: 1000 })
-  //     .withDefault('')
-  // );
+  const [searchQuery, setSearchQuery] = useQueryState(
+    'q',
+    searchParams.q
+      .withOptions({ shallow: false, throttleMs: 1000 })
+      .withDefault('')
+  );
 
-  const [tokenName, setTokenName] = useQueryState(
-    'token_name',
-    searchParams.token_name
+  const [taskId, setTaskId] = useQueryState(
+    'task_id',
+    searchParams.task_id
+      .withOptions({ shallow: false, throttleMs: 1000 })
+      .withDefault('')
+  );
+
+  const [provider, setProvider] = useQueryState(
+    'provider',
+    searchParams.provider
       .withOptions({ shallow: false, throttleMs: 1000 })
       .withDefault('')
   );
@@ -46,19 +53,9 @@ export function useTableFilters() {
       .withDefault('')
   );
 
-  const [typeFilter, setTypeFilter] = useQueryState(
-    'type',
-    searchParams.type.withOptions({ shallow: false }).withDefault('')
-  );
-
   const [page, setPage] = useQueryState(
     'page',
-    searchParams.page.withOptions({ shallow: false }).withDefault(1)
-  );
-
-  const [pageSize, setPageSize] = useQueryState(
-    'limit',
-    searchParams.limit.withOptions({ shallow: false }).withDefault(10)
+    searchParams.page.withDefault(1)
   );
 
   const [startTimestamp, setStartTimestamp] = useQueryState(
@@ -102,23 +99,24 @@ export function useTableFilters() {
   );
 
   const resetFilters = useCallback(() => {
-    // setSearchQuery(null);
-    setTokenName(null);
+    setSearchQuery(null);
+    setTaskId(null);
+    setProvider(null);
     setModelName(null);
     setChannelId(null);
     setUserName(null);
-    setTypeFilter(null);
     setStartTimestamp(null);
     setEndTimestamp(null);
     setDateRange({ from: undefined, to: undefined });
 
     setPage(1);
   }, [
-    setTokenName,
+    setSearchQuery,
+    setTaskId,
+    setProvider,
     setModelName,
     setChannelId,
     setUserName,
-    setTypeFilter,
     setPage,
     setStartTimestamp,
     setEndTimestamp,
@@ -127,39 +125,41 @@ export function useTableFilters() {
 
   const isAnyFilterActive = useMemo(() => {
     return (
-      !!tokenName ||
+      !!searchQuery ||
+      !!taskId ||
+      !!provider ||
       !!modelName ||
       !!channelId ||
       !!userName ||
-      !!typeFilter ||
       !!startTimestamp ||
       !!endTimestamp
     );
   }, [
-    tokenName,
+    searchQuery,
+    taskId,
+    provider,
     modelName,
     channelId,
     userName,
-    typeFilter,
     startTimestamp,
     endTimestamp
   ]);
 
   return {
-    tokenName,
-    setTokenName,
+    searchQuery,
+    setSearchQuery,
+    taskId,
+    setTaskId,
+    provider,
+    setProvider,
     modelName,
     setModelName,
     channelId,
     setChannelId,
     userName,
     setUserName,
-    typeFilter,
-    setTypeFilter,
     page,
     setPage,
-    pageSize,
-    setPageSize,
     resetFilters,
     isAnyFilterActive,
     dateRange,

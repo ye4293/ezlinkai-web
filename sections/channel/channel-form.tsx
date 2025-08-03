@@ -326,6 +326,22 @@ export default function ChannelForm() {
     setBatchProgress({ current: 0, total: 0 });
 
     try {
+      // 处理customModelName，将其添加到models数组中
+      let finalModels = [...(values.models || [])];
+      if (values.customModelName && values.customModelName.trim()) {
+        const customModels = values.customModelName
+          .split(',')
+          .map((model) => model.trim())
+          .filter((model) => model.length > 0);
+
+        // 将自定义模型添加到models数组中，去重
+        customModels.forEach((customModel) => {
+          if (!finalModels.includes(customModel)) {
+            finalModels.push(customModel);
+          }
+        });
+      }
+
       if (values.batch_create && values.batch_keys && channelId === 'create') {
         console.log('=== 批量创建模式（并行处理）===');
         const startTime = Date.now();
@@ -355,7 +371,7 @@ export default function ChannelForm() {
           type: Number(values.type),
           name: values.name,
           group: values.groups.join(','),
-          models: values.models.join(','),
+          models: finalModels.join(','),
           base_url: values.base_url || '',
           other: values.other || '',
           region: values.region || '',
@@ -493,7 +509,7 @@ export default function ChannelForm() {
           type: Number(values.type),
           name: values.name,
           group: values.groups.join(','),
-          models: values.models.join(','),
+          models: finalModels.join(','),
           key: values.key || '',
           base_url: values.base_url || '',
           other: values.other || '',
@@ -943,7 +959,7 @@ export default function ChannelForm() {
                 </>
               )}
 
-              {form.watch('type') === '42' && (
+              {form.watch('type') === '48' && (
                 <>
                   <FormField
                     control={form.control}
@@ -1014,83 +1030,82 @@ export default function ChannelForm() {
                 />
               )}
 
-              {form.watch('type') !== '33' && form.watch('type') !== '42' && (
-                <>
-                  {/* 批量创建开关 - 仅在创建模式下显示 */}
-                  {channelId === 'create' && (
-                    <>
-                      <FormField
-                        control={form.control}
-                        name="batch_create"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                            <div className="space-y-0.5">
-                              <FormLabel className="text-base">
-                                批量创建
-                              </FormLabel>
-                              <div className="text-[0.8rem] text-muted-foreground">
-                                开启后可以批量输入多个key来创建多个渠道（并行处理，速度更快）
-                              </div>
-                            </div>
-                            <FormControl>
-                              <Checkbox
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-
-                      {/* 批量创建进度显示 */}
-                      {form.watch('batch_create') &&
-                        isSubmitting &&
-                        batchProgress.total > 0 && (
-                          <div className="rounded border border-green-200 bg-green-50 p-4">
-                            <div className="mb-2 flex items-center justify-between">
-                              <span className="text-sm font-medium text-green-800">
-                                批量创建进度
-                              </span>
-                              <span className="text-sm text-green-600">
-                                {batchProgress.current} / {batchProgress.total}
-                              </span>
-                            </div>
-                            <div className="h-2 w-full rounded-full bg-green-200">
-                              <div
-                                className="h-2 rounded-full bg-green-600 transition-all duration-300"
-                                style={{
-                                  width: `${
-                                    batchProgress.total > 0
-                                      ? (batchProgress.current /
-                                          batchProgress.total) *
-                                        100
-                                      : 0
-                                  }%`
-                                }}
-                              ></div>
-                            </div>
-                            <div className="mt-1 text-xs text-green-600">
-                              {batchProgress.current === batchProgress.total
-                                ? '处理完成，正在跳转...'
-                                : '正在并行创建渠道...'}
-                            </div>
-                          </div>
-                        )}
-                    </>
-                  )}
-
-                  {/* 根据批量创建开关显示不同的密钥输入界面 */}
-                  {form.watch('batch_create') && channelId === 'create' ? (
+              <>
+                {/* 批量创建开关 - 仅在创建模式下显示 */}
+                {channelId === 'create' && (
+                  <>
                     <FormField
                       control={form.control}
-                      name="batch_keys"
+                      name="batch_create"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>批量密钥</FormLabel>
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-base">
+                              批量创建
+                            </FormLabel>
+                            <div className="text-[0.8rem] text-muted-foreground">
+                              开启后可以批量输入多个key来创建多个渠道（并行处理，速度更快）
+                            </div>
+                          </div>
                           <FormControl>
-                            <Textarea
-                              className="h-auto max-h-64 min-h-32 resize-none overflow-auto"
-                              placeholder={`请按行输入多个密钥，每行一个密钥。
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* 批量创建进度显示 */}
+                    {form.watch('batch_create') &&
+                      isSubmitting &&
+                      batchProgress.total > 0 && (
+                        <div className="rounded border border-green-200 bg-green-50 p-4">
+                          <div className="mb-2 flex items-center justify-between">
+                            <span className="text-sm font-medium text-green-800">
+                              批量创建进度
+                            </span>
+                            <span className="text-sm text-green-600">
+                              {batchProgress.current} / {batchProgress.total}
+                            </span>
+                          </div>
+                          <div className="h-2 w-full rounded-full bg-green-200">
+                            <div
+                              className="h-2 rounded-full bg-green-600 transition-all duration-300"
+                              style={{
+                                width: `${
+                                  batchProgress.total > 0
+                                    ? (batchProgress.current /
+                                        batchProgress.total) *
+                                      100
+                                    : 0
+                                }%`
+                              }}
+                            ></div>
+                          </div>
+                          <div className="mt-1 text-xs text-green-600">
+                            {batchProgress.current === batchProgress.total
+                              ? '处理完成，正在跳转...'
+                              : '正在并行创建渠道...'}
+                          </div>
+                        </div>
+                      )}
+                  </>
+                )}
+
+                {/* 根据批量创建开关显示不同的密钥输入界面 */}
+                {form.watch('batch_create') && channelId === 'create' ? (
+                  <FormField
+                    control={form.control}
+                    name="batch_keys"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>批量密钥</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            className="h-auto max-h-64 min-h-32 resize-none overflow-auto"
+                            placeholder={`请按行输入多个密钥，每行一个密钥。
 
 🚀 性能优化：
 • 采用并行处理，速度快10倍
@@ -1103,35 +1118,32 @@ sk-0987654321fedcba
 sk-abcdef1234567890
 
 ${type2secretPrompt(form.watch('type'))}`}
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  ) : (
-                    <FormField
-                      control={form.control}
-                      name="key"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>密钥</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder={type2secretPrompt(
-                                form.watch('type')
-                              )}
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
-                </>
-              )}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                ) : (
+                  <FormField
+                    control={form.control}
+                    name="key"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>密钥</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder={type2secretPrompt(form.watch('type'))}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </>
 
               {form.watch('type') === '37' && (
                 <FormField
@@ -1281,10 +1293,13 @@ ${type2secretPrompt(form.watch('type'))}`}
                     <FormLabel>CustomModelName</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="please enter CustomModelName"
+                        placeholder="请输入自定义模型名称，多个模型用逗号分隔，例如：gpt-4o,claude-3.5-sonnet"
                         {...field}
                       />
                     </FormControl>
+                    <div className="text-[0.8rem] text-muted-foreground">
+                      输入的自定义模型将自动添加到上面选择的模型列表中
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}

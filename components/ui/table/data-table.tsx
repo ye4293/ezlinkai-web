@@ -21,19 +21,27 @@ import {
 } from '@radix-ui/react-icons';
 import {
   ColumnDef,
-  flexRender,
-  getCoreRowModel,
-  getPaginationRowModel,
   PaginationState,
-  useReactTable
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  useReactTable,
+  flexRender,
+  RowSelectionState
 } from '@tanstack/react-table';
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
-import { parseAsInteger, useQueryState } from 'nuqs';
+import React, { useEffect, useState } from 'react';
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   totalItems: number;
+  onSelectionChange?: (selectedRows: TData[]) => void;
+  resetSelection?: boolean;
+  currentPage?: number;
+  pageSize?: number;
+  setCurrentPage?: (page: number) => void;
+  setPageSize?: (size: number) => void;
   pageSizeOptions?: number[];
 }
 
@@ -41,57 +49,76 @@ export function DataTable<TData, TValue>({
   columns,
   data,
   totalItems,
-  pageSizeOptions = [10, 20, 30, 40, 50]
+  onSelectionChange,
+  resetSelection,
+  currentPage: externalCurrentPage,
+  pageSize: externalPageSize,
+  setCurrentPage: externalSetCurrentPage,
+  setPageSize: externalSetPageSize,
+  pageSizeOptions = [10, 50, 100, 500]
 }: DataTableProps<TData, TValue>) {
-  const [currentPage, setCurrentPage] = useQueryState(
-    'page',
-    parseAsInteger.withOptions({ shallow: false }).withDefault(1)
-  );
-  const [pageSize, setPageSize] = useQueryState(
-    'limit',
-    parseAsInteger
-      .withOptions({ shallow: false, history: 'push' })
-      .withDefault(10)
-  );
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
 
-  const paginationState = {
-    pageIndex: currentPage - 1, // zero-based index for React Table
+  // 内部分页状态（用于向下兼容）
+  const [internalCurrentPage, setInternalCurrentPage] = useState(1);
+  const [internalPageSize, setInternalPageSize] = useState(10);
+
+  // 使用外部状态或内部状态
+  const currentPage = externalCurrentPage ?? internalCurrentPage;
+  const pageSize = externalPageSize ?? internalPageSize;
+  const setCurrentPage = externalSetCurrentPage ?? setInternalCurrentPage;
+  const setPageSize = externalSetPageSize ?? setInternalPageSize;
+
+  // 使用实际数据长度计算页数，而不是totalItems
+  const pageCount = Math.ceil(data.length / pageSize);
+  const pagination: PaginationState = {
+    pageIndex: currentPage - 1,
     pageSize: pageSize
   };
 
-  const pageCount = Math.ceil(totalItems / pageSize);
+  // 监听数据变化，当数据长度变化时重置选中状态
+  const [prevDataLength, setPrevDataLength] = useState(data.length);
+  useEffect(() => {
+    if (data.length !== prevDataLength) {
+      setRowSelection({});
+      setPrevDataLength(data.length);
+    }
+  }, [data.length, prevDataLength]);
 
-  const handlePaginationChange = (
-    updaterOrValue:
-      | PaginationState
-      | ((old: PaginationState) => PaginationState)
-  ) => {
-    const pagination =
-      typeof updaterOrValue === 'function'
-        ? updaterOrValue(paginationState)
-        : updaterOrValue;
-
-    setCurrentPage(pagination.pageIndex + 1); // converting zero-based index to one-based
-    setPageSize(pagination.pageSize);
-  };
+  // 监听resetSelection属性，当父组件要求重置时清除选中状态
+  useEffect(() => {
+    if (resetSelection) {
+      setRowSelection({});
+    }
+  }, [resetSelection]);
 
   const table = useReactTable({
     data,
     columns,
-    pageCount: pageCount,
     state: {
-      pagination: paginationState
+      pagination,
+      rowSelection
     },
-    onPaginationChange: handlePaginationChange,
+    pageCount,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    manualPagination: true,
-    manualFiltering: true
+    onRowSelectionChange: setRowSelection,
+    enableRowSelection: true,
+    manualPagination: true
   });
 
+  useEffect(() => {
+    if (onSelectionChange) {
+      const selectedRowsData = table
+        .getFilteredSelectedRowModel()
+        .rows.map((row) => row.original);
+      onSelectionChange(selectedRowsData);
+    }
+  }, [rowSelection, onSelectionChange, table]);
+
   return (
-    <div className="space-y-4">
-      <ScrollArea className="h-[calc(80vh-220px)] rounded-md border md:h-[calc(80dvh-200px)]">
+    <div className="w-full space-y-4">
+      <ScrollArea className="h-[calc(80vh-220px)] rounded-md border">
         <Table className="relative">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -144,15 +171,11 @@ export function DataTable<TData, TValue>({
       <div className="flex flex-col items-center justify-end gap-2 space-x-2 py-4 sm:flex-row">
         <div className="flex w-full items-center justify-between">
           <div className="flex-1 text-sm text-muted-foreground">
-            {totalItems > 0 ? (
+            {data.length > 0 ? (
               <>
-                Showing{' '}
-                {paginationState.pageIndex * paginationState.pageSize + 1} to{' '}
-                {Math.min(
-                  (paginationState.pageIndex + 1) * paginationState.pageSize,
-                  totalItems
-                )}{' '}
-                of {totalItems} entries
+                Showing {(currentPage - 1) * pageSize + 1} to{' '}
+                {Math.min(currentPage * pageSize, data.length)} of {data.length}{' '}
+                entries
               </>
             ) : (
               'No entries found'
@@ -164,18 +187,25 @@ export function DataTable<TData, TValue>({
                 Rows per page
               </p>
               <Select
-                value={`${paginationState.pageSize}`}
+                value={`${pageSize}`}
                 onValueChange={(value) => {
-                  table.setPageSize(Number(value));
+                  const newPageSize = Number(value);
+                  setPageSize(newPageSize);
+                  // 如果有外部的setCurrentPage，也重置页面到第一页
+                  if (externalSetCurrentPage) {
+                    externalSetCurrentPage(1);
+                  } else {
+                    setInternalCurrentPage(1);
+                  }
                 }}
               >
                 <SelectTrigger className="h-8 w-[70px]">
-                  <SelectValue placeholder={paginationState.pageSize} />
+                  <SelectValue placeholder={pageSize} />
                 </SelectTrigger>
                 <SelectContent side="top">
-                  {pageSizeOptions.map((pageSize) => (
-                    <SelectItem key={pageSize} value={`${pageSize}`}>
-                      {pageSize}
+                  {pageSizeOptions.map((option) => (
+                    <SelectItem key={option} value={`${option}`}>
+                      {option}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -185,9 +215,9 @@ export function DataTable<TData, TValue>({
         </div>
         <div className="flex w-full items-center justify-between gap-2 sm:justify-end">
           <div className="flex w-[150px] items-center justify-center text-sm font-medium">
-            {totalItems > 0 ? (
+            {data.length > 0 ? (
               <>
-                Page {paginationState.pageIndex + 1} of {table.getPageCount()}
+                Page {currentPage} of {pageCount}
               </>
             ) : (
               'No pages'
@@ -198,8 +228,8 @@ export function DataTable<TData, TValue>({
               aria-label="Go to first page"
               variant="outline"
               className="hidden h-8 w-8 p-0 lg:flex"
-              onClick={() => table.setPageIndex(0)}
-              disabled={!table.getCanPreviousPage()}
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage <= 1}
             >
               <DoubleArrowLeftIcon className="h-4 w-4" aria-hidden="true" />
             </Button>
@@ -207,8 +237,8 @@ export function DataTable<TData, TValue>({
               aria-label="Go to previous page"
               variant="outline"
               className="h-8 w-8 p-0"
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
+              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+              disabled={currentPage <= 1}
             >
               <ChevronLeftIcon className="h-4 w-4" aria-hidden="true" />
             </Button>
@@ -216,8 +246,10 @@ export function DataTable<TData, TValue>({
               aria-label="Go to next page"
               variant="outline"
               className="h-8 w-8 p-0"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
+              onClick={() =>
+                setCurrentPage(Math.min(pageCount, currentPage + 1))
+              }
+              disabled={currentPage >= pageCount}
             >
               <ChevronRightIcon className="h-4 w-4" aria-hidden="true" />
             </Button>
@@ -225,8 +257,8 @@ export function DataTable<TData, TValue>({
               aria-label="Go to last page"
               variant="outline"
               className="hidden h-8 w-8 p-0 lg:flex"
-              onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-              disabled={!table.getCanNextPage()}
+              onClick={() => setCurrentPage(pageCount)}
+              disabled={currentPage >= pageCount}
             >
               <DoubleArrowRightIcon className="h-4 w-4" aria-hidden="true" />
             </Button>
