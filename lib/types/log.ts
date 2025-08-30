@@ -27,9 +27,15 @@ export interface LogStat {
   /** 持续时间 */
   duration: number;
   /** 是否为流式请求 */
-  is_stream: boolean;
+  is_stream: boolean | number; // 支持数据库中的 0/1 格式
   /** 首字延迟 */
   first_word_latency: number;
+  /** 速度 */
+  speed?: number;
+  /** HTTP 引用 */
+  http_referer?: string;
+  /** 标题 */
+  title?: string;
 }
 
 export type LogDataResult = {

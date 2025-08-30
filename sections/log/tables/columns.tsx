@@ -9,7 +9,6 @@ import {
 } from '@/components/ui/tooltip';
 import { LogStat } from '@/lib/types';
 import { ColumnDef } from '@tanstack/react-table';
-import { CellAction } from './cell-action';
 
 /** 类型 */
 const renderType = (status: number) => {
@@ -53,10 +52,6 @@ export const columns: ColumnDef<LogStat>[] = [
     ),
     enableSorting: false,
     enableHiding: false
-  },
-  {
-    id: 'actions',
-    cell: ({ row }) => <CellAction data={row.original} />
   },
   {
     accessorKey: 'created_at',
@@ -137,10 +132,22 @@ export const columns: ColumnDef<LogStat>[] = [
       const isStreamValue = row.original.is_stream;
       const isStream = (isStreamValue as any) === 1 || isStreamValue === true;
 
-      // 修复：处理首字延迟字段名
-      const firstWordLatencyValue = row.original.first_word_latency;
+      // 修复：处理首字延迟字段名，直接使用 first_word_latency
+      const firstWordLatencyValue = (row.original as any).first_word_latency;
       const firstWordLatency =
         typeof firstWordLatencyValue === 'number' ? firstWordLatencyValue : 0;
+
+      // 调试信息（生产环境可删除）
+      if (isStream && process.env.NODE_ENV === 'development') {
+        console.log('Debug - Row data:', {
+          original: row.original,
+          first_word_latency: row.original.first_word_latency,
+          firstWordLatency: row.original.first_word_latency,
+          FirstWordLatency: (row.original as any).FirstWordLatency,
+          finalValue: firstWordLatency,
+          isStream
+        });
+      }
 
       return (
         <div className="space-y-1 text-center">
@@ -152,16 +159,29 @@ export const columns: ColumnDef<LogStat>[] = [
               </span>
             )}
           </div>
-          {isStream && firstWordLatency > 0 && (
+          {isStream && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger>
-                  <span className="inline-flex items-center rounded bg-blue-100 px-1.5 py-0.5 text-xs font-medium text-blue-700">
-                    {firstWordLatency.toFixed(2)}s
+                  <span
+                    className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium ${
+                      firstWordLatency > 0
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'bg-gray-100 text-gray-600'
+                    }`}
+                  >
+                    {firstWordLatency > 0
+                      ? `${firstWordLatency.toFixed(2)}s`
+                      : '未计算'}
                   </span>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>首字延迟: {firstWordLatency.toFixed(3)}秒</p>
+                  <p>
+                    首字延迟:{' '}
+                    {firstWordLatency > 0
+                      ? `${firstWordLatency.toFixed(3)}秒`
+                      : '未计算或为0'}
+                  </p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
