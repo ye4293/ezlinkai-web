@@ -9,8 +9,8 @@ export function useDebounce<T extends (...args: any[]) => any>(
 ): T {
   const timeoutRef = useRef<NodeJS.Timeout>();
 
-  return useCallback(
-    ((...args: Parameters<T>) => {
+  const debouncedCallback = useCallback(
+    (...args: Parameters<T>) => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
@@ -18,9 +18,11 @@ export function useDebounce<T extends (...args: any[]) => any>(
       timeoutRef.current = setTimeout(() => {
         callback(...args);
       }, delay);
-    }) as T,
+    },
     [callback, delay]
   );
+
+  return debouncedCallback as T;
 }
 
 /**
@@ -33,8 +35,8 @@ export function useThrottle<T extends (...args: any[]) => any>(
   const lastCallRef = useRef<number>(0);
   const timeoutRef = useRef<NodeJS.Timeout>();
 
-  return useCallback(
-    ((...args: Parameters<T>) => {
+  const throttledCallback = useCallback(
+    (...args: Parameters<T>) => {
       const now = Date.now();
       const timeSinceLastCall = now - lastCallRef.current;
 
@@ -51,9 +53,11 @@ export function useThrottle<T extends (...args: any[]) => any>(
           callback(...args);
         }, delay - timeSinceLastCall);
       }
-    }) as T,
+    },
     [callback, delay]
   );
+
+  return throttledCallback as T;
 }
 
 /**
@@ -163,7 +167,9 @@ export class PerformanceMonitor {
         measurements.shift();
       }
 
-      console.log(`⏱️ ${label}: ${duration.toFixed(2)}ms`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`⏱️ ${label}: ${duration.toFixed(2)}ms`);
+      }
       return duration;
     }
     return null;
@@ -180,12 +186,12 @@ export class PerformanceMonitor {
   getMetrics(): Record<string, { average: number; count: number }> {
     const result: Record<string, { average: number; count: number }> = {};
 
-    for (const [label, measurements] of this.metrics.entries()) {
+    this.metrics.forEach((measurements, label) => {
       result[label] = {
         average: this.getAverageTime(label),
         count: measurements.length
       };
-    }
+    });
 
     return result;
   }

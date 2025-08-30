@@ -38,9 +38,23 @@ export default async function OverViewPage() {
   const baseURL =
     process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
   const fullURL = `${baseURL}${userApi}`;
-  console.log('🌐 使用fetch请求:', fullURL);
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🌐 使用fetch请求:', fullURL);
+  }
 
-  let res: DashboardResult = { success: false, data: {}, message: '初始化' };
+  let res: DashboardResult = {
+    success: false,
+    data: {
+      current_quota: 0,
+      used_quota: 0,
+      tpm: 0,
+      rpm: 0,
+      quota_pm: 0,
+      request_pd: 0,
+      used_pd: 0
+    },
+    message: '初始化'
+  };
   try {
     const response = await fetch(fullURL, {
       method: 'GET',
@@ -68,7 +82,19 @@ export default async function OverViewPage() {
   } catch (error) {
     console.error('❌ 请求失败:', error);
     // 提供默认数据以防止页面崩溃
-    res = { success: false, data: {}, message: '请求失败' };
+    res = {
+      success: false,
+      data: {
+        current_quota: 0,
+        used_quota: 0,
+        tpm: 0,
+        rpm: 0,
+        quota_pm: 0,
+        request_pd: 0,
+        used_pd: 0
+      },
+      message: '请求失败'
+    };
   }
   // console.log('res****', res);
   const dashboardData = res.data || {};

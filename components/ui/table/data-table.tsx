@@ -23,7 +23,6 @@ import {
   ColumnDef,
   PaginationState,
   getCoreRowModel,
-  getFilteredRowModel,
   getPaginationRowModel,
   useReactTable,
   flexRender,
@@ -241,9 +240,6 @@ export function DataTable<TData, TValue>({
               variant="outline"
               className="relative z-20 h-8 w-8 p-0"
               onClick={useCallback(() => {
-                if (process.env.NODE_ENV === 'development') {
-                  console.log('First page clicked');
-                }
                 setCurrentPage(1);
               }, [setCurrentPage])}
               disabled={currentPage <= 1}
@@ -255,9 +251,6 @@ export function DataTable<TData, TValue>({
               variant="outline"
               className="relative z-20 h-8 w-8 p-0"
               onClick={useCallback(() => {
-                if (process.env.NODE_ENV === 'development') {
-                  console.log('Previous page clicked');
-                }
                 setCurrentPage(Math.max(1, currentPage - 1));
               }, [setCurrentPage, currentPage])}
               disabled={currentPage <= 1}
@@ -269,14 +262,6 @@ export function DataTable<TData, TValue>({
               variant="outline"
               className="relative z-20 h-8 w-8 p-0"
               onClick={useCallback(() => {
-                if (process.env.NODE_ENV === 'development') {
-                  console.log(
-                    'Next page clicked, current:',
-                    currentPage,
-                    'pageCount:',
-                    pageCount
-                  );
-                }
                 setCurrentPage(Math.min(pageCount, currentPage + 1));
               }, [setCurrentPage, currentPage, pageCount])}
               disabled={currentPage >= pageCount}
@@ -288,14 +273,6 @@ export function DataTable<TData, TValue>({
               variant="outline"
               className="relative z-20 h-8 w-8 p-0"
               onClick={useCallback(() => {
-                if (process.env.NODE_ENV === 'development') {
-                  console.log(
-                    'Last page clicked, current:',
-                    currentPage,
-                    'pageCount:',
-                    pageCount
-                  );
-                }
                 setCurrentPage(pageCount);
               }, [setCurrentPage, pageCount])}
               disabled={currentPage >= pageCount}

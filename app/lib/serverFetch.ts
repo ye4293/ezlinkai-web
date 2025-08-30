@@ -23,11 +23,14 @@ request.interceptors.request.use(
       process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
     config.baseURL = baseURL;
 
-    console.log('🚀 请求拦截器 - 配置检查:', {
-      baseURL: config.baseURL,
-      url: config.url,
-      fullURL: `${config.baseURL}${config.url}`
-    });
+    // 开发环境下的调试信息
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🚀 请求拦截器 - 配置检查:', {
+        baseURL: config.baseURL,
+        url: config.url,
+        fullURL: `${config.baseURL}${config.url}`
+      });
+    }
 
     // 判断是否在客户端
     if (typeof window !== 'undefined') {

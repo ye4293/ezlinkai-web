@@ -38,8 +38,7 @@ export class ApiHandler {
         const paramPattern = /:[a-zA-Z]+/g;
 
         // 替换所有 :param 形式的参数
-        endpoint = endpoint.replace(paramPattern, (match) => {
-          const paramName = match.slice(1); // 移除 : 前缀
+        endpoint = endpoint.replace(paramPattern, () => {
           const paramValue = pathParts[pathParts.length - 1]; // 获取URL最后一段作为参数值
           return paramValue;
         });
@@ -100,7 +99,9 @@ export class ApiHandler {
         headers: { 'Content-Type': 'application/json' }
       });
     } catch (error) {
-      console.error('API Handler Error:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('API Handler Error:', error);
+      }
       return new Response(
         JSON.stringify({
           error: 'Internal Server Error',

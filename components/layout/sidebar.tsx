@@ -4,7 +4,7 @@ import { navItems } from '@/constants/data';
 import { useSidebar } from '@/hooks/useSidebar';
 import { cn } from '@/lib/utils';
 import { ChevronLeft } from 'lucide-react';
-import Link from 'next/link';
+// import Link from 'next/link'; // 暂时未使用
 import { useSession } from 'next-auth/react';
 
 type SidebarProps = {

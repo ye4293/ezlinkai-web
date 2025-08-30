@@ -9,7 +9,6 @@ import {
 } from '@/components/ui/select';
 import {
   Table,
-  TableBody,
   TableCell,
   TableHead,
   TableHeader,
@@ -23,7 +22,6 @@ import {
   ColumnDef,
   PaginationState,
   getCoreRowModel,
-  getFilteredRowModel,
   getPaginationRowModel,
   useReactTable,
   flexRender,
@@ -31,7 +29,10 @@ import {
 } from '@tanstack/react-table';
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { FixedSizeList as List } from 'react-window';
+// 注意：需要安装 react-window 包
+// npm install react-window @types/react-window
+// 暂时注释掉虚拟化功能，避免构建错误
+// import { FixedSizeList } from 'react-window';
 
 interface VirtualizedDataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -134,30 +135,30 @@ export function VirtualizedDataTable<TData, TValue>({
     }
   }, [rowSelection, onSelectionChange, table]);
 
-  // 虚拟化行渲染组件
-  const VirtualRow = useCallback(
-    ({ index, style }: { index: number; style: any }) => {
-      const row = table.getRowModel().rows[index];
-      if (!row) return null;
+  // 虚拟化行渲染组件 - 暂时禁用
+  // const VirtualRow = useCallback(
+  //   ({ index, style }: { index: number; style: any }) => {
+  //     const row = table.getRowModel().rows[index];
+  //     if (!row) return null;
 
-      return (
-        <div style={style}>
-          <TableRow
-            key={row.id}
-            data-state={row.getIsSelected() && 'selected'}
-            className="border-b"
-          >
-            {row.getVisibleCells().map((cell) => (
-              <TableCell key={cell.id} className="p-2">
-                {flexRender(cell.column.columnDef.cell, cell.getContext())}
-              </TableCell>
-            ))}
-          </TableRow>
-        </div>
-      );
-    },
-    [table]
-  );
+  //     return (
+  //       <div style={style}>
+  //         <TableRow
+  //           key={row.id}
+  //           data-state={row.getIsSelected() && 'selected'}
+  //           className="border-b"
+  //         >
+  //           {row.getVisibleCells().map((cell) => (
+  //             <TableCell key={cell.id} className="p-2">
+  //               {flexRender(cell.column.columnDef.cell, cell.getContext())}
+  //             </TableCell>
+  //           ))}
+  //         </TableRow>
+  //       </div>
+  //     );
+  //   },
+  //   [table]
+  // );
 
   return (
     <div className="space-y-4">
@@ -181,16 +182,31 @@ export function VirtualizedDataTable<TData, TValue>({
           </TableHeader>
         </Table>
 
-        {/* 虚拟化表格主体 */}
-        <div style={{ height: containerHeight }}>
-          <List
-            height={containerHeight}
-            itemCount={table.getRowModel().rows.length}
-            itemSize={rowHeight}
-            width="100%"
-          >
-            {VirtualRow}
-          </List>
+        {/* 虚拟化表格主体 - 暂时使用普通渲染 */}
+        <div style={{ height: containerHeight, overflow: 'auto' }}>
+          {table.getRowModel().rows?.length ? (
+            table.getRowModel().rows.map((row) => (
+              <div key={row.id} style={{ height: rowHeight }}>
+                <TableRow
+                  data-state={row.getIsSelected() && 'selected'}
+                  className="border-b"
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id} className="p-2">
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              </div>
+            ))
+          ) : (
+            <div className="flex h-24 items-center justify-center">
+              <span>No results.</span>
+            </div>
+          )}
         </div>
 
         <ScrollBar orientation="horizontal" />
@@ -256,9 +272,6 @@ export function VirtualizedDataTable<TData, TValue>({
               variant="outline"
               className="relative z-20 h-8 w-8 p-0"
               onClick={useCallback(() => {
-                if (process.env.NODE_ENV === 'development') {
-                  console.log('First page clicked');
-                }
                 setCurrentPage(1);
               }, [setCurrentPage])}
               disabled={currentPage <= 1}
@@ -270,9 +283,6 @@ export function VirtualizedDataTable<TData, TValue>({
               variant="outline"
               className="relative z-20 h-8 w-8 p-0"
               onClick={useCallback(() => {
-                if (process.env.NODE_ENV === 'development') {
-                  console.log('Previous page clicked');
-                }
                 setCurrentPage(Math.max(1, currentPage - 1));
               }, [setCurrentPage, currentPage])}
               disabled={currentPage <= 1}
@@ -284,14 +294,6 @@ export function VirtualizedDataTable<TData, TValue>({
               variant="outline"
               className="relative z-20 h-8 w-8 p-0"
               onClick={useCallback(() => {
-                if (process.env.NODE_ENV === 'development') {
-                  console.log(
-                    'Next page clicked, current:',
-                    currentPage,
-                    'pageCount:',
-                    pageCount
-                  );
-                }
                 setCurrentPage(Math.min(pageCount, currentPage + 1));
               }, [setCurrentPage, currentPage, pageCount])}
               disabled={currentPage >= pageCount}
@@ -303,14 +305,6 @@ export function VirtualizedDataTable<TData, TValue>({
               variant="outline"
               className="relative z-20 h-8 w-8 p-0"
               onClick={useCallback(() => {
-                if (process.env.NODE_ENV === 'development') {
-                  console.log(
-                    'Last page clicked, current:',
-                    currentPage,
-                    'pageCount:',
-                    pageCount
-                  );
-                }
                 setCurrentPage(pageCount);
               }, [setCurrentPage, pageCount])}
               disabled={currentPage >= pageCount}

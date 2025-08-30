@@ -55,6 +55,10 @@ export const columns: ColumnDef<LogStat>[] = [
     enableHiding: false
   },
   {
+    id: 'actions',
+    cell: ({ row }) => <CellAction data={row.original} />
+  },
+  {
     accessorKey: 'created_at',
     header: () => <div className="text-center">Time</div>,
     cell: ({ row }) => {
@@ -131,7 +135,7 @@ export const columns: ColumnDef<LogStat>[] = [
       const duration = row.getValue('duration') as number;
       // 修复：处理数据库中的数字类型（1/0）转换为布尔值
       const isStreamValue = row.original.is_stream;
-      const isStream = isStreamValue === 1 || isStreamValue === true;
+      const isStream = (isStreamValue as any) === 1 || isStreamValue === true;
 
       // 修复：处理首字延迟字段名
       const firstWordLatencyValue = row.original.first_word_latency;
