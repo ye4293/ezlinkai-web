@@ -40,29 +40,20 @@ export default function ChannelTable({
   const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
   const [resetSelection, setResetSelection] = React.useState(false);
 
+  // 优化数据刷新逻辑 - 使用useCallback和防抖
+  const refreshData = React.useCallback(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('触发数据刷新', { page, pageSize });
+    }
+    router.refresh();
+  }, [router, page, pageSize]);
+
   // 当分页状态变化时，重新获取数据
   React.useEffect(() => {
-    // 开发环境下添加调试信息
-    if (process.env.NODE_ENV === 'development') {
-      console.log('分页状态变化:', { page, pageSize });
-    }
-
-    // 使用更高效的刷新策略
-    const refreshData = () => {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('触发数据刷新');
-      }
-      router.refresh();
-    };
-
     // 防抖机制：避免快速连续的状态变化
-    const timeoutId = setTimeout(
-      refreshData,
-      process.env.NODE_ENV === 'development' ? 50 : 0
-    );
-
+    const timeoutId = setTimeout(refreshData, 100);
     return () => clearTimeout(timeoutId);
-  }, [page, pageSize, router]);
+  }, [refreshData]);
 
   // 处理页面大小变化，重置到第一页
   const handlePageSizeChange = React.useCallback(

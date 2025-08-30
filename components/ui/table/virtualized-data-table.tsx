@@ -31,8 +31,9 @@ import {
 } from '@tanstack/react-table';
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { FixedSizeList as List } from 'react-window';
 
-interface DataTableProps<TData, TValue> {
+interface VirtualizedDataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   totalItems: number;
@@ -43,9 +44,11 @@ interface DataTableProps<TData, TValue> {
   setCurrentPage?: (page: number) => void;
   setPageSize?: (size: number) => void;
   pageSizeOptions?: number[];
+  rowHeight?: number; // 行高，用于虚拟化
+  containerHeight?: number; // 容器高度
 }
 
-export function DataTable<TData, TValue>({
+export function VirtualizedDataTable<TData, TValue>({
   columns,
   data,
   totalItems,
@@ -55,8 +58,10 @@ export function DataTable<TData, TValue>({
   pageSize: externalPageSize,
   setCurrentPage: externalSetCurrentPage,
   setPageSize: externalSetPageSize,
-  pageSizeOptions = [10, 50, 100, 500]
-}: DataTableProps<TData, TValue>) {
+  pageSizeOptions = [10, 50, 100, 500],
+  rowHeight = 52,
+  containerHeight = 400
+}: VirtualizedDataTableProps<TData, TValue>) {
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
 
   // 内部分页状态（用于向下兼容）
@@ -129,15 +134,40 @@ export function DataTable<TData, TValue>({
     }
   }, [rowSelection, onSelectionChange, table]);
 
+  // 虚拟化行渲染组件
+  const VirtualRow = useCallback(
+    ({ index, style }: { index: number; style: any }) => {
+      const row = table.getRowModel().rows[index];
+      if (!row) return null;
+
+      return (
+        <div style={style}>
+          <TableRow
+            key={row.id}
+            data-state={row.getIsSelected() && 'selected'}
+            className="border-b"
+          >
+            {row.getVisibleCells().map((cell) => (
+              <TableCell key={cell.id} className="p-2">
+                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+              </TableCell>
+            ))}
+          </TableRow>
+        </div>
+      );
+    },
+    [table]
+  );
+
   return (
-    <div className="w-full space-y-4">
-      <ScrollArea className="h-[calc(80vh-220px)] rounded-md border">
-        <Table className="relative">
+    <div className="space-y-4">
+      <ScrollArea className="rounded-md border">
+        <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
+                  <TableHead key={header.id} className="p-2">
                     {header.isPlaceholder
                       ? null
                       : flexRender(
@@ -149,35 +179,20 @@ export function DataTable<TData, TValue>({
               </TableRow>
             ))}
           </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && 'selected'}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  No results.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
         </Table>
+
+        {/* 虚拟化表格主体 */}
+        <div style={{ height: containerHeight }}>
+          <List
+            height={containerHeight}
+            itemCount={table.getRowModel().rows.length}
+            itemSize={rowHeight}
+            width="100%"
+          >
+            {VirtualRow}
+          </List>
+        </div>
+
         <ScrollBar orientation="horizontal" />
       </ScrollArea>
 
@@ -215,8 +230,8 @@ export function DataTable<TData, TValue>({
               {data.length > 0 ? (
                 <>
                   Showing {(currentPage - 1) * pageSize + 1} to{' '}
-                  {Math.min(currentPage * pageSize, data.length)} of{' '}
-                  {data.length} entries
+                  {Math.min(currentPage * pageSize, totalItems)} of {totalItems}{' '}
+                  entries
                 </>
               ) : (
                 'No entries found'

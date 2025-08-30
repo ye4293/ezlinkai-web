@@ -216,7 +216,7 @@ export default function UserAuthForm() {
 
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
     console.log('onSubmit triggered', data);
-    startTransition(() => {
+    startTransition(async () => {
       if (isResetPassword) {
         handleResetPassword();
       } else if (isRegister) {

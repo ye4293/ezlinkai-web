@@ -83,7 +83,8 @@ const formSchema = z.object({
     .min(0, {
       message: '权重必须大于等于0'
     })
-    .optional()
+    .optional(),
+  auto_disabled: z.boolean().default(true)
 
   // company: z.string().min(1, {
   //   message: 'Company name is required.'
@@ -115,6 +116,7 @@ interface ParamsOption extends Omit<Channel, 'type'> {
   weight?: number;
   batch_create?: boolean;
   batch_keys?: string;
+  auto_disabled?: boolean;
 }
 
 export default function ChannelForm() {
@@ -203,6 +205,33 @@ export default function ChannelForm() {
 
         // 如果有渠道数据，填充表单
         if (channelData) {
+          // 解析配置数据
+          let config: any = {};
+          try {
+            if (channelData.config) {
+              config = JSON.parse(channelData.config);
+            }
+          } catch (error) {
+            console.log('Failed to parse channel config:', error);
+          }
+
+          // 处理 auto_disabled 字段的类型转换
+          // SQLite 返回 1/0，MySQL 返回 true/false
+          let autoDisabledValue = true; // 默认值
+          if (channelData.hasOwnProperty('auto_disabled')) {
+            const rawValue = channelData.auto_disabled;
+            if (typeof rawValue === 'boolean') {
+              // MySQL: 直接使用布尔值
+              autoDisabledValue = rawValue;
+            } else if (typeof rawValue === 'number') {
+              // SQLite: 转换数字为布尔值
+              autoDisabledValue = rawValue === 1;
+            } else {
+              // 其他情况：强制转换为布尔值
+              autoDisabledValue = Boolean(rawValue);
+            }
+          }
+
           form.reset({
             type: String(channelData.type),
             name: channelData.name,
@@ -210,18 +239,19 @@ export default function ChannelForm() {
             key: channelData.key,
             base_url: channelData.base_url,
             other: channelData.other,
-            region: channelData.region,
-            ak: channelData.ak,
-            sk: channelData.sk,
-            vertex_ai_project_id: channelData.vertex_ai_project_id || '',
-            vertex_ai_adc: channelData.vertex_ai_adc || '',
-            user_id: channelData.user_id || '',
+            region: config.region || '',
+            ak: config.ak || '',
+            sk: config.sk || '',
+            vertex_ai_project_id: config.vertex_ai_project_id || '',
+            vertex_ai_adc: config.vertex_ai_adc || '',
+            user_id: config.user_id || '',
             model_mapping: channelData.model_mapping || '',
             models: channelData.models?.split(',') || [],
             customModelName: channelData.customModelName,
             channel_ratio: channelData.channel_ratio || 1,
             priority: channelData.priority || 0,
-            weight: channelData.weight || 0
+            weight: channelData.weight || 0,
+            auto_disabled: autoDisabledValue
           });
         }
       } catch (error) {
@@ -254,7 +284,8 @@ export default function ChannelForm() {
       customModelName: undefined,
       channel_ratio: 1,
       priority: 0,
-      weight: 0
+      weight: 0,
+      auto_disabled: true
     }
   });
 
@@ -264,6 +295,30 @@ export default function ChannelForm() {
     }
     if (value !== '3' && value !== '8') {
       form.setValue('base_url', '');
+    }
+    // 如果选择Vertex AI渠道，自动设置region为global
+    if (value === '48') {
+      form.setValue('region', 'global');
+    }
+  };
+
+  // 解析Google Cloud Application Default Credentials JSON并提取project_id
+  const handleVertexAiAdcChange = (value: string) => {
+    try {
+      if (value.trim()) {
+        const jsonData = JSON.parse(value);
+        if (jsonData.project_id) {
+          // 自动填充Project ID
+          form.setValue('vertex_ai_project_id', jsonData.project_id);
+          // 确保region为global
+          if (!form.getValues('region')) {
+            form.setValue('region', 'global');
+          }
+        }
+      }
+    } catch (error) {
+      // JSON解析失败时不做处理，用户可能还在输入过程中
+      console.log('JSON parsing in progress or invalid format');
     }
   };
 
@@ -366,6 +421,21 @@ export default function ChannelForm() {
         let failCount = 0;
         const errors: string[] = [];
 
+        // 构建配置对象
+        const buildConfig = () => {
+          const config: any = {};
+
+          if (values.region) config.region = values.region;
+          if (values.ak) config.ak = values.ak;
+          if (values.sk) config.sk = values.sk;
+          if (values.user_id) config.user_id = values.user_id;
+          if (values.vertex_ai_project_id)
+            config.vertex_ai_project_id = values.vertex_ai_project_id;
+          if (values.vertex_ai_adc) config.vertex_ai_adc = values.vertex_ai_adc;
+
+          return Object.keys(config).length > 0 ? JSON.stringify(config) : '';
+        };
+
         // 准备基础参数
         const baseParams = {
           type: Number(values.type),
@@ -374,17 +444,14 @@ export default function ChannelForm() {
           models: finalModels.join(','),
           base_url: values.base_url || '',
           other: values.other || '',
-          region: values.region || '',
-          ak: values.ak || '',
-          sk: values.sk || '',
-          vertex_ai_project_id: values.vertex_ai_project_id || '',
-          vertex_ai_adc: values.vertex_ai_adc || '',
-          user_id: values.user_id || '',
+          key: '', // 将在循环中设置
+          config: buildConfig(),
           model_mapping: values.model_mapping || '',
           customModelName: values.customModelName || '',
           channel_ratio: values.channel_ratio || 1,
           priority: values.priority || 0,
-          weight: values.weight || 0
+          weight: values.weight || 0,
+          auto_disabled: values.auto_disabled ?? true
         };
 
         // 创建单个渠道的函数
@@ -504,6 +571,22 @@ export default function ChannelForm() {
         }
       } else {
         console.log('=== 单个创建/编辑模式 ===');
+
+        // 构建配置对象
+        const buildConfig = () => {
+          const config: any = {};
+
+          if (values.region) config.region = values.region;
+          if (values.ak) config.ak = values.ak;
+          if (values.sk) config.sk = values.sk;
+          if (values.user_id) config.user_id = values.user_id;
+          if (values.vertex_ai_project_id)
+            config.vertex_ai_project_id = values.vertex_ai_project_id;
+          if (values.vertex_ai_adc) config.vertex_ai_adc = values.vertex_ai_adc;
+
+          return Object.keys(config).length > 0 ? JSON.stringify(config) : '';
+        };
+
         // 单个创建逻辑（原有逻辑）
         const params = {
           type: Number(values.type),
@@ -513,17 +596,13 @@ export default function ChannelForm() {
           key: values.key || '',
           base_url: values.base_url || '',
           other: values.other || '',
-          region: values.region || '',
-          ak: values.ak || '',
-          sk: values.sk || '',
-          vertex_ai_project_id: values.vertex_ai_project_id || '',
-          vertex_ai_adc: values.vertex_ai_adc || '',
-          user_id: values.user_id || '',
+          config: buildConfig(),
           model_mapping: values.model_mapping || '',
           customModelName: values.customModelName || '',
           channel_ratio: values.channel_ratio || 1,
           priority: values.priority || 0,
           weight: values.weight || 0,
+          auto_disabled: values.auto_disabled ?? true,
           // 如果是编辑模式，包含id
           ...(channelData && { id: (channelData as any).id })
         };
@@ -1002,11 +1081,20 @@ export default function ChannelForm() {
                           Google Cloud Application Default Credentials JSON
                         </FormLabel>
                         <FormControl>
-                          <Input
-                            placeholder="Google Cloud Application Default Credentials JSON"
+                          <Textarea
+                            className="h-auto max-h-48 min-h-32 resize-none overflow-auto"
+                            placeholder="请粘贴Google Cloud Application Default Credentials JSON内容，系统会自动提取Project ID"
                             {...field}
+                            onChange={(e) => {
+                              field.onChange(e);
+                              handleVertexAiAdcChange(e.target.value);
+                            }}
                           />
                         </FormControl>
+                        <div className="text-[0.8rem] text-muted-foreground">
+                          粘贴JSON后会自动提取project_id填充到上方的Project
+                          ID字段，并设置region为global
+                        </div>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -1281,6 +1369,27 @@ ${type2secretPrompt(form.watch('type'))}`}
                       />
                     </FormControl>
                     <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="auto_disabled"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">自动禁用</FormLabel>
+                      <div className="text-[0.8rem] text-muted-foreground">
+                        开启后，当渠道出现错误时系统会自动禁用该渠道。关闭后，即使出现错误也不会自动禁用。
+                      </div>
+                    </div>
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
                   </FormItem>
                 )}
               />

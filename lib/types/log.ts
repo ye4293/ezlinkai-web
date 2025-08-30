@@ -14,6 +14,22 @@ export interface LogStat {
   end_timestamp: number;
   /** 渠道ID */
   channel?: number;
+  /** 创建时间 */
+  created_at: number;
+  /** 内容 */
+  content: string;
+  /** 提示词令牌数 */
+  prompt_tokens: number;
+  /** 完成令牌数 */
+  completion_tokens: number;
+  /** 配额 */
+  quota: number;
+  /** 持续时间 */
+  duration: number;
+  /** 是否为流式请求 */
+  is_stream: boolean;
+  /** 首字延迟 */
+  first_word_latency: number;
 }
 
 export type LogDataResult = {

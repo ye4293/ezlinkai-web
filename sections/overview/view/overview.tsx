@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { renderQuota } from '@/utils/render';
-import request from '@/app/lib/serverFetch';
+// import request from '@/app/lib/serverFetch';
 import { DashboardResult } from '@/lib/types/dashboard';
 
 export default async function OverViewPage() {
@@ -33,7 +33,43 @@ export default async function OverViewPage() {
     ? `/api/dashboard/`
     : `/api/dashboard/self`;
   // console.log('----overview cookie', _cookie);
-  const res: DashboardResult = await request.get(userApi);
+
+  // 使用fetch替代axios来避免SSR兼容性问题
+  const baseURL =
+    process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
+  const fullURL = `${baseURL}${userApi}`;
+  console.log('🌐 使用fetch请求:', fullURL);
+
+  let res: DashboardResult = { success: false, data: {}, message: '初始化' };
+  try {
+    const response = await fetch(fullURL, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(session?.user?.accessToken && {
+          Authorization: `Bearer ${session.user.accessToken}`
+        })
+      }
+      // 在SSR环境下不需要credentials
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP错误: ${response.status} ${response.statusText}`);
+    }
+
+    const jsonData = await response.json();
+    res = jsonData;
+    console.log(
+      '✅ 请求成功:',
+      res?.success ? '成功' : '失败',
+      '数据:',
+      res?.data ? '有数据' : '无数据'
+    );
+  } catch (error) {
+    console.error('❌ 请求失败:', error);
+    // 提供默认数据以防止页面崩溃
+    res = { success: false, data: {}, message: '请求失败' };
+  }
   // console.log('res****', res);
   const dashboardData = res.data || {};
   // const res = await fetch(process.env.NEXT_PUBLIC_API_BASE_URL + userApi, {

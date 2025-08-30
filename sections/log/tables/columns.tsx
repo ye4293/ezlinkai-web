@@ -126,10 +126,45 @@ export const columns: ColumnDef<LogStat>[] = [
   },
   {
     accessorKey: 'duration',
-    header: () => <div className="text-center">Time Consuming</div>,
-    cell: ({ row }) => (
-      <div className="text-center">{row.getValue('duration')}</div>
-    )
+    header: () => <div className="text-center">用时/首字</div>,
+    cell: ({ row }) => {
+      const duration = row.getValue('duration') as number;
+      // 修复：处理数据库中的数字类型（1/0）转换为布尔值
+      const isStreamValue = row.original.is_stream;
+      const isStream = isStreamValue === 1 || isStreamValue === true;
+
+      // 修复：处理首字延迟字段名
+      const firstWordLatencyValue = row.original.first_word_latency;
+      const firstWordLatency =
+        typeof firstWordLatencyValue === 'number' ? firstWordLatencyValue : 0;
+
+      return (
+        <div className="space-y-1 text-center">
+          <div className="flex items-center justify-center gap-1">
+            <span>{duration}</span>
+            {isStream && (
+              <span className="inline-flex items-center rounded bg-green-100 px-1.5 py-0.5 text-xs font-medium text-green-700">
+                流
+              </span>
+            )}
+          </div>
+          {isStream && firstWordLatency > 0 && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <span className="inline-flex items-center rounded bg-blue-100 px-1.5 py-0.5 text-xs font-medium text-blue-700">
+                    {firstWordLatency.toFixed(2)}s
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>首字延迟: {firstWordLatency.toFixed(3)}秒</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
+      );
+    }
   },
   {
     id: 'content',

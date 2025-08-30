@@ -7,9 +7,8 @@ import axios, {
 import { auth } from '@/auth';
 import { getSession } from 'next-auth/react';
 
-// 创建 axios 实例
+// 创建 axios 实例 - 使用动态baseURL
 const request: AxiosInstance = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL, // 基础URL
   timeout: 60000, // 请求超时时间
   headers: {
     'Content-Type': 'application/json'
@@ -19,6 +18,17 @@ const request: AxiosInstance = axios.create({
 // 请求拦截器
 request.interceptors.request.use(
   async (config: InternalAxiosRequestConfig<any>) => {
+    // 动态设置baseURL
+    const baseURL =
+      process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
+    config.baseURL = baseURL;
+
+    console.log('🚀 请求拦截器 - 配置检查:', {
+      baseURL: config.baseURL,
+      url: config.url,
+      fullURL: `${config.baseURL}${config.url}`
+    });
+
     // 判断是否在客户端
     if (typeof window !== 'undefined') {
       // 客户端使用 getSession

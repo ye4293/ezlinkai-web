@@ -53,6 +53,8 @@ export interface Channel {
   test_time?: number;
   /** 已使用配额 */
   used_quota?: number;
+  /** 自动禁用 */
+  auto_disabled?: boolean;
 }
 
 export type ModelResult = {
