@@ -15,11 +15,13 @@ import {
   Trash,
   Ban,
   CircleSlash2,
-  Lightbulb
+  Lightbulb,
+  ListTree
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { ModelsModal } from './models-modal';
 
 interface CellActionProps {
   data: Channel;
@@ -29,6 +31,7 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
   const [loading, setLoading] = useState(false);
   const [testLoading, setTestLoading] = useState(false);
   const [open, setOpen] = useState(false);
+  const [modelsModalOpen, setModelsModalOpen] = useState(false);
   const router = useRouter();
 
   const onConfirm = async (channel: Channel) => {
@@ -98,7 +101,6 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
       if (success) {
         toast.success('Operation completed successfully!');
         setOpen(false);
-        // window.location.reload();
         router.refresh();
       } else {
         toast.error(message || 'Operation failed!');
@@ -131,48 +133,6 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
     }
   };
 
-  // 测试所有渠道
-  const testAllChannels = async () => {
-    try {
-      setTestLoading(true);
-      const res = await fetch(`/api/channel/test`, {
-        method: 'GET',
-        credentials: 'include'
-      });
-      const { success, message } = await res.json();
-      if (success) {
-        router.refresh();
-        toast.success(`Testing all channels has been successfully completed.`);
-      } else {
-        toast.error(message);
-      }
-    } finally {
-      setTestLoading(false);
-    }
-  };
-
-  // 删除所有禁用渠道
-  const deleteDisabledChannels = async () => {
-    try {
-      setTestLoading(true);
-      const res = await fetch(`/api/channel/disabled`, {
-        method: 'DELETE',
-        credentials: 'include'
-      });
-      const { data, success, message } = await res.json();
-      if (success) {
-        router.refresh();
-        toast.success(
-          `All disabled channels have been deleted, total ${data} pieces.`
-        );
-      } else {
-        toast.error(message || 'Operation failed!');
-      }
-    } finally {
-      setTestLoading(false);
-    }
-  };
-
   return (
     <>
       <AlertModal
@@ -180,6 +140,11 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
         onClose={() => setOpen(false)}
         onConfirm={() => onConfirm(data)}
         loading={loading}
+      />
+      <ModelsModal
+        channel={data}
+        isOpen={modelsModalOpen}
+        onClose={() => setModelsModalOpen(false)}
       />
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
@@ -225,17 +190,8 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
             <Lightbulb className="mr-2 h-4 w-4" />{' '}
             {testLoading ? 'Testing...' : 'Test'}
           </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => testAllChannels()}
-            disabled={testLoading}
-          >
-            <Lightbulb className="mr-2 h-4 w-4" /> Test all channels
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => deleteDisabledChannels()}
-            disabled={testLoading}
-          >
-            <Trash className="mr-2 h-4 w-4" /> Delete disabled channels
+          <DropdownMenuItem onClick={() => setModelsModalOpen(true)}>
+            <ListTree className="mr-2 h-4 w-4" /> View Models
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

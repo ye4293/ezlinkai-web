@@ -16,6 +16,7 @@ import { useState, useEffect, useContext } from 'react';
 import React from 'react';
 import { toast } from 'sonner';
 import { CHANNEL_OPTIONS } from '@/constants';
+import { Switch } from '@/components/ui/switch';
 
 type ChannelType = {
   key: number;
@@ -46,17 +47,77 @@ function useChannelTypes() {
   return types;
 }
 
-const renderStatus = (status: number) => {
+const getStatusInfo = (status: number) => {
   switch (status) {
     case 1:
-      return 'Enabled';
+      return { text: 'Enabled', colorClass: 'text-green-600' };
     case 2:
-      return 'Disabled';
+      return { text: 'Disabled', colorClass: 'text-gray-500' };
     case 3:
-      return 'Disabled';
+      return { text: 'Auto Disabled', colorClass: 'text-orange-500' };
     default:
-      return 'Unknown status';
+      return { text: 'Unknown', colorClass: 'text-gray-500' };
   }
+};
+
+// Status Cell Component
+const StatusCell = ({ row }: { row: any }) => {
+  const [status, setStatus] = useState(row.getValue('status') as number);
+  const router = useRouter();
+
+  const handleStatusChange = async (newStatus: boolean) => {
+    const oldStatus = status;
+    const newStatusValue = newStatus ? 1 : 2; // 启用: 1, 手动禁用: 2
+    setStatus(newStatusValue);
+
+    try {
+      const params = {
+        id: row.original.id,
+        status: newStatusValue
+      };
+      const res = await fetch(`/api/channel`, {
+        method: 'PUT',
+        body: JSON.stringify(params),
+        credentials: 'include'
+      });
+      if (!res.ok) throw new Error('Failed to update status');
+
+      const oldStatusInfo = getStatusInfo(oldStatus);
+      const newStatusInfo = getStatusInfo(newStatusValue);
+      toast.success(
+        `Channel '${row.original.name}' status changed from ${oldStatusInfo.text} to ${newStatusInfo.text}`
+      );
+      router.refresh();
+    } catch (error) {
+      toast.error('Failed to update status');
+      setStatus(oldStatus); // 更新失败时，恢复原状
+    }
+  };
+
+  const isChecked = status === 1;
+  const currentStatusInfo = getStatusInfo(status);
+
+  let switchClassName = '';
+  if (status === 1) {
+    switchClassName = 'data-[state=checked]:bg-green-500';
+  } else if (status === 3) {
+    switchClassName = 'data-[state=unchecked]:bg-orange-500';
+  }
+
+  return (
+    <div className="flex items-center justify-center gap-2">
+      {/* Hack to prevent Tailwind CSS from purging dynamic classes */}
+      <div className="hidden data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-orange-500"></div>
+      <Switch
+        checked={isChecked}
+        onCheckedChange={handleStatusChange}
+        className={switchClassName}
+      />
+      <span className={currentStatusInfo.colorClass}>
+        {currentStatusInfo.text}
+      </span>
+    </div>
+  );
 };
 
 const renderResponseTime = (test_time: number, response_time: number) => {
@@ -379,11 +440,7 @@ export const columns = (): ColumnDef<Channel>[] => {
     {
       accessorKey: 'status',
       header: () => <div className="text-center">Status</div>,
-      cell: ({ row }) => (
-        <div className="text-center">
-          {renderStatus(row.getValue('status'))}
-        </div>
-      )
+      cell: ({ row }) => <StatusCell row={row} />
     },
     {
       accessorKey: 'response_time',
