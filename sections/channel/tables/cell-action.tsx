@@ -25,9 +25,13 @@ import { ModelsModal } from './models-modal';
 
 interface CellActionProps {
   data: Channel;
+  onManageKeys: (channel: Channel) => void;
 }
 
-export const CellAction: React.FC<CellActionProps> = ({ data }) => {
+export const CellAction: React.FC<CellActionProps> = ({
+  data,
+  onManageKeys
+}) => {
   const [loading, setLoading] = useState(false);
   const [testLoading, setTestLoading] = useState(false);
   const [open, setOpen] = useState(false);
@@ -164,6 +168,16 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
           <DropdownMenuItem onClick={() => setOpen(true)}>
             <Trash className="mr-2 h-4 w-4" /> Delete
           </DropdownMenuItem>
+          {data.multi_key_info?.is_multi_key && (
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.preventDefault();
+                onManageKeys(data);
+              }}
+            >
+              <ListTree className="mr-2 h-4 w-4" /> 多密钥管理
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem
             onClick={() =>
               manageChannel(

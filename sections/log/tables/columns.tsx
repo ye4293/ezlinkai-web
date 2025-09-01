@@ -129,7 +129,7 @@ export const columns: ColumnDef<LogStat>[] = [
   },
   {
     accessorKey: 'completion_tokens',
-    header: () => <div className="text-left">Complement</div>,
+    header: () => <div className="text-left">Completion</div>,
     cell: ({ row }) => (
       <div className="text-left">{row.getValue('completion_tokens')}</div>
     )
@@ -143,7 +143,7 @@ export const columns: ColumnDef<LogStat>[] = [
   },
   {
     accessorKey: 'duration',
-    header: () => <div className="text-left">用时/首字</div>,
+    header: () => <div className="text-left">Duration/First Word</div>,
     cell: ({ row }) => {
       const duration = row.getValue('duration') as number;
       // 修复：处理数据库中的数字类型（1/0）转换为布尔值
@@ -173,7 +173,7 @@ export const columns: ColumnDef<LogStat>[] = [
           {isStream && (
             <>
               <span className="inline-flex items-center rounded bg-green-100 px-1.5 py-0.5 text-xs font-medium text-green-700">
-                流
+                Stream
               </span>
               <TooltipProvider>
                 <Tooltip>
@@ -187,15 +187,15 @@ export const columns: ColumnDef<LogStat>[] = [
                     >
                       {firstWordLatency > 0
                         ? `${firstWordLatency.toFixed(2)}s`
-                        : '未计算'}
+                        : 'N/A'}
                     </span>
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>
-                      首字延迟:{' '}
+                      First Word Latency:{' '}
                       {firstWordLatency > 0
-                        ? `${firstWordLatency.toFixed(3)}秒`
-                        : '未计算或为0'}
+                        ? `${firstWordLatency.toFixed(3)}s`
+                        : 'Not calculated or 0'}
                     </p>
                   </TooltipContent>
                 </Tooltip>

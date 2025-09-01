@@ -55,6 +55,18 @@ export interface Channel {
   used_quota?: number;
   /** 自动禁用 */
   auto_disabled?: boolean;
+  /** 多密钥信息 */
+  multi_key_info?: {
+    is_multi_key: boolean;
+    key_selection_mode?: number;
+    batch_import_mode?: number;
+    key_count?: number;
+    key_status_list?: { [key: number]: number };
+    key_metadata?: { [key: number]: any };
+    enabled_key_count?: number;
+    polling_index?: number;
+    last_batch_import_time?: number;
+  };
 }
 
 export type ModelResult = {

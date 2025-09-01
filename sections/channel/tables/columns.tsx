@@ -18,6 +18,10 @@ import { toast } from 'sonner';
 import { CHANNEL_OPTIONS } from '@/constants';
 import { Switch } from '@/components/ui/switch';
 
+interface ColumnsProps {
+  onManageKeys: (channel: Channel) => void;
+}
+
 type ChannelType = {
   key: number;
   text: string;
@@ -339,10 +343,16 @@ const TypeCell = ({ row }: { row: any }) => {
 };
 
 // Actions Cell Component
-const ActionsCell = ({ row }: { row: any }) => {
+const ActionsCell = ({
+  row,
+  onManageKeys
+}: {
+  row: any;
+  onManageKeys: (channel: Channel) => void;
+}) => {
   return (
     <div className="text-center">
-      <CellAction data={row.original} />
+      <CellAction data={row.original} onManageKeys={onManageKeys} />
     </div>
   );
 };
@@ -381,7 +391,9 @@ const BalanceCell = ({ row }: { row: any }) => {
   );
 };
 
-export const columns = (): ColumnDef<Channel>[] => {
+export const columns = ({
+  onManageKeys
+}: ColumnsProps): ColumnDef<Channel>[] => {
   // 移除这里的useRouter，将其移到需要的组件中
 
   return [
@@ -412,9 +424,113 @@ export const columns = (): ColumnDef<Channel>[] => {
     {
       accessorKey: 'name',
       header: () => <div className="text-center">Name</div>,
-      cell: ({ row }) => (
-        <div className="text-center">{row.getValue('name')}</div>
-      )
+      cell: ({ row }) => {
+        const channel = row.original;
+        const isMultiKey = channel.multi_key_info?.is_multi_key;
+        const keyCount = channel.multi_key_info?.key_count || 0;
+
+        // 计算启用的密钥数量 - 多重策略保证可靠性
+        let enabledCount = 0;
+        let calculationMethod = '';
+
+        // 方案1：优先使用后端直接计算的值（最可靠）
+        if (
+          channel.multi_key_info?.enabled_key_count !== undefined &&
+          channel.multi_key_info.enabled_key_count !== null
+        ) {
+          enabledCount = channel.multi_key_info.enabled_key_count;
+          calculationMethod = '后端计算';
+        }
+        // 方案2：前端动态计算（基于密钥状态列表）
+        else if (
+          channel.multi_key_info?.key_status_list &&
+          Object.keys(channel.multi_key_info.key_status_list).length > 0
+        ) {
+          enabledCount = Object.values(
+            channel.multi_key_info.key_status_list
+          ).filter((status) => status === 1).length;
+          calculationMethod = '前端计算';
+        }
+        // 方案3：智能推断 - 如果没有状态列表但有密钥数量，默认认为全部启用
+        // 这是因为 GetKeyStatus 的默认行为就是返回启用状态
+        else if (keyCount > 0) {
+          // 根据 GetKeyStatus 的逻辑，如果 KeyStatusList 为空，所有密钥默认为启用状态
+          enabledCount = keyCount;
+          calculationMethod = '智能推断(默认启用)';
+        } else {
+          calculationMethod = '无法计算';
+          console.error(`Channel ${channel.name}: 无法计算启用密钥数量`, {
+            keyCount,
+            multi_key_info: channel.multi_key_info
+          });
+        }
+
+        // 数据完整性检查（仅在异常情况下输出日志）
+        if (calculationMethod === '无法计算') {
+          console.error(`❌ Channel "${channel.name}": 无法获取密钥状态信息`);
+        }
+
+        return (
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-2">
+              <span>{row.getValue('name')}</span>
+              {isMultiKey && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <span
+                        className={`inline-flex items-center rounded-full border px-2 py-1 text-xs font-medium ${
+                          enabledCount === keyCount
+                            ? 'border-green-200 bg-green-100 text-green-800 dark:border-green-700 dark:bg-green-900 dark:text-green-200'
+                            : enabledCount === 0
+                            ? 'border-red-200 bg-red-100 text-red-800 dark:border-red-700 dark:bg-red-900 dark:text-red-200'
+                            : 'border-yellow-200 bg-yellow-100 text-yellow-800 dark:border-yellow-700 dark:bg-yellow-900 dark:text-yellow-200'
+                        }`}
+                      >
+                        🔗 聚合{' '}
+                        {keyCount > 0 ? `${enabledCount}/${keyCount}` : ''}
+                        {calculationMethod === '智能推断(默认启用)' && (
+                          <span className="ml-1" title="基于默认逻辑推断">
+                            ℹ️
+                          </span>
+                        )}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <div className="space-y-1">
+                        <p className="font-medium">多密钥聚合渠道</p>
+                        <p>
+                          可用密钥:{' '}
+                          <span className="text-green-400">{enabledCount}</span>{' '}
+                          / 总密钥:{' '}
+                          <span className="text-blue-400">{keyCount}</span>
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          选择模式:{' '}
+                          {channel.multi_key_info?.key_selection_mode === 0
+                            ? '轮询'
+                            : '随机'}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          编辑模式:{' '}
+                          {channel.multi_key_info?.batch_import_mode === 0
+                            ? '覆盖'
+                            : '追加'}
+                        </p>
+                        {calculationMethod === '智能推断(默认启用)' && (
+                          <p className="text-xs text-blue-400">
+                            ℹ️ 基于默认逻辑推断（密钥默认启用）
+                          </p>
+                        )}
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
+          </div>
+        );
+      }
     },
     {
       accessorKey: 'group',
@@ -483,7 +599,7 @@ export const columns = (): ColumnDef<Channel>[] => {
     {
       id: 'actions',
       header: () => <div className="text-center">Actions</div>,
-      cell: ({ row }) => <ActionsCell row={row} />
+      cell: ({ row }) => <ActionsCell row={row} onManageKeys={onManageKeys} />
     }
   ];
 };

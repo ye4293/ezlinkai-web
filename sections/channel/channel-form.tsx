@@ -42,7 +42,11 @@ const formSchema = z.object({
   key: z.string().optional(),
   // 新增批量创建相关字段
   batch_create: z.boolean().default(false),
+  aggregate_mode: z.boolean().default(false),
   batch_keys: z.string().optional(),
+  // 多密钥配置选项
+  key_selection_mode: z.number().default(1), // 0=轮询, 1=随机
+  batch_import_mode: z.number().default(1), // 0=覆盖, 1=追加
   // key: z.string().superRefine((val, ctx) => {
   //   const type = (ctx.path[0] === 'type') ? ctx.path[0] : '';
   //   if (type !== '33' && type !== '42' && !val) {
@@ -111,12 +115,16 @@ interface ParamsOption extends Omit<Channel, 'type'> {
   group?: string;
   groups?: string[];
   models?: string;
+  config?: string;
   channel_ratio?: number;
   priority?: number;
   weight?: number;
   batch_create?: boolean;
   batch_keys?: string;
   auto_disabled?: boolean;
+  aggregate_mode?: boolean;
+  key_selection_mode?: number;
+  batch_import_mode?: number;
 }
 
 export default function ChannelForm() {
@@ -251,7 +259,12 @@ export default function ChannelForm() {
             channel_ratio: channelData.channel_ratio || 1,
             priority: channelData.priority || 0,
             weight: channelData.weight || 0,
-            auto_disabled: autoDisabledValue
+            auto_disabled: autoDisabledValue,
+            aggregate_mode: channelData.aggregate_mode || false,
+            key_selection_mode:
+              (channelData as any).multi_key_info?.key_selection_mode || 1,
+            batch_import_mode:
+              (channelData as any).multi_key_info?.batch_import_mode || 1
           });
         }
       } catch (error) {
@@ -270,7 +283,10 @@ export default function ChannelForm() {
       groups: undefined,
       key: undefined,
       batch_create: false,
+      aggregate_mode: false,
       batch_keys: undefined,
+      key_selection_mode: 1,
+      batch_import_mode: 1,
       base_url: undefined,
       other: undefined,
       region: undefined,
@@ -397,113 +413,129 @@ export default function ChannelForm() {
         });
       }
 
-      if (values.batch_create && values.batch_keys && channelId === 'create') {
-        console.log('=== 批量创建模式（并行处理）===');
-        const startTime = Date.now();
+      // --- 逻辑分支重构 ---
+      const isBatchCreate =
+        values.batch_create && values.batch_keys && channelId === 'create';
+      const isAggregateMode = isBatchCreate && values.aggregate_mode;
 
-        // 批量创建逻辑 - 并行处理
-        const keys = values.batch_keys
-          .split('\n')
-          .map((key) => key.trim())
-          .filter((key) => key.length > 0);
+      // 添加调试信息
+      console.log('=== 调试信息 ===');
+      console.log('values.batch_create:', values.batch_create);
+      console.log('values.aggregate_mode:', values.aggregate_mode);
+      console.log('channelId:', channelId);
+      console.log('isBatchCreate:', isBatchCreate);
+      console.log('isAggregateMode:', isAggregateMode);
 
-        console.log('解析到的keys:', keys);
+      const keys = (values.batch_keys || '')
+        .split('\n')
+        .map((key) => key.trim())
+        .filter((key) => key.length > 0);
+      console.log('keys.length:', keys.length);
+
+      const buildConfig = () => {
+        const config: any = {};
+        if (values.region) config.region = values.region;
+        if (values.ak) config.ak = values.ak;
+        if (values.sk) config.sk = values.sk;
+        if (values.user_id) config.user_id = values.user_id;
+        if (values.vertex_ai_project_id)
+          config.vertex_ai_project_id = values.vertex_ai_project_id;
+        if (values.vertex_ai_adc) config.vertex_ai_adc = values.vertex_ai_adc;
+        return Object.keys(config).length > 0 ? JSON.stringify(config) : '';
+      };
+
+      const baseParams: Omit<ParamsOption, 'key' | 'name'> = {
+        type: Number(values.type),
+        group: values.groups.join(','),
+        models: finalModels.join(','),
+        base_url: values.base_url || '',
+        other: values.other || '',
+        config: buildConfig(),
+        model_mapping: values.model_mapping || '',
+        channel_ratio: values.channel_ratio || 1,
+        priority: values.priority || 0,
+        weight: values.weight || 0,
+        auto_disabled: values.auto_disabled ?? true,
+        key_selection_mode: values.key_selection_mode || 1,
+        batch_import_mode: values.batch_import_mode || 1
+      };
+
+      if (isAggregateMode) {
+        // --- 1. 密钥聚合模式 ---
+        console.log('=== 执行路径：密钥聚合模式 ===');
+        console.log('准备发送的参数:', {
+          name: values.name,
+          keyCount: keys.length,
+          keyPreview:
+            keys.slice(0, 2).join(', ') + (keys.length > 2 ? '...' : '')
+        });
 
         if (keys.length === 0) {
-          alert('请输入至少一个有效的key');
-          setIsSubmitting(false);
-          return;
+          throw new Error('请输入至少一个有效的key');
         }
 
-        setBatchProgress({ current: 0, total: keys.length });
+        const channelParams = {
+          ...baseParams,
+          name: values.name,
+          key: keys.join('\n')
+        };
 
+        console.log('发送聚合创建请求...');
+        const res = await fetch(`/api/channel`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(channelParams),
+          credentials: 'include'
+        });
+
+        if (!res.ok)
+          throw new Error(`HTTP错误: ${res.status} ${res.statusText}`);
+        const result = await res.json();
+        if (!result.success) throw new Error(result.message || '创建失败');
+
+        alert(
+          `成功创建聚合渠道 "${values.name}"，包含 ${keys.length} 个密钥。`
+        );
+        router.push('/dashboard/channel');
+        router.refresh();
+      } else if (isBatchCreate) {
+        // --- 2. 优化后的普通批量创建模式 ---
+        console.log('=== 执行路径：普通批量创建模式 ===');
+        console.log('=== 优化后的批量创建模式（分批串行处理）===');
+        if (keys.length === 0) {
+          throw new Error('请输入至少一个有效的key');
+        }
+
+        const startTime = Date.now();
+        setBatchProgress({ current: 0, total: keys.length });
         let successCount = 0;
         let failCount = 0;
         const errors: string[] = [];
 
-        // 构建配置对象
-        const buildConfig = () => {
-          const config: any = {};
-
-          if (values.region) config.region = values.region;
-          if (values.ak) config.ak = values.ak;
-          if (values.sk) config.sk = values.sk;
-          if (values.user_id) config.user_id = values.user_id;
-          if (values.vertex_ai_project_id)
-            config.vertex_ai_project_id = values.vertex_ai_project_id;
-          if (values.vertex_ai_adc) config.vertex_ai_adc = values.vertex_ai_adc;
-
-          return Object.keys(config).length > 0 ? JSON.stringify(config) : '';
-        };
-
-        // 准备基础参数
-        const baseParams = {
-          type: Number(values.type),
-          name: values.name,
-          group: values.groups.join(','),
-          models: finalModels.join(','),
-          base_url: values.base_url || '',
-          other: values.other || '',
-          key: '', // 将在循环中设置
-          config: buildConfig(),
-          model_mapping: values.model_mapping || '',
-          customModelName: values.customModelName || '',
-          channel_ratio: values.channel_ratio || 1,
-          priority: values.priority || 0,
-          weight: values.weight || 0,
-          auto_disabled: values.auto_disabled ?? true
-        };
-
-        // 创建单个渠道的函数
         const createChannel = async (key: string, index: number) => {
           const channelParams = {
             ...baseParams,
-            key: key,
-            name: keys.length > 1 ? `${values.name}_${index + 1}` : values.name
+            key,
+            name: `${values.name}_${index + 1}`
           };
-
           const res = await fetch(`/api/channel`, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(channelParams),
             credentials: 'include'
           });
-
-          if (!res.ok) {
+          if (!res.ok)
             throw new Error(`HTTP错误: ${res.status} ${res.statusText}`);
-          }
-
           const result = await res.json();
-
-          if (!result.success) {
-            throw new Error(result.message || '创建失败');
-          }
-
+          if (!result.success) throw new Error(result.message || '创建失败');
           return { success: true, index, key };
         };
 
-        // 分批并行处理，每批10个
-        const BATCH_SIZE = 10;
-        const batches = [];
-
+        const BATCH_SIZE = 50;
         for (let i = 0; i < keys.length; i += BATCH_SIZE) {
           const batch = keys.slice(i, i + BATCH_SIZE);
-          batches.push(batch);
-        }
-
-        console.log(`分${batches.length}批处理，每批最多${BATCH_SIZE}个`);
-
-        // 逐批处理
-        for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
-          const batch = batches[batchIndex];
-
-          console.log(`处理第${batchIndex + 1}批，包含${batch.length}个渠道`);
-
-          // 并行处理当前批次
           const batchPromises = batch.map((key, keyIndex) => {
-            const globalIndex = batchIndex * BATCH_SIZE + keyIndex;
+            const globalIndex = i + keyIndex;
             return createChannel(key, globalIndex).catch((error) => ({
               success: false,
               index: globalIndex,
@@ -511,83 +543,57 @@ export default function ChannelForm() {
               error: error.message
             }));
           });
-
-          const batchResults = await Promise.allSettled(batchPromises);
-
-          // 处理批次结果
+          const batchResults = await Promise.all(batchPromises);
           batchResults.forEach((result) => {
-            if (result.status === 'fulfilled') {
-              const value = result.value as any;
-              if (value.success) {
-                successCount++;
-              } else {
-                failCount++;
-                errors.push(
-                  `第${value.index + 1}个key(${value.key})失败: ${value.error}`
-                );
-              }
+            if (result.success) {
+              successCount++;
             } else {
               failCount++;
-              errors.push(`处理失败: ${result.reason}`);
+              const errorResult = result as {
+                error: string;
+                index: number;
+                key: string;
+              };
+              errors.push(
+                `第${errorResult.index + 1}个key(${errorResult.key})失败: ${
+                  errorResult.error
+                }`
+              );
             }
-
-            // 更新进度
-            setBatchProgress({
-              current: successCount + failCount,
-              total: keys.length
-            });
+            setBatchProgress((prev) => ({
+              ...prev,
+              current: prev.current + 1
+            }));
           });
-
-          // 批次间稍微延迟，避免服务器压力过大
-          if (batchIndex < batches.length - 1) {
-            await new Promise((resolve) => setTimeout(resolve, 100));
-          }
         }
 
-        const endTime = Date.now();
-        const duration = ((endTime - startTime) / 1000).toFixed(2);
-        const avgTime = (parseFloat(duration) / keys.length).toFixed(2);
-
-        // 显示批量创建结果
-        const resultMessage = `批量创建完成！
-总数: ${keys.length}个
-成功: ${successCount}个
-失败: ${failCount}个
-用时: ${duration}秒
-平均: ${avgTime}秒/个${
+        const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+        const resultMessage = `批量创建完成！\n总数: ${
+          keys.length
+        }个\n成功: ${successCount}个\n失败: ${failCount}个\n用时: ${duration}秒${
           errors.length > 0
             ? '\n\n错误详情:\n' +
-              errors.slice(0, 5).join('\n') +
-              (errors.length > 5 ? '\n...' : '')
+              errors.slice(0, 10).join('\n') +
+              (errors.length > 10 ? '\n...' : '')
             : ''
         }`;
-
         alert(resultMessage);
-
-        // 如果有成功的，跳转到渠道列表
         if (successCount > 0) {
           router.push('/dashboard/channel');
           router.refresh();
         }
       } else {
-        console.log('=== 单个创建/编辑模式 ===');
+        // --- 3. 单个创建/编辑模式 ---
+        console.log('=== 执行路径：单个创建/编辑模式 ===');
+        console.log(
+          'channelData?.multi_key_info:',
+          (channelData as any)?.multi_key_info
+        );
 
-        // 构建配置对象
-        const buildConfig = () => {
-          const config: any = {};
+        const isExistingMultiKey = (channelData as any)?.multi_key_info
+          ?.is_multi_key;
+        console.log('isExistingMultiKey:', isExistingMultiKey);
 
-          if (values.region) config.region = values.region;
-          if (values.ak) config.ak = values.ak;
-          if (values.sk) config.sk = values.sk;
-          if (values.user_id) config.user_id = values.user_id;
-          if (values.vertex_ai_project_id)
-            config.vertex_ai_project_id = values.vertex_ai_project_id;
-          if (values.vertex_ai_adc) config.vertex_ai_adc = values.vertex_ai_adc;
-
-          return Object.keys(config).length > 0 ? JSON.stringify(config) : '';
-        };
-
-        // 单个创建逻辑（原有逻辑）
         const params = {
           type: Number(values.type),
           name: values.name,
@@ -603,31 +609,35 @@ export default function ChannelForm() {
           priority: values.priority || 0,
           weight: values.weight || 0,
           auto_disabled: values.auto_disabled ?? true,
-          // 如果是编辑模式，包含id
-          ...(channelData && { id: (channelData as any).id })
+          key_selection_mode: values.key_selection_mode || 1,
+          batch_import_mode: values.batch_import_mode || 1,
+          ...(channelData && { id: (channelData as any).id }),
+          // 如果是多密钥渠道，需要发送multi_key_info字段
+          ...(isExistingMultiKey && {
+            multi_key_info: {
+              is_multi_key: true,
+              key_selection_mode: values.key_selection_mode || 1,
+              batch_import_mode: values.batch_import_mode || 1
+            }
+          })
         };
+
+        console.log('最终发送的params:', params);
 
         const res = await fetch(`/api/channel`, {
           method: (channelData as any)?.id ? 'PUT' : 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(params),
           credentials: 'include'
         });
 
-        if (!res.ok) {
+        if (!res.ok)
           throw new Error(`HTTP错误: ${res.status} ${res.statusText}`);
-        }
-
         const result = await res.json();
+        if (!result.success) throw new Error(result.message || '未知错误');
 
-        if (result.success) {
-          router.push('/dashboard/channel');
-          router.refresh();
-        } else {
-          alert(`操作失败: ${result.message || '未知错误'}`);
-        }
+        router.push('/dashboard/channel');
+        router.refresh();
       }
     } catch (error) {
       console.error('提交过程中发生错误:', error);
@@ -1136,10 +1146,35 @@ export default function ChannelForm() {
                             </div>
                           </div>
                           <FormControl>
-                            <Checkbox
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
+                            <div className="flex items-center space-x-4">
+                              {form.watch('batch_create') && (
+                                <FormField
+                                  control={form.control}
+                                  name="aggregate_mode"
+                                  render={({ field: aggregateField }) => (
+                                    <FormItem className="flex items-center space-x-2">
+                                      <Checkbox
+                                        id="aggregate_mode"
+                                        checked={aggregateField.value}
+                                        onCheckedChange={
+                                          aggregateField.onChange
+                                        }
+                                      />
+                                      <label
+                                        htmlFor="aggregate_mode"
+                                        className="cursor-pointer text-sm font-medium leading-none"
+                                      >
+                                        密钥聚合模式
+                                      </label>
+                                    </FormItem>
+                                  )}
+                                />
+                              )}
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </div>
                           </FormControl>
                         </FormItem>
                       )}
@@ -1217,18 +1252,69 @@ ${type2secretPrompt(form.watch('type'))}`}
                   <FormField
                     control={form.control}
                     name="key"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>密钥</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder={type2secretPrompt(form.watch('type'))}
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    render={({ field }) => {
+                      // 检查当前渠道是否为多密钥聚合渠道
+                      const isMultiKey = (channelData as any)?.multi_key_info
+                        ?.is_multi_key;
+
+                      return (
+                        <FormItem>
+                          <FormLabel>
+                            {isMultiKey ? '密钥管理' : '密钥'}
+                            {isMultiKey && (
+                              <span className="ml-2 text-xs text-blue-600">
+                                (多密钥聚合渠道)
+                              </span>
+                            )}
+                          </FormLabel>
+                          <FormControl>
+                            {isMultiKey ? (
+                              <Textarea
+                                className="h-auto max-h-48 min-h-24 resize-none overflow-auto"
+                                placeholder={`多密钥聚合渠道密钥管理：
+
+🔑 添加密钥：
+• 每行输入一个密钥
+• 支持批量粘贴多个密钥
+• 根据编辑模式决定是追加还是覆盖现有密钥
+
+⚙️ 当前配置：
+• 密钥选择模式：${
+                                  form.watch('key_selection_mode') === 0
+                                    ? '轮询模式'
+                                    : '随机模式'
+                                }
+• 编辑模式：${form.watch('batch_import_mode') === 0 ? '覆盖模式' : '追加模式'}
+
+💡 提示：在渠道编辑页面可以修改密钥选择和编辑模式`}
+                                {...field}
+                              />
+                            ) : (
+                              <Input
+                                placeholder={type2secretPrompt(
+                                  form.watch('type')
+                                )}
+                                {...field}
+                              />
+                            )}
+                          </FormControl>
+                          {isMultiKey && (
+                            <div className="text-xs text-gray-600">
+                              <p>
+                                • <strong>追加模式</strong>
+                                ：新密钥将添加到现有密钥列表中
+                              </p>
+                              <p>
+                                • <strong>覆盖模式</strong>
+                                ：新密钥将替换所有现有密钥
+                              </p>
+                              <p>• 可在上方密钥配置区域修改编辑模式</p>
+                            </div>
+                          )}
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
                   />
                 )}
               </>
@@ -1393,6 +1479,76 @@ ${type2secretPrompt(form.watch('type'))}`}
                   </FormItem>
                 )}
               />
+
+              {/* 多密钥配置选项 - 只在多密钥渠道时显示 */}
+              {((channelData as any)?.multi_key_info?.is_multi_key ||
+                form.watch('aggregate_mode')) && (
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="key_selection_mode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>密钥选择模式</FormLabel>
+                        <Select
+                          onValueChange={(value) =>
+                            field.onChange(parseInt(value))
+                          }
+                          value={field.value?.toString()}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="选择密钥选择模式" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="0">轮询模式</SelectItem>
+                            <SelectItem value="1">随机模式</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <div className="text-[0.8rem] text-muted-foreground">
+                          {field.value === 0
+                            ? '按顺序轮流使用密钥'
+                            : '随机选择可用密钥'}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="batch_import_mode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>密钥编辑模式</FormLabel>
+                        <Select
+                          onValueChange={(value) =>
+                            field.onChange(parseInt(value))
+                          }
+                          value={field.value?.toString()}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="选择密钥编辑模式" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="0">覆盖模式</SelectItem>
+                            <SelectItem value="1">追加模式</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <div className="text-[0.8rem] text-muted-foreground">
+                          {field.value === 0
+                            ? '编辑时覆盖现有密钥'
+                            : '编辑时追加到现有密钥'}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
 
               <FormField
                 control={form.control}

@@ -13,6 +13,7 @@ import { Trash, Ban, CircleSlash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AlertModal } from '@/components/modal/alert-modal';
 import { useRouter } from 'next/navigation';
+import MultiKeyManagementModal from '../multi-key-modal';
 
 export default function ChannelTable({
   data,
@@ -39,6 +40,15 @@ export default function ChannelTable({
   const [batchLoading, setBatchLoading] = React.useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
   const [resetSelection, setResetSelection] = React.useState(false);
+  const [selectedChannelForModal, setSelectedChannelForModal] =
+    React.useState<Channel | null>(null);
+  const [isMultiKeyModalOpen, setIsMultiKeyModalOpen] = React.useState(false);
+
+  const handleOpenMultiKeyModal = (channel: Channel) => {
+    console.log('handleOpenMultiKeyModal called with channel:', channel);
+    setSelectedChannelForModal(channel);
+    setIsMultiKeyModalOpen(true);
+  };
 
   // 优化数据刷新逻辑 - 使用useCallback和防抖
   const refreshData = React.useCallback(() => {
@@ -219,7 +229,7 @@ export default function ChannelTable({
       </div>
       <ChannelTypesProvider>
         <DataTable
-          columns={columns()}
+          columns={columns({ onManageKeys: handleOpenMultiKeyModal })}
           data={data}
           totalItems={totalData}
           onSelectionChange={setSelectedChannels}
@@ -231,6 +241,11 @@ export default function ChannelTable({
           pageSizeOptions={[10, 50, 100, 500]}
         />
       </ChannelTypesProvider>
+      <MultiKeyManagementModal
+        open={isMultiKeyModalOpen}
+        onOpenChange={setIsMultiKeyModalOpen}
+        channel={selectedChannelForModal}
+      />
     </div>
   );
 }
