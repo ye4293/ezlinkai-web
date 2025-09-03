@@ -26,6 +26,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { FileUploader } from '@/components/file-uploader';
 import { Channel } from '@/lib/types';
 import request from '@/app/lib/clientFetch';
 
@@ -47,6 +48,7 @@ const formSchema = z.object({
   // 多密钥配置选项
   key_selection_mode: z.number().default(1), // 0=轮询, 1=随机
   batch_import_mode: z.number().default(1), // 0=覆盖, 1=追加
+  // Vertex AI 配置选项（移除，直接同时支持手动输入和文件上传）
   // key: z.string().superRefine((val, ctx) => {
   //   const type = (ctx.path[0] === 'type') ? ctx.path[0] : '';
   //   if (type !== '33' && type !== '42' && !val) {
@@ -141,6 +143,52 @@ export default function ChannelForm() {
     {}
   );
   const [channelData, setChannelData] = useState<Object | null>(null);
+  const [vertexAiFiles, setVertexAiFiles] = useState<File[]>([]);
+
+  // 文件解析预览状态
+  interface ParsedFileInfo {
+    fileName: string;
+    projectId: string;
+    status: 'success' | 'error';
+    error?: string;
+  }
+  const [parsedFilesPreview, setParsedFilesPreview] = useState<
+    ParsedFileInfo[]
+  >([]);
+
+  // 删除单个文件的处理函数
+  const handleRemoveFile = (index: number) => {
+    const removedFile = parsedFilesPreview[index];
+    const newFiles = parsedFilesPreview.filter((_, i) => i !== index);
+    setParsedFilesPreview(newFiles);
+
+    // 同时更新实际的文件列表
+    const newVertexAiFiles = vertexAiFiles.filter((_, i) => i !== index);
+    setVertexAiFiles(newVertexAiFiles);
+
+    // 如果删除的是成功解析的文件，需要从相应的文本字段中移除对应的JSON内容
+    if (removedFile.status === 'success') {
+      const isBatchCreate =
+        form.watch('batch_create') && channelId === 'create';
+      const isAggregateMode = isBatchCreate && form.watch('aggregate_mode');
+      const isMultiKey = (channelData as any)?.multi_key_info?.is_multi_key;
+
+      // 注意：这里简化处理，实际项目中可能需要更精确的匹配和删除逻辑
+      // 由于JSON内容可能被修改过，这里只是提示用户手动检查
+      if (isBatchCreate || isAggregateMode || isMultiKey) {
+        console.log(
+          `已删除文件 ${removedFile.fileName} (${removedFile.projectId})，请检查相应的密钥字段是否需要手动调整`
+        );
+      } else {
+        // 单个渠道创建模式下，如果删除的是当前使用的文件，清空相关字段
+        const currentProjectId = form.getValues('vertex_ai_project_id');
+        if (currentProjectId === removedFile.projectId) {
+          form.setValue('vertex_ai_project_id', '');
+          form.setValue('vertex_ai_adc', '');
+        }
+      }
+    }
+  };
 
   useEffect(() => {
     setIsLoading(true);
@@ -262,9 +310,9 @@ export default function ChannelForm() {
             auto_disabled: autoDisabledValue,
             aggregate_mode: channelData.aggregate_mode || false,
             key_selection_mode:
-              (channelData as any).multi_key_info?.key_selection_mode || 1,
+              (channelData as any).multi_key_info?.key_selection_mode ?? 1,
             batch_import_mode:
-              (channelData as any).multi_key_info?.batch_import_mode || 1
+              (channelData as any).multi_key_info?.batch_import_mode ?? 1
           });
         }
       } catch (error) {
@@ -338,6 +386,279 @@ export default function ChannelForm() {
     }
   };
 
+  // 通用的Vertex AI JSON文件上传处理
+  const handleVertexAiFileUpload = async (files: File[]) => {
+    console.log('📁 handleVertexAiFileUpload called with files:', files);
+    if (files.length === 0) {
+      console.log('⚠️ No files provided');
+      return;
+    }
+
+    try {
+      const jsonContents: string[] = [];
+      const newPreviewItems: ParsedFileInfo[] = [];
+
+      // 判断当前上传模式
+      const isBatchCreate =
+        form.watch('batch_create') && channelId === 'create';
+      const isAggregateMode = isBatchCreate && form.watch('aggregate_mode');
+      const isMultiKey = (channelData as any)?.multi_key_info?.is_multi_key;
+
+      for (const file of files) {
+        console.log(
+          `🔍 处理文件: ${file.name}, 大小: ${file.size} bytes, 类型: ${file.type}`
+        );
+        try {
+          // 检查文件大小（可选，防止过大文件导致浏览器卡顿）
+          if (file.size > 10 * 1024 * 1024) {
+            // 10MB限制
+            newPreviewItems.push({
+              fileName: file.name,
+              projectId: '',
+              status: 'error',
+              error: '文件过大（超过10MB）'
+            });
+            continue;
+          }
+
+          // 检查文件类型
+          if (!file.name.toLowerCase().endsWith('.json')) {
+            newPreviewItems.push({
+              fileName: file.name,
+              projectId: '',
+              status: 'error',
+              error: '文件类型不正确（需要.json文件）'
+            });
+            continue;
+          }
+
+          const text = await file.text();
+
+          // 检查文件是否为空
+          if (!text.trim()) {
+            newPreviewItems.push({
+              fileName: file.name,
+              projectId: '',
+              status: 'error',
+              error: '文件内容为空'
+            });
+            continue;
+          }
+
+          const jsonData = JSON.parse(text);
+
+          // 检查是否是有效的Google Cloud服务账号JSON
+          if (!jsonData.type || jsonData.type !== 'service_account') {
+            newPreviewItems.push({
+              fileName: file.name,
+              projectId: '',
+              status: 'error',
+              error: '不是有效的Google Cloud服务账号JSON'
+            });
+            continue;
+          }
+
+          if (jsonData.project_id) {
+            // 直接允许上传，不检查重复
+            jsonContents.push(text);
+            newPreviewItems.push({
+              fileName: file.name,
+              projectId: jsonData.project_id,
+              status: 'success'
+            });
+          } else {
+            newPreviewItems.push({
+              fileName: file.name,
+              projectId: '',
+              status: 'error',
+              error: '缺少project_id字段'
+            });
+          }
+        } catch (error) {
+          newPreviewItems.push({
+            fileName: file.name,
+            projectId: '',
+            status: 'error',
+            error: error instanceof Error ? error.message : 'JSON格式错误'
+          });
+        }
+      }
+
+      // 累积显示：将新解析的文件添加到现有预览列表中
+      setParsedFilesPreview((prev) => [...prev, ...newPreviewItems]);
+
+      if (jsonContents.length > 0) {
+        if (isBatchCreate || isAggregateMode || isMultiKey) {
+          // 批量创建或多密钥模式：添加到相应字段
+          if (isBatchCreate || isAggregateMode) {
+            const currentBatchKeys = form.getValues('batch_keys') || '';
+            const newBatchKeys = currentBatchKeys
+              ? currentBatchKeys + '\n' + jsonContents.join('\n')
+              : jsonContents.join('\n');
+            form.setValue('batch_keys', newBatchKeys);
+          } else if (isMultiKey) {
+            const currentKey = form.getValues('key') || '';
+            const newKey = currentKey
+              ? currentKey + '\n' + jsonContents.join('\n')
+              : jsonContents.join('\n');
+            form.setValue('key', newKey);
+          }
+        } else {
+          // 单个渠道创建：只处理第一个成功的文件
+          const firstJsonData = JSON.parse(jsonContents[0]);
+
+          // 🔄 新方案：将JSON凭证统一存储在key字段中
+          // 这样可以统一处理单密钥和多密钥模式
+          form.setValue('key', jsonContents[0]);
+          form.setValue('vertex_ai_project_id', firstJsonData.project_id);
+
+          // 兼容性：暂时保留adc字段，用于前端显示
+          form.setValue('vertex_ai_adc', jsonContents[0]);
+
+          console.log(
+            `✅ Vertex AI凭证已设置到key字段，项目ID: ${firstJsonData.project_id}`
+          );
+
+          // 确保region为global
+          if (!form.getValues('region')) {
+            form.setValue('region', 'global');
+          }
+        }
+      }
+
+      const successCount = newPreviewItems.filter(
+        (p) => p.status === 'success'
+      ).length;
+      const errorCount = newPreviewItems.filter(
+        (p) => p.status === 'error'
+      ).length;
+
+      let message = `🔄 文件解析完成！\n✅ 成功: ${successCount}个文件`;
+      if (errorCount > 0) {
+        message += `\n❌ 失败: ${errorCount}个文件`;
+      }
+
+      // 根据模式提供不同的提示
+      if (!isBatchCreate && !isAggregateMode && !isMultiKey) {
+        if (successCount > 0) {
+          message += '\n\n已自动填充相关字段';
+        }
+      } else {
+        if (successCount > 0) {
+          message += '\n\n已添加到相应的密钥字段';
+        }
+      }
+
+      // 显示详细的错误信息
+      if (errorCount > 0) {
+        const errorDetails = newPreviewItems
+          .filter((item) => item.status === 'error')
+          .map((item) => `• ${item.fileName}: ${item.error}`)
+          .join('\n');
+        message += `\n\n错误详情:\n${errorDetails}`;
+      }
+
+      alert(message);
+    } catch (error) {
+      console.error('解析Vertex AI JSON文件失败:', error);
+      alert(
+        `❌ 解析失败: ${error instanceof Error ? error.message : '未知错误'}`
+      );
+    }
+  };
+
+  // 文件预览组件
+  const FilePreviewList = ({
+    files,
+    onClear,
+    onRemove
+  }: {
+    files: ParsedFileInfo[];
+    onClear: () => void;
+    onRemove: (index: number) => void;
+  }) => {
+    if (files.length === 0) return null;
+
+    const successCount = files.filter((f) => f.status === 'success').length;
+    const errorCount = files.filter((f) => f.status === 'error').length;
+
+    return (
+      <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-900">
+        <div className="mb-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              📋 文件解析预览
+            </span>
+            <span className="text-xs text-gray-500">
+              总计:{files.length} | ✅{successCount} | ❌{errorCount}
+            </span>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onClear}
+            className="h-6 px-2 text-xs"
+          >
+            清空全部
+          </Button>
+        </div>
+        <div className="max-h-40 space-y-1 overflow-y-auto">
+          {files.map((file, index) => (
+            <div
+              key={`${file.fileName}-${file.projectId || 'error'}-${index}`}
+              className={`flex items-center justify-between rounded px-2 py-1 text-xs ${
+                file.status === 'success'
+                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                  : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+              }`}
+            >
+              <div className="flex items-center gap-2 truncate">
+                <span>{file.status === 'success' ? '✅' : '❌'}</span>
+                <span className="truncate font-mono" title={file.fileName}>
+                  {file.fileName}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="max-w-24 flex-shrink-0">
+                  {file.status === 'success' ? (
+                    <span
+                      className="truncate font-medium"
+                      title={file.projectId}
+                    >
+                      {file.projectId}
+                    </span>
+                  ) : (
+                    <span className="truncate text-xs" title={file.error}>
+                      {file.error?.substring(0, 12)}...
+                    </span>
+                  )}
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onRemove(index)}
+                  className="h-4 w-4 p-0 hover:bg-red-100 dark:hover:bg-red-900"
+                  title="删除此文件"
+                >
+                  ✕
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* 统计信息 */}
+        {files.length > 5 && (
+          <div className="mt-2 border-t pt-2 text-xs text-gray-500">
+            💡 提示：已显示全部 {files.length} 个文件，滚动查看更多
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const MODEL_MAPPING_EXAMPLE = {
     'gpt-3.5-turbo-0301': 'gpt-3.5-turbo',
     'gpt-4-0314': 'gpt-4',
@@ -355,6 +676,10 @@ export default function ChannelForm() {
         return '按照如下格式输入：APIKey-AppId，例如：fastgpt-0sp2gtvfdgyi4k30jwlgwf1i-64f335d84283f05518e9e041';
       case '23':
         return '按照如下格式输入：AppId|SecretId|SecretKey';
+      case '33':
+        return '按照如下格式输入：AK|SK|Region，例如：AKIA1234567890ABCDEF|wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY|us-east-1';
+      case '41':
+        return '按照如下格式输入：AK|SK，例如：your-access-key|your-secret-key';
       default:
         return '请输入渠道对应的鉴权密钥';
     }
@@ -609,15 +934,15 @@ export default function ChannelForm() {
           priority: values.priority || 0,
           weight: values.weight || 0,
           auto_disabled: values.auto_disabled ?? true,
-          key_selection_mode: values.key_selection_mode || 1,
-          batch_import_mode: values.batch_import_mode || 1,
+          key_selection_mode: values.key_selection_mode ?? 1,
+          batch_import_mode: values.batch_import_mode ?? 1,
           ...(channelData && { id: (channelData as any).id }),
           // 如果是多密钥渠道，需要发送multi_key_info字段
           ...(isExistingMultiKey && {
             multi_key_info: {
               is_multi_key: true,
-              key_selection_mode: values.key_selection_mode || 1,
-              batch_import_mode: values.batch_import_mode || 1
+              key_selection_mode: values.key_selection_mode ?? 1,
+              batch_import_mode: values.batch_import_mode ?? 1
             }
           })
         };
@@ -1005,41 +1330,15 @@ export default function ChannelForm() {
                 <>
                   <FormField
                     control={form.control}
-                    name="region"
+                    name="key"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Region</FormLabel>
+                        <FormLabel>密钥（Key）</FormLabel>
                         <FormControl>
-                          <Input
-                            placeholder="region，e.g. us-west-2"
+                          <Textarea
+                            placeholder="请输入 AWS 密钥，每行一个，格式为：AK|SK|Region"
                             {...field}
                           />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="ak"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>AK</FormLabel>
-                        <FormControl>
-                          <Input placeholder="AWS IAM Access Key" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="sk"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>SK</FormLabel>
-                        <FormControl>
-                          <Input placeholder="AWS IAM Secret Key" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -1082,6 +1381,7 @@ export default function ChannelForm() {
                       </FormItem>
                     )}
                   />
+
                   <FormField
                     control={form.control}
                     name="vertex_ai_adc"
@@ -1109,6 +1409,48 @@ export default function ChannelForm() {
                       </FormItem>
                     )}
                   />
+
+                  {/* JSON文件上传 */}
+                  <div className="space-y-3 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                        📁 Vertex AI JSON文件上传
+                      </span>
+                    </div>
+                    <FileUploader
+                      value={vertexAiFiles}
+                      onValueChange={setVertexAiFiles}
+                      onUpload={handleVertexAiFileUpload}
+                      accept={{
+                        'application/json': ['.json'],
+                        'text/json': ['.json'],
+                        'text/plain': ['.json']
+                      }}
+                      maxSize={50 * 1024 * 1024} // 设置50MB限制，覆盖默认的2MB
+                      maxFiles={100} // 允许更多文件
+                      multiple={true}
+                      className="w-full"
+                    />
+                    <div className="text-xs text-blue-600 dark:text-blue-400">
+                      💡 上传Google Cloud凭证JSON文件，支持单个或多个文件上传
+                      <br />
+                      📝
+                      系统会自动根据当前模式处理文件：单个创建时填充字段，批量/聚合时添加到密钥列表
+                      <br />
+                      🔍 基础检测：文件格式、内容有效性、服务账号类型等
+                      <br />✅ 支持重复上传：相同项目ID的文件可以多次上传
+                    </div>
+
+                    {/* 文件预览 */}
+                    <FilePreviewList
+                      files={parsedFilesPreview}
+                      onClear={() => {
+                        setParsedFilesPreview([]);
+                        setVertexAiFiles([]);
+                      }}
+                      onRemove={handleRemoveFile}
+                    />
+                  </div>
                 </>
               )}
 
@@ -1121,6 +1463,26 @@ export default function ChannelForm() {
                       <FormLabel>User ID</FormLabel>
                       <FormControl>
                         <Input placeholder="生成该密钥的用户 ID" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {/* 可灵渠道专用AK|SK输入 */}
+              {form.watch('type') === '41' && (
+                <FormField
+                  control={form.control}
+                  name="key"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>密钥（Key）</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="请输入可灵密钥，每行一个，格式为：AK|SK"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -1219,16 +1581,17 @@ export default function ChannelForm() {
 
                 {/* 根据批量创建开关显示不同的密钥输入界面 */}
                 {form.watch('batch_create') && channelId === 'create' ? (
-                  <FormField
-                    control={form.control}
-                    name="batch_keys"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>批量密钥</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            className="h-auto max-h-64 min-h-32 resize-none overflow-auto"
-                            placeholder={`请按行输入多个密钥，每行一个密钥。
+                  <div className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="batch_keys"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>批量密钥</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              className="h-auto max-h-64 min-h-32 resize-none overflow-auto"
+                              placeholder={`请按行输入多个密钥，每行一个密钥。
 
 🚀 性能优化：
 • 采用并行处理，速度快10倍
@@ -1241,37 +1604,52 @@ sk-0987654321fedcba
 sk-abcdef1234567890
 
 ${type2secretPrompt(form.watch('type'))}`}
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                ) : (
-                  <FormField
-                    control={form.control}
-                    name="key"
-                    render={({ field }) => {
-                      // 检查当前渠道是否为多密钥聚合渠道
-                      const isMultiKey = (channelData as any)?.multi_key_info
-                        ?.is_multi_key;
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                      return (
-                        <FormItem>
-                          <FormLabel>
-                            {isMultiKey ? '密钥管理' : '密钥'}
-                            {isMultiKey && (
-                              <span className="ml-2 text-xs text-blue-600">
-                                (多密钥聚合渠道)
-                              </span>
-                            )}
-                          </FormLabel>
-                          <FormControl>
-                            {isMultiKey ? (
-                              <Textarea
-                                className="h-auto max-h-48 min-h-24 resize-none overflow-auto"
-                                placeholder={`多密钥聚合渠道密钥管理：
+                    {/* Vertex AI 批量JSON文件上传提示 */}
+                    {form.watch('type') === '48' && (
+                      <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-950">
+                        <div className="text-sm text-blue-700 dark:text-blue-300">
+                          💡 <strong>Vertex AI 用户提示</strong>：可以在上方的
+                          "Vertex AI JSON文件上传" 区域批量上传多个JSON文件
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  form.watch('type') !== '33' &&
+                  form.watch('type') !== '41' &&
+                  form.watch('type') !== '48' && (
+                    <FormField
+                      control={form.control}
+                      name="key"
+                      render={({ field }) => {
+                        // 检查当前渠道是否为多密钥聚合渠道
+                        const isMultiKey = (channelData as any)?.multi_key_info
+                          ?.is_multi_key;
+
+                        return (
+                          <FormItem>
+                            <FormLabel>
+                              {isMultiKey ? '密钥管理' : '密钥'}
+                              {isMultiKey && (
+                                <span className="ml-2 text-xs text-blue-600">
+                                  (多密钥聚合渠道)
+                                </span>
+                              )}
+                            </FormLabel>
+                            <FormControl>
+                              {isMultiKey ? (
+                                <div className="space-y-3">
+                                  <Textarea
+                                    className="h-auto max-h-48 min-h-24 resize-none overflow-auto"
+                                    placeholder={`多密钥聚合渠道密钥管理：
 
 🔑 添加密钥：
 • 每行输入一个密钥
@@ -1280,42 +1658,61 @@ ${type2secretPrompt(form.watch('type'))}`}
 
 ⚙️ 当前配置：
 • 密钥选择模式：${
-                                  form.watch('key_selection_mode') === 0
-                                    ? '轮询模式'
-                                    : '随机模式'
-                                }
+                                      form.watch('key_selection_mode') === 0
+                                        ? '轮询模式'
+                                        : '随机模式'
+                                    }
 • 编辑模式：${form.watch('batch_import_mode') === 0 ? '覆盖模式' : '追加模式'}
 
 💡 提示：在渠道编辑页面可以修改密钥选择和编辑模式`}
-                                {...field}
-                              />
-                            ) : (
-                              <Input
-                                placeholder={type2secretPrompt(
-                                  form.watch('type')
-                                )}
-                                {...field}
-                              />
+                                    {...field}
+                                  />
+
+                                  {/* Vertex AI 多密钥JSON文件上传提示 */}
+                                  {form.watch('type') === '48' && (
+                                    <div className="rounded-lg border border-green-200 bg-green-50 p-3 dark:border-green-800 dark:bg-green-950">
+                                      <div className="text-sm text-green-700 dark:text-green-300">
+                                        💡 <strong>Vertex AI 用户提示</strong>
+                                        ：可以在上方的 "Vertex AI JSON文件上传"
+                                        区域上传多个JSON文件
+                                        <br />
+                                        🔧 系统会根据当前编辑模式(
+                                        {form.watch('batch_import_mode') === 0
+                                          ? '覆盖'
+                                          : '追加'}
+                                        )自动处理密钥
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <Input
+                                  placeholder={type2secretPrompt(
+                                    form.watch('type')
+                                  )}
+                                  {...field}
+                                />
+                              )}
+                            </FormControl>
+                            {isMultiKey && (
+                              <div className="text-xs text-gray-600">
+                                <p>
+                                  • <strong>追加模式</strong>
+                                  ：新密钥将添加到现有密钥列表中
+                                </p>
+                                <p>
+                                  • <strong>覆盖模式</strong>
+                                  ：新密钥将替换所有现有密钥
+                                </p>
+                                <p>• 可在上方密钥配置区域修改编辑模式</p>
+                              </div>
                             )}
-                          </FormControl>
-                          {isMultiKey && (
-                            <div className="text-xs text-gray-600">
-                              <p>
-                                • <strong>追加模式</strong>
-                                ：新密钥将添加到现有密钥列表中
-                              </p>
-                              <p>
-                                • <strong>覆盖模式</strong>
-                                ：新密钥将替换所有现有密钥
-                              </p>
-                              <p>• 可在上方密钥配置区域修改编辑模式</p>
-                            </div>
-                          )}
-                          <FormMessage />
-                        </FormItem>
-                      );
-                    }}
-                  />
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }}
+                    />
+                  )
                 )}
               </>
 
