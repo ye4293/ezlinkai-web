@@ -751,10 +751,47 @@ export default function ChannelForm() {
       console.log('isBatchCreate:', isBatchCreate);
       console.log('isAggregateMode:', isAggregateMode);
 
-      const keys = (values.batch_keys || '')
-        .split('\n')
-        .map((key) => key.trim())
-        .filter((key) => key.length > 0);
+      // 根据渠道类型使用正确的密钥解析逻辑
+      let keys: string[] = [];
+      if (Number(values.type) === 48) {
+        // Vertex AI
+        // 对于Vertex AI，使用与后端相同的JSON解析逻辑
+        const batchKeysContent = values.batch_keys || '';
+        try {
+          // 使用简化的JSON对象提取逻辑（与后端ExtractJSONObjects类似）
+          const jsonObjects: string[] = [];
+          let balance = 0;
+          let start = -1;
+          const trimmed = batchKeysContent.trim();
+
+          for (let i = 0; i < trimmed.length; i++) {
+            const char = trimmed[i];
+            if (char === '{') {
+              if (balance === 0) start = i;
+              balance++;
+            } else if (char === '}') {
+              if (balance > 0) {
+                balance--;
+                if (balance === 0 && start !== -1) {
+                  jsonObjects.push(trimmed.slice(start, i + 1));
+                  start = -1;
+                }
+              }
+            }
+          }
+          keys = jsonObjects;
+        } catch (error) {
+          console.error('解析Vertex AI JSON时出错:', error);
+          // 回退到简单计数
+          keys = [];
+        }
+      } else {
+        // 其他渠道类型使用原有的行分割逻辑
+        keys = (values.batch_keys || '')
+          .split('\n')
+          .map((key) => key.trim())
+          .filter((key) => key.length > 0);
+      }
       console.log('keys.length:', keys.length);
 
       const buildConfig = () => {
