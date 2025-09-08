@@ -30,6 +30,55 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
+} from '@/components/ui/tooltip';
+import dayjs from 'dayjs';
+
+// 辅助函数：解析并格式化禁用原因
+const formatDisableReason = (reason: string) => {
+  try {
+    const parsed = JSON.parse(reason);
+    if (parsed.error && parsed.error.message) {
+      // 提取核心错误信息用于表格展示
+      const message = parsed.error.message;
+      // 移除多余的外部信息，使错误更简洁
+      const coreMessageMatch = message.match(/\[.*?\]\s*(.*)/);
+      const cleanMessage = coreMessageMatch ? coreMessageMatch[1] : message;
+
+      return {
+        display:
+          cleanMessage.length > 50
+            ? `${cleanMessage.substring(0, 50)}...`
+            : cleanMessage,
+        tooltip: JSON.stringify(parsed, null, 2)
+      };
+    }
+    if (parsed.message) {
+      return {
+        display:
+          parsed.message.length > 50
+            ? `${parsed.message.substring(0, 50)}...`
+            : parsed.message,
+        tooltip: JSON.stringify(parsed, null, 2)
+      };
+    }
+  } catch (e) {
+    // 不是JSON格式，直接截断
+    return {
+      display: reason.length > 50 ? `${reason.substring(0, 50)}...` : reason,
+      tooltip: reason
+    };
+  }
+  // 如果是JSON但没有message字段，返回原始字符串的截断
+  return {
+    display: reason.length > 50 ? `${reason.substring(0, 50)}...` : reason,
+    tooltip: reason
+  };
+};
 
 interface KeyDetail {
   index: number;
@@ -37,6 +86,7 @@ interface KeyDetail {
   status: number;
   disable_reason: string;
   disable_time: number;
+  disabled_model: string;
   usage: number;
   balance: number;
 }
@@ -54,10 +104,15 @@ interface MultiKeyManagementModalProps {
   channel: Channel | null;
 }
 
-const statusMap: { [key: number]: { text: string; color: string } } = {
-  1: { text: '已启用', color: 'bg-green-500' },
-  2: { text: '手动禁用', color: 'bg-yellow-500' },
-  3: { text: '自动禁用', color: 'bg-red-500' }
+const statusMap: {
+  [key: number]: {
+    text: string;
+    variant: 'default' | 'destructive' | 'secondary' | 'outline';
+  };
+} = {
+  1: { text: '已启用', variant: 'default' },
+  2: { text: '手动禁用', variant: 'secondary' },
+  3: { text: '自动禁用', variant: 'destructive' }
 };
 
 const MultiKeyManagementModal: React.FC<MultiKeyManagementModalProps> = ({
@@ -384,28 +439,94 @@ const MultiKeyManagementModal: React.FC<MultiKeyManagementModalProps> = ({
                           {key.key.substring(key.key.length - 4)}
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Badge
-                              className={`${
-                                statusMap[key.status]?.color || 'bg-gray-400'
-                              }`}
-                            >
-                              {statusMap[key.status]?.text || '未知'}
-                            </Badge>
-                            {key.status === 3 && key.disable_reason && (
-                              <span
-                                className="text-xs text-muted-foreground"
-                                title={key.disable_reason}
-                              >
-                                ⚠️
-                              </span>
-                            )}
-                          </div>
+                          <Badge
+                            variant={
+                              statusMap[key.status]?.variant || 'outline'
+                            }
+                          >
+                            {statusMap[key.status]?.text || '未知'}
+                          </Badge>
                         </TableCell>
-                        <TableCell>{key.disable_reason || '-'}</TableCell>
+                        <TableCell>
+                          {key.disable_reason ? (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="max-w-xs cursor-help truncate font-mono text-xs underline decoration-dotted">
+                                    {
+                                      formatDisableReason(key.disable_reason)
+                                        .display
+                                    }
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-md shadow-lg">
+                                  <div className="space-y-2 p-2 font-mono text-xs">
+                                    <div className="font-sans text-sm font-bold text-foreground">
+                                      禁用详情
+                                    </div>
+                                    <div className="space-y-1">
+                                      <div className="flex">
+                                        <span className="w-16 flex-shrink-0 text-muted-foreground">
+                                          原因
+                                        </span>
+                                        <span className="font-semibold text-destructive">
+                                          {
+                                            formatDisableReason(
+                                              key.disable_reason
+                                            ).display
+                                          }
+                                        </span>
+                                      </div>
+                                      {key.disabled_model && (
+                                        <div className="flex">
+                                          <span className="w-16 flex-shrink-0 text-muted-foreground">
+                                            模型
+                                          </span>
+                                          <span className="font-semibold">
+                                            {key.disabled_model}
+                                          </span>
+                                        </div>
+                                      )}
+                                      {key.disable_time && (
+                                        <div className="flex">
+                                          <span className="w-16 flex-shrink-0 text-muted-foreground">
+                                            时间
+                                          </span>
+                                          <span className="font-semibold">
+                                            {dayjs
+                                              .unix(key.disable_time)
+                                              .format('YYYY-MM-DD HH:mm:ss')}
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div>
+                                      <div className="mb-1 mt-2 font-sans font-medium text-foreground">
+                                        原始错误
+                                      </div>
+                                      <pre className="whitespace-pre-wrap rounded-md bg-muted p-2 text-xs">
+                                        <code>
+                                          {
+                                            formatDisableReason(
+                                              key.disable_reason
+                                            ).tooltip
+                                          }
+                                        </code>
+                                      </pre>
+                                    </div>
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ) : (
+                            '-'
+                          )}
+                        </TableCell>
                         <TableCell>
                           {key.disable_time
-                            ? new Date(key.disable_time * 1000).toLocaleString()
+                            ? dayjs
+                                .unix(key.disable_time)
+                                .format('YYYY-MM-DD HH:mm:ss')
                             : '-'}
                         </TableCell>
                         <TableCell className="text-right">

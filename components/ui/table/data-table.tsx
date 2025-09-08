@@ -26,7 +26,9 @@ import {
   getPaginationRowModel,
   useReactTable,
   flexRender,
-  RowSelectionState
+  RowSelectionState,
+  VisibilityState,
+  Table as ReactTable
 } from '@tanstack/react-table';
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
@@ -42,6 +44,7 @@ interface DataTableProps<TData, TValue> {
   setCurrentPage?: (page: number) => void;
   setPageSize?: (size: number) => void;
   pageSizeOptions?: number[];
+  table: ReactTable<TData>;
 }
 
 export function DataTable<TData, TValue>({
@@ -54,9 +57,12 @@ export function DataTable<TData, TValue>({
   pageSize: externalPageSize,
   setCurrentPage: externalSetCurrentPage,
   setPageSize: externalSetPageSize,
-  pageSizeOptions = [10, 50, 100, 500]
+  pageSizeOptions = [10, 50, 100, 500],
+  table
 }: DataTableProps<TData, TValue>) {
-  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  // 移除对 setRowSelection 的依赖，因为 table 实例中已包含
+  // const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const rowSelection = table.getState().rowSelection;
 
   // 内部分页状态（用于向下兼容）
   const [internalCurrentPage, setInternalCurrentPage] = useState(1);
@@ -73,51 +79,6 @@ export function DataTable<TData, TValue>({
     () => Math.ceil(totalItems / pageSize),
     [totalItems, pageSize]
   );
-
-  const pagination: PaginationState = useMemo(
-    () => ({
-      pageIndex: currentPage - 1,
-      pageSize: pageSize
-    }),
-    [currentPage, pageSize]
-  );
-
-  // 监听数据变化，当数据长度变化时重置选中状态
-  const [prevDataLength, setPrevDataLength] = useState(data.length);
-  useEffect(() => {
-    if (data.length !== prevDataLength) {
-      setRowSelection({});
-      setPrevDataLength(data.length);
-    }
-  }, [data.length, prevDataLength]);
-
-  // 监听resetSelection属性，当父组件要求重置时清除选中状态
-  useEffect(() => {
-    if (resetSelection) {
-      setRowSelection({});
-    }
-  }, [resetSelection]);
-
-  // 优化表格配置 - 使用useMemo缓存配置对象
-  const tableConfig = useMemo(
-    () => ({
-      data,
-      columns,
-      state: {
-        pagination,
-        rowSelection
-      },
-      pageCount,
-      getCoreRowModel: getCoreRowModel(),
-      getPaginationRowModel: getPaginationRowModel(),
-      onRowSelectionChange: setRowSelection,
-      enableRowSelection: true,
-      manualPagination: true
-    }),
-    [data, columns, pagination, rowSelection, pageCount]
-  );
-
-  const table = useReactTable(tableConfig);
 
   useEffect(() => {
     if (onSelectionChange) {
@@ -214,8 +175,8 @@ export function DataTable<TData, TValue>({
               {data.length > 0 ? (
                 <>
                   Showing {(currentPage - 1) * pageSize + 1} to{' '}
-                  {Math.min(currentPage * pageSize, data.length)} of{' '}
-                  {data.length} entries
+                  {Math.min(currentPage * pageSize, totalItems)} of {totalItems}{' '}
+                  entries
                 </>
               ) : (
                 'No entries found'

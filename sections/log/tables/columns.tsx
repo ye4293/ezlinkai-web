@@ -15,15 +15,15 @@ import { ColumnDef } from '@tanstack/react-table';
 const renderType = (status: number) => {
   switch (status) {
     case 1:
-      return <span>Top up</span>;
+      return <Badge variant="secondary">Top up</Badge>;
     case 2:
-      return <span>Consumption</span>;
+      return <Badge variant="default">Consumption</Badge>;
     case 3:
-      return <span>Management</span>;
+      return <Badge variant="outline">Management</Badge>;
     case 4:
-      return <span>System</span>;
+      return <Badge variant="outline">System</Badge>;
     default:
-      return <span>Unknown</span>;
+      return <Badge variant="destructive">Unknown</Badge>;
   }
 };
 
@@ -66,7 +66,7 @@ export const columns: ColumnDef<LogStat>[] = [
       );
     }
   },
-  // 管理员
+  // 渠道
   {
     id: 'channel',
     accessorKey: 'channel',
@@ -122,28 +122,81 @@ export const columns: ColumnDef<LogStat>[] = [
   },
   {
     accessorKey: 'prompt_tokens',
-    header: () => <div className="text-left">Prompt</div>,
+    header: () => <div className="text-right">Prompt</div>,
     cell: ({ row }) => (
-      <div className="text-left">{row.getValue('prompt_tokens')}</div>
+      <div className="text-right">{row.getValue('prompt_tokens')}</div>
     )
   },
   {
     accessorKey: 'completion_tokens',
-    header: () => <div className="text-left">Completion</div>,
+    header: () => <div className="text-right">Completion</div>,
     cell: ({ row }) => (
-      <div className="text-left">{row.getValue('completion_tokens')}</div>
+      <div className="text-right">{row.getValue('completion_tokens')}</div>
     )
   },
   {
+    id: 'retry',
+    accessorKey: 'other',
+    header: () => <div className="text-left">Retry</div>,
+    cell: ({ row }) => {
+      const other = row.original.other as string;
+
+      if (!other) {
+        return <div className="text-left">-</div>;
+      }
+
+      // 解析adminInfo字段 - 直接匹配 adminInfo:[833,833,834] 格式
+      const adminInfoMatch = other.match(/adminInfo:\[(.*?)\]/);
+      if (!adminInfoMatch) {
+        return <div className="text-left">-</div>;
+      }
+
+      try {
+        // 解析逗号分隔的字符串为数组
+        const channelIds = adminInfoMatch[1]
+          .split(',')
+          .map((id) => parseInt(id.trim()));
+        if (Array.isArray(channelIds) && channelIds.length > 0) {
+          // 将数组转换为箭头连接的字符串
+          const retrySequence = channelIds.join('->');
+          const truncatedRetrySequence =
+            retrySequence.length > 20
+              ? `${retrySequence.substring(0, 20)}...`
+              : retrySequence;
+          return (
+            <div className="text-left">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="font-mono text-sm text-blue-600">
+                      {truncatedRetrySequence}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>渠道重试序列: {retrySequence}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          );
+        }
+      } catch (error) {
+        console.error('解析adminInfo失败:', error);
+      }
+
+      return <div className="text-left">-</div>;
+    }
+  },
+  {
     accessorKey: 'quota',
-    header: () => <div className="text-left">Quota</div>,
+    header: () => <div className="text-right">Quota</div>,
     cell: ({ row }) => (
-      <div className="text-left">{processQuota(row.getValue('quota'))}</div>
+      <div className="text-right">{processQuota(row.getValue('quota'))}</div>
     )
   },
   {
     accessorKey: 'duration',
-    header: () => <div className="text-left">Duration/First Word</div>,
+    header: () => <div className="text-right">Duration/First Word</div>,
     cell: ({ row }) => {
       const duration = row.getValue('duration') as number;
       // 修复：处理数据库中的数字类型（1/0）转换为布尔值
@@ -168,7 +221,7 @@ export const columns: ColumnDef<LogStat>[] = [
       }
 
       return (
-        <div className="flex items-center gap-1.5 text-left">
+        <div className="flex items-center justify-end gap-1.5 text-right">
           <span>{duration}</span>
           {isStream && (
             <>

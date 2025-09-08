@@ -1,5 +1,14 @@
 'use client';
 
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/table/data-table';
 import { DataTableSingleFilterBox } from '@/components/ui/table/data-table-single-filter-box';
 import { DataTableResetFilter } from '@/components/ui/table/data-table-reset-filter';
@@ -12,6 +21,36 @@ import { useTableFilters } from './use-table-filters';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import React from 'react';
+import { MixerHorizontalIcon } from '@radix-ui/react-icons';
+import {
+  ColumnDef,
+  ColumnFiltersState,
+  SortingState,
+  VisibilityState,
+  getCoreRowModel,
+  getFacetedRowModel,
+  getFacetedUniqueValues,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  useReactTable
+} from '@tanstack/react-table';
+
+const columnDisplayNames: { [key: string]: string } = {
+  select: 'Select',
+  created_at: 'Time',
+  channel: 'Channel',
+  username: 'User',
+  token_name: 'Token',
+  type: 'Type',
+  model_name: 'Model',
+  prompt_tokens: 'Prompt',
+  completion_tokens: 'Completion',
+  retry: 'Retry',
+  quota: 'Quota',
+  duration: 'Duration/First Word',
+  content: 'Details'
+};
 
 export default function LogTable({
   data,
@@ -22,6 +61,8 @@ export default function LogTable({
 }) {
   const { data: session } = useSession();
   const router = useRouter();
+  const [columnVisibility, setColumnVisibility] =
+    React.useState<VisibilityState>({});
 
   // 根据角色权限过滤
   const filterColumns = columns.filter((item) => {
@@ -90,6 +131,16 @@ export default function LogTable({
     [setPageSize, setPage]
   );
 
+  const table = useReactTable({
+    data,
+    columns: filterColumns,
+    state: {
+      columnVisibility
+    },
+    onColumnVisibilityChange: setColumnVisibility,
+    getCoreRowModel: getCoreRowModel()
+  });
+
   return (
     <div className="space-y-4 ">
       <div className="flex flex-wrap items-center gap-4">
@@ -142,10 +193,44 @@ export default function LogTable({
             setPage(1);
           }}
         />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="ml-auto">
+              <MixerHorizontalIcon className="mr-2 h-4 w-4" />
+              View
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {table
+              .getAllColumns()
+              .filter(
+                (column) =>
+                  typeof column.accessorFn !== 'undefined' &&
+                  column.getCanHide()
+              )
+              .map((column) => {
+                return (
+                  <DropdownMenuCheckboxItem
+                    key={column.id}
+                    className="capitalize"
+                    checked={column.getIsVisible()}
+                    onCheckedChange={(value) =>
+                      column.toggleVisibility(!!value)
+                    }
+                  >
+                    {columnDisplayNames[column.id] || column.id}
+                  </DropdownMenuCheckboxItem>
+                );
+              })}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
       <DataTable
         columns={filterColumns}
         data={data}
+        table={table}
         totalItems={totalData}
         currentPage={page}
         pageSize={pageSize}

@@ -17,6 +17,7 @@ import React from 'react';
 import { toast } from 'sonner';
 import { CHANNEL_OPTIONS } from '@/constants';
 import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
 
 interface ColumnsProps {
   onManageKeys: (channel: Channel) => void;
@@ -54,13 +55,13 @@ function useChannelTypes() {
 const getStatusInfo = (status: number) => {
   switch (status) {
     case 1:
-      return { text: 'Enabled', colorClass: 'text-green-600' };
+      return { text: '已启用', variant: 'default' as const };
     case 2:
-      return { text: 'Disabled', colorClass: 'text-gray-500' };
+      return { text: '手动禁用', variant: 'secondary' as const };
     case 3:
-      return { text: 'Auto Disabled', colorClass: 'text-orange-500' };
+      return { text: '自动禁用', variant: 'destructive' as const };
     default:
-      return { text: 'Unknown', colorClass: 'text-gray-500' };
+      return { text: '未知', variant: 'outline' as const };
   }
 };
 
@@ -100,6 +101,9 @@ const StatusCell = ({ row }: { row: any }) => {
 
   const isChecked = status === 1;
   const currentStatusInfo = getStatusInfo(status);
+  const channel = row.original as Channel;
+  const reason = channel.auto_disabled_reason;
+  const time = channel.auto_disabled_time;
 
   let switchClassName = '';
   if (status === 1) {
@@ -112,16 +116,106 @@ const StatusCell = ({ row }: { row: any }) => {
     <div className="flex items-center justify-center gap-2">
       {/* Hack to prevent Tailwind CSS from purging dynamic classes */}
       <div className="hidden data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-orange-500"></div>
-      <Switch
-        checked={isChecked}
-        onCheckedChange={handleStatusChange}
-        className={switchClassName}
-      />
-      <span className={currentStatusInfo.colorClass}>
+      <Switch checked={isChecked} onCheckedChange={handleStatusChange} />
+      <Badge variant={currentStatusInfo.variant}>
         {currentStatusInfo.text}
-      </span>
+      </Badge>
+      {status === 3 && reason && (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="cursor-help">⚠️</span>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-md shadow-lg">
+              <div className="space-y-2 p-2 font-mono text-xs">
+                <div className="font-sans text-sm font-bold text-foreground">
+                  自动禁用详情
+                </div>
+                <div className="space-y-1">
+                  <div className="flex">
+                    <span className="w-16 flex-shrink-0 text-muted-foreground">
+                      原因
+                    </span>
+                    <span className="font-semibold text-destructive">
+                      {formatDisableReason(reason).display}
+                    </span>
+                  </div>
+                  {channel.auto_disabled_model && (
+                    <div className="flex">
+                      <span className="w-16 flex-shrink-0 text-muted-foreground">
+                        模型
+                      </span>
+                      <span className="font-semibold">
+                        {channel.auto_disabled_model}
+                      </span>
+                    </div>
+                  )}
+                  {time && (
+                    <div className="flex">
+                      <span className="w-16 flex-shrink-0 text-muted-foreground">
+                        时间
+                      </span>
+                      <span className="font-semibold">
+                        {dayjs.unix(time).format('YYYY-MM-DD HH:mm:ss')}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <div className="mb-1 mt-2 font-sans font-medium text-foreground">
+                    原始错误
+                  </div>
+                  <pre className="whitespace-pre-wrap rounded-md bg-muted p-2 text-xs">
+                    <code>{formatDisableReason(reason).tooltip}</code>
+                  </pre>
+                </div>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )}
     </div>
   );
+};
+
+// 辅助函数：解析并格式化禁用原因
+const formatDisableReason = (reason: string) => {
+  try {
+    const parsed = JSON.parse(reason);
+    let message = 'No message found in JSON';
+
+    if (parsed.error && parsed.error.message) {
+      message = parsed.error.message;
+    } else if (parsed.message) {
+      message = parsed.message;
+    } else if (typeof parsed === 'object' && parsed !== null) {
+      // 尝试查找任何嵌套的message
+      const findMessage = (obj: any): string | null => {
+        for (const key in obj) {
+          if (key === 'message' && typeof obj[key] === 'string') {
+            return obj[key];
+          }
+          if (typeof obj[key] === 'object' && obj[key] !== null) {
+            const nestedMessage = findMessage(obj[key]);
+            if (nestedMessage) return nestedMessage;
+          }
+        }
+        return null;
+      };
+      message = findMessage(parsed) || message;
+    }
+
+    const coreMessageMatch = message.match(/\[.*?\]\s*(.*)/);
+    const cleanMessage = coreMessageMatch ? coreMessageMatch[1] : message;
+
+    return {
+      display: cleanMessage,
+      tooltip: JSON.stringify(parsed, null, 2)
+    };
+  } catch (e) {
+    // 不是JSON格式
+    return { display: reason, tooltip: reason };
+  }
 };
 
 const renderResponseTime = (test_time: number, response_time: number) => {
@@ -545,13 +639,19 @@ export const columns = ({
       cell: ({ row }) => <TypeCell row={row} />
     },
     {
-      accessorKey: 'used_quota',
-      header: () => <div className="text-center">Used Quota</div>,
-      cell: ({ row }) => {
-        const usedQuota = row.getValue('used_quota') as number;
-        const displayValue = (usedQuota / 500000).toFixed(2);
-        return <div className="text-center">${displayValue}</div>;
-      }
+      accessorKey: 'priority',
+      header: () => <div className="text-center">Priority</div>,
+      cell: ({ row }) => <PriorityCell row={row} />
+    },
+    {
+      accessorKey: 'weight',
+      header: () => <div className="text-center">Weight</div>,
+      cell: ({ row }) => <WeightCell row={row} />
+    },
+    {
+      accessorKey: 'channel_ratio',
+      header: () => <div className="text-center">Channel Ratio</div>,
+      cell: ({ row }) => <ChannelRatioCell row={row} />
     },
     {
       accessorKey: 'status',
@@ -560,15 +660,12 @@ export const columns = ({
     },
     {
       accessorKey: 'response_time',
-      header: () => <div className="text-center">Response time</div>,
-      cell: ({ row }) => (
-        <div className="text-center">
-          {renderResponseTime(
-            row.original.test_time as number,
-            row.getValue('response_time') as number
-          )}
-        </div>
-      )
+      header: () => <div className="text-center">Response Time</div>,
+      cell: ({ row }) =>
+        renderResponseTime(
+          row.getValue('test_time'),
+          row.getValue('response_time')
+        )
     },
     {
       accessorKey: 'balance',
@@ -576,28 +673,7 @@ export const columns = ({
       cell: ({ row }) => <BalanceCell row={row} />
     },
     {
-      accessorKey: 'priority',
-      header: () => <div className="text-center">Priority</div>,
-      cell: ({ row }) => {
-        return <PriorityCell row={row} />;
-      }
-    },
-    {
-      accessorKey: 'weight',
-      header: () => <div className="text-center">Weight</div>,
-      cell: ({ row }) => {
-        return <WeightCell row={row} />;
-      }
-    },
-    {
-      accessorKey: 'channel_ratio',
-      header: () => <div className="text-center">Channel Ratio</div>,
-      cell: ({ row }) => {
-        return <ChannelRatioCell row={row} />;
-      }
-    },
-    {
-      id: 'actions',
+      accessorKey: 'actions',
       header: () => <div className="text-center">Actions</div>,
       cell: ({ row }) => <ActionsCell row={row} onManageKeys={onManageKeys} />
     }

@@ -67,6 +67,14 @@ export interface Channel {
     polling_index?: number;
     last_batch_import_time?: number;
   };
+  /** 自动禁用原因 */
+  auto_disabled_reason?: string;
+  /** 自动禁用时间 */
+  auto_disabled_time?: number;
+  /** 导致禁用的模型 */
+  auto_disabled_model?: string;
+  /** 余额 */
+  balance?: number;
 }
 
 export type ModelResult = {

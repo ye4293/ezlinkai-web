@@ -36,6 +36,8 @@ export interface LogStat {
   http_referer?: string;
   /** 标题 */
   title?: string;
+  /** 其他信息 */
+  other?: string;
 }
 
 export type LogDataResult = {
