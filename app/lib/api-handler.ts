@@ -1,5 +1,7 @@
 import { auth } from '@/auth';
 import { NextRequest } from 'next/server';
+import { cookies } from 'next/headers';
+import { getSession } from './session';
 
 interface ApiHandlerOptions {
   requireAuth?: boolean;
@@ -119,4 +121,60 @@ export class ApiHandler {
   public post = (req: NextRequest) => this.handleRequest(req, 'POST');
   public put = (req: NextRequest) => this.handleRequest(req, 'PUT');
   public delete = (req: NextRequest) => this.handleRequest(req, 'DELETE');
+}
+
+export async function apiHandler(handler: any) {
+  const session = await getSession();
+  return async (req: NextRequest) => {
+    try {
+      const method = req.method;
+      const endpoint = req.nextUrl.pathname;
+      const handlerInstance = new ApiHandler({ endpoint, requireAuth: true });
+
+      let response;
+      let status = 500;
+      let headers = {};
+
+      if (method === 'GET') {
+        response = await handlerInstance.get(req);
+        status = response.status;
+        headers = response.headers;
+      } else if (method === 'POST') {
+        response = await handlerInstance.post(req);
+        status = response.status;
+        headers = response.headers;
+      } else if (method === 'PUT') {
+        response = await handlerInstance.put(req);
+        status = response.status;
+        headers = response.headers;
+      } else if (method === 'DELETE') {
+        response = await handlerInstance.delete(req);
+        status = response.status;
+        headers = response.headers;
+      } else {
+        return new Response('Method Not Allowed', { status: 405 });
+      }
+
+      return new Response(response, { status, headers });
+    } catch (error: any) {
+      // global error handler
+      if (typeof error === 'string') {
+        // custom application error
+        const isInvalidJson =
+          error.startsWith('Invalid JSON:') ||
+          error.startsWith('Invalid JSON:');
+        if (isInvalidJson) {
+          return new Response(error, { status: 400 });
+        }
+        return new Response(error, { status: 400 });
+      }
+
+      if (error.name === 'JsonWebTokenError') {
+        return new Response('Unauthorized', { status: 401 });
+      }
+
+      // default to 500 server error
+      return new Response(error.message, { status: 500 });
+    }
+  };
 }

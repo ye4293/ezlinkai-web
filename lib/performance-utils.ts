@@ -167,9 +167,6 @@ export class PerformanceMonitor {
         measurements.shift();
       }
 
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`⏱️ ${label}: ${duration.toFixed(2)}ms`);
-      }
       return duration;
     }
     return null;

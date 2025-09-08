@@ -21,13 +21,7 @@ import {
 } from '@radix-ui/react-icons';
 import {
   ColumnDef,
-  PaginationState,
-  getCoreRowModel,
-  getPaginationRowModel,
-  useReactTable,
   flexRender,
-  RowSelectionState,
-  VisibilityState,
   Table as ReactTable
 } from '@tanstack/react-table';
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
