@@ -1011,356 +1011,611 @@ export default function ChannelForm() {
   }
 
   return (
-    <Card className="mx-auto w-full">
-      <CardHeader>
-        <CardTitle className="text-left text-2xl font-bold">
-          Channel Information
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <div className="grid grid-cols-1 gap-6">
-              <FormField
-                control={form.control}
-                name="type"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Type</FormLabel>
-                    <Select
-                      onValueChange={(value) => {
-                        field.onChange(value);
-                        handleTypeInputChange(value);
-                      }}
-                      value={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent style={{ height: '300px' }}>
-                        {modelTypes.map((item) => (
-                          <SelectItem key={item.key} value={`${item.value}`}>
-                            {item.text}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              {form.watch('type') === '3' && (
-                <>
-                  <FormField
-                    control={form.control}
-                    name="base_url"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>AZURE_OPENAI_ENDPOINT</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            className="h-auto max-h-24 min-h-16 resize-none overflow-auto"
-                            placeholder="请输入 AZURE_OPENAI_ENDPOINT，例如：https://docs-test-001.openai.azure.com"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="other"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>默认 API 版本</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            className="h-auto max-h-24 min-h-16 resize-none overflow-auto"
-                            placeholder="请输入默认 API 版本，例如：2024-03-01-preview，该配置可以被实际的请求查询参数所覆盖"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </>
-              )}
-              {form.watch('type') === '8' && (
-                <FormField
-                  control={form.control}
-                  name="base_url"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Base URL</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          className="h-auto max-h-24 min-h-16 resize-none overflow-auto"
-                          placeholder="请输入自定义渠道的 Base URL，例如：https://openai.justsong.cn"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Name</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Please name the channels"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="groups"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Groups</FormLabel>
-                    <FormControl>
-                      <div className="flex flex-row flex-wrap space-x-2">
-                        {groupOptions.map((item) => (
-                          <div key={item} className="flex items-center">
-                            <Checkbox
-                              key={item}
-                              id={item}
-                              checked={field.value?.includes(item)}
-                              onCheckedChange={(checked) => {
-                                const values = field.value ?? [];
-                                const newValues = checked
-                                  ? [...values, item]
-                                  : values.filter((v) => v !== item);
-                                newValues.sort(
-                                  (a, b) =>
-                                    groupOptions.indexOf(a) -
-                                    groupOptions.indexOf(b)
-                                );
-                                field.onChange(newValues);
+    <div className="mx-auto w-full max-w-6xl">
+      <Card className="shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+          <CardTitle className="flex items-center gap-2 text-left text-2xl font-bold">
+            <span className="text-3xl">🔧</span>
+            {channelId !== 'create' ? '编辑渠道' : '创建渠道'}
+          </CardTitle>
+          <p className="text-sm text-blue-100">
+            {channelId !== 'create'
+              ? '修改渠道配置信息，确保渠道正常运行'
+              : '配置新的渠道信息，支持单个和批量创建'}
+          </p>
+        </CardHeader>
+        <CardContent className="p-8">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+              {/* 主要配置区域 */}
+              <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+                <div className="space-y-6">
+                  <div className="rounded-lg border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-6 dark:border-blue-800 dark:from-blue-950 dark:to-indigo-950">
+                    <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-blue-800 dark:text-blue-200">
+                      <span>⚙️</span> 基础配置
+                    </h3>
+                    <div className="space-y-4">
+                      <FormField
+                        control={form.control}
+                        name="type"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="font-medium text-blue-700 dark:text-blue-300">
+                              渠道类型
+                            </FormLabel>
+                            <Select
+                              onValueChange={(value) => {
+                                field.onChange(value);
+                                handleTypeInputChange(value);
                               }}
-                              className="mr-2"
+                              value={field.value}
                             >
-                              {item}
-                            </Checkbox>
-                            <label
-                              htmlFor={item}
-                              className="cursor-pointer text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                            >
-                              {item}
-                            </label>
-                          </div>
-                        ))}
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {form.watch('type') === '18' && (
-                <FormField
-                  control={form.control}
-                  name="other"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>模型版本</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          className="h-auto max-h-24 min-h-16 resize-none overflow-auto"
-                          placeholder="请输入星火大模型版本，注意是接口地址中的版本号，例如：v2.1"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-              {form.watch('type') === '21' && (
-                <FormField
-                  control={form.control}
-                  name="other"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>知识库 ID</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="请输入知识库 ID，例如：123456"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-              {form.watch('type') === '17' && (
-                <FormField
-                  control={form.control}
-                  name="other"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>插件参数</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="请输入插件参数，即 X-DashScope-Plugin 请求头的取值"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-              {form.watch('type') === '34' && (
-                <p className="rounded bg-gray-100 p-2 text-sm text-gray-600">
-                  对于 Coze 而言，模型名称即 Bot ID，你可以添加一个前缀
-                  `bot-`，例如：`bot-123456`。
-                </p>
-              )}
-              {form.watch('type') === '40' && (
-                <p className="rounded bg-gray-100 p-2 text-sm text-gray-600">
-                  对于豆包而言，需要手动去{' '}
-                  <a
-                    target="_blank"
-                    href="https://console.volcengine.com/ark/region:ark+cn-beijing/endpoint"
-                  >
-                    模型推理页面
-                  </a>{' '}
-                  创建推理接入点，以接入点名称作为模型名称，例如：`ep-20240608051426-tkxvl`。
-                </p>
-              )}
-
-              {/* <FormField
-                control={form.control}
-                name="key"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Keys</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Enter the authentication key for the channel"
-                        {...field}
+                              <FormControl>
+                                <SelectTrigger className="border-blue-300 focus:border-blue-500 focus:ring-blue-200">
+                                  <SelectValue placeholder="选择渠道类型" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent style={{ height: '300px' }}>
+                                {modelTypes.map((item) => (
+                                  <SelectItem
+                                    key={item.key}
+                                    value={`${item.value}`}
+                                  >
+                                    {item.text}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
                       />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              /> */}
 
-              {form.watch('type') !== '43' && (
-                <FormField
-                  control={form.control}
-                  name="models"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Models</FormLabel>
-                      <FormControl>
-                        <div className="space-y-2">
-                          <div className="flex flex-row flex-wrap gap-4">
-                            {modelOptions.map((item) => (
-                              <div key={item.id} className="flex items-center">
-                                <Checkbox
-                                  key={item.id}
-                                  id={item.id}
-                                  checked={field.value?.includes(item.id)}
-                                  onCheckedChange={(checked) => {
-                                    const values = field.value ?? [];
-                                    const newValues = checked
-                                      ? [...values, item.id]
-                                      : values.filter((v) => v !== item.id);
-                                    field.onChange(newValues);
-                                  }}
-                                  className="mr-2"
-                                >
-                                  {item.id}
-                                </Checkbox>
-                                <label
-                                  htmlFor={item.id}
-                                  className="cursor-pointer text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                                >
-                                  {item.id}
-                                </label>
+                      <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="font-medium text-blue-700 dark:text-blue-300">
+                              渠道名称
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                className="border-blue-300 focus:border-blue-500 focus:ring-blue-200"
+                                placeholder="请输入渠道名称"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="groups"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="font-medium text-blue-700 dark:text-blue-300">
+                              分组
+                            </FormLabel>
+                            <FormControl>
+                              <div className="flex flex-row flex-wrap gap-3">
+                                {groupOptions.map((item) => (
+                                  <div
+                                    key={item}
+                                    className="flex items-center space-x-2 rounded-md border border-gray-200 bg-white p-2 transition-colors hover:bg-blue-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-blue-900"
+                                  >
+                                    <Checkbox
+                                      id={item}
+                                      checked={field.value?.includes(item)}
+                                      onCheckedChange={(checked) => {
+                                        const values = field.value ?? [];
+                                        const newValues = checked
+                                          ? [...values, item]
+                                          : values.filter((v) => v !== item);
+                                        newValues.sort(
+                                          (a, b) =>
+                                            groupOptions.indexOf(a) -
+                                            groupOptions.indexOf(b)
+                                        );
+                                        field.onChange(newValues);
+                                      }}
+                                      className="data-[state=checked]:border-blue-500 data-[state=checked]:bg-blue-500"
+                                    />
+                                    <label
+                                      htmlFor={item}
+                                      className="cursor-pointer text-sm font-medium leading-none"
+                                    >
+                                      {item}
+                                    </label>
+                                  </div>
+                                ))}
                               </div>
-                            ))}
-                          </div>
-                          <div className="flex gap-2">
-                            <Button
-                              type="button"
-                              onClick={() => {
-                                const currentType = form.watch('type');
-                                const allRelatedModelIds =
-                                  relatedModels[currentType];
-                                const relatedModelIds = modelOptions
-                                  .filter((m) =>
-                                    allRelatedModelIds.includes(m.id)
-                                  )
-                                  .map((m) => m.id);
-                                field.onChange(relatedModelIds);
-                              }}
-                            >
-                              Fill in the relevant model
-                            </Button>
-                            <Button
-                              type="button"
-                              onClick={() => {
-                                const allModelIds = modelOptions.map(
-                                  (m) => m.id
-                                );
-                                field.onChange(allModelIds);
-                              }}
-                            >
-                              Select all
-                            </Button>
-                            <Button
-                              type="button"
-                              onClick={() => field.onChange([])}
-                            >
-                              Clear all
-                            </Button>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {/* 条件显示字段 */}
+                      {form.watch('type') === '3' && (
+                        <div className="mt-4 rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-950">
+                          <h4 className="mb-3 flex items-center gap-2 font-medium text-yellow-800 dark:text-yellow-200">
+                            <span>🔧</span> Azure OpenAI 配置
+                          </h4>
+                          <div className="space-y-4">
+                            <FormField
+                              control={form.control}
+                              name="base_url"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>AZURE_OPENAI_ENDPOINT</FormLabel>
+                                  <FormControl>
+                                    <Textarea
+                                      className="h-auto max-h-24 min-h-16 resize-none overflow-auto border-yellow-300 focus:border-yellow-500"
+                                      placeholder="请输入 AZURE_OPENAI_ENDPOINT，例如：https://docs-test-001.openai.azure.com"
+                                      {...field}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="other"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>默认 API 版本</FormLabel>
+                                  <FormControl>
+                                    <Textarea
+                                      className="h-auto max-h-24 min-h-16 resize-none overflow-auto border-yellow-300 focus:border-yellow-500"
+                                      placeholder="请输入默认 API 版本，例如：2024-03-01-preview"
+                                      {...field}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
                           </div>
                         </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
+                      )}
 
-              {form.watch('type') !== '43' && (
-                <FormField
-                  control={form.control}
-                  name="model_mapping"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Model redirection</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          className="h-auto max-h-64 min-h-40 resize-none overflow-auto"
-                          placeholder={`This option is optional to modify the name of the model in the request body, which is a JSON string, the key is the name of the model in the request, and the value is the name of the model to be replaced, for example \n${JSON.stringify(
-                            MODEL_MAPPING_EXAMPLE,
-                            null,
-                            2
-                          )}`}
-                          {...field}
+                      {form.watch('type') === '8' && (
+                        <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-950">
+                          <h4 className="mb-3 flex items-center gap-2 font-medium text-green-800 dark:text-green-200">
+                            <span>🌐</span> 自定义渠道配置
+                          </h4>
+                          <FormField
+                            control={form.control}
+                            name="base_url"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Base URL</FormLabel>
+                                <FormControl>
+                                  <Textarea
+                                    className="h-auto max-h-24 min-h-16 resize-none overflow-auto border-green-300 focus:border-green-500"
+                                    placeholder="请输入自定义渠道的 Base URL，例如：https://openai.justsong.cn"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 右侧配置区域 */}
+                <div className="space-y-6">
+                  <div className="rounded-lg border border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50 p-6 dark:border-purple-800 dark:from-purple-950 dark:to-pink-950">
+                    <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-purple-800 dark:text-purple-200">
+                      <span>🔑</span> 性能配置
+                    </h3>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                        <FormField
+                          control={form.control}
+                          name="channel_ratio"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="font-medium text-purple-700 dark:text-purple-300">
+                                渠道倍率
+                              </FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  step="0.1"
+                                  min="0.1"
+                                  className="border-purple-300 focus:border-purple-500 focus:ring-purple-200"
+                                  placeholder="1.0"
+                                  {...field}
+                                  value={field.value || ''}
+                                  onChange={(e) => {
+                                    const value = e.target.value;
+                                    field.onChange(
+                                      value === ''
+                                        ? undefined
+                                        : parseFloat(value)
+                                    );
+                                  }}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
                         />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+
+                        <FormField
+                          control={form.control}
+                          name="priority"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="font-medium text-purple-700 dark:text-purple-300">
+                                优先级
+                              </FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  className="border-purple-300 focus:border-purple-500 focus:ring-purple-200"
+                                  placeholder="0"
+                                  {...field}
+                                  value={field.value || ''}
+                                  onChange={(e) => {
+                                    const value = e.target.value;
+                                    field.onChange(
+                                      value === '' ? undefined : parseInt(value)
+                                    );
+                                  }}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="weight"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="font-medium text-purple-700 dark:text-purple-300">
+                                权重
+                              </FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  className="border-purple-300 focus:border-purple-500 focus:ring-purple-200"
+                                  placeholder="0"
+                                  {...field}
+                                  value={field.value || ''}
+                                  onChange={(e) => {
+                                    const value = e.target.value;
+                                    field.onChange(
+                                      value === '' ? undefined : parseInt(value)
+                                    );
+                                  }}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <FormField
+                        control={form.control}
+                        name="auto_disabled"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between rounded-lg border border-purple-200 bg-white p-4 dark:border-purple-800 dark:bg-gray-900">
+                            <div className="space-y-0.5">
+                              <FormLabel className="text-base font-medium text-purple-700 dark:text-purple-300">
+                                自动禁用
+                              </FormLabel>
+                              <div className="text-[0.8rem] text-muted-foreground">
+                                开启后，当渠道出现错误时系统会自动禁用该渠道。关闭后，即使出现错误也不会自动禁用。
+                              </div>
+                            </div>
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                                className="data-[state=checked]:border-purple-500 data-[state=checked]:bg-purple-500"
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  {/* 特殊类型配置 */}
+                  {(form.watch('type') === '18' ||
+                    form.watch('type') === '21' ||
+                    form.watch('type') === '17' ||
+                    form.watch('type') === '34' ||
+                    form.watch('type') === '40') && (
+                    <div className="rounded-lg border border-orange-200 bg-gradient-to-r from-orange-50 to-red-50 p-6 dark:border-orange-800 dark:from-orange-950 dark:to-red-950">
+                      <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-orange-800 dark:text-orange-200">
+                        <span>🎯</span> 特殊配置
+                      </h3>
+                      <div className="space-y-4">
+                        {form.watch('type') === '18' && (
+                          <FormField
+                            control={form.control}
+                            name="other"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="font-medium text-orange-700 dark:text-orange-300">
+                                  星火模型版本
+                                </FormLabel>
+                                <FormControl>
+                                  <Textarea
+                                    className="h-auto max-h-24 min-h-16 resize-none overflow-auto border-orange-300 focus:border-orange-500"
+                                    placeholder="请输入星火大模型版本，注意是接口地址中的版本号，例如：v2.1"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
+
+                        {form.watch('type') === '21' && (
+                          <FormField
+                            control={form.control}
+                            name="other"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="font-medium text-orange-700 dark:text-orange-300">
+                                  知识库 ID
+                                </FormLabel>
+                                <FormControl>
+                                  <Input
+                                    className="border-orange-300 focus:border-orange-500 focus:ring-orange-200"
+                                    placeholder="请输入知识库 ID，例如：123456"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
+
+                        {form.watch('type') === '17' && (
+                          <FormField
+                            control={form.control}
+                            name="other"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="font-medium text-orange-700 dark:text-orange-300">
+                                  插件参数
+                                </FormLabel>
+                                <FormControl>
+                                  <Input
+                                    className="border-orange-300 focus:border-orange-500 focus:ring-orange-200"
+                                    placeholder="请输入插件参数，即 X-DashScope-Plugin 请求头的取值"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
+
+                        {form.watch('type') === '34' && (
+                          <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950">
+                            <div className="mb-2 flex items-center gap-2">
+                              <span className="text-blue-600">ℹ️</span>
+                              <span className="font-medium text-blue-800 dark:text-blue-200">
+                                Coze 配置说明
+                              </span>
+                            </div>
+                            <p className="text-sm text-blue-700 dark:text-blue-300">
+                              对于 Coze 而言，模型名称即 Bot
+                              ID，你可以添加一个前缀{' '}
+                              <code className="rounded bg-blue-100 px-1 dark:bg-blue-900">
+                                bot-
+                              </code>
+                              ，例如：
+                              <code className="rounded bg-blue-100 px-1 dark:bg-blue-900">
+                                bot-123456
+                              </code>
+                            </p>
+                          </div>
+                        )}
+
+                        {form.watch('type') === '40' && (
+                          <div className="rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-950">
+                            <div className="mb-2 flex items-center gap-2">
+                              <span className="text-green-600">ℹ️</span>
+                              <span className="font-medium text-green-800 dark:text-green-200">
+                                豆包配置说明
+                              </span>
+                            </div>
+                            <p className="text-sm text-green-700 dark:text-green-300">
+                              对于豆包而言，需要手动去{' '}
+                              <a
+                                target="_blank"
+                                href="https://console.volcengine.com/ark/region:ark+cn-beijing/endpoint"
+                                className="text-green-600 underline hover:text-green-800"
+                              >
+                                模型推理页面
+                              </a>{' '}
+                              创建推理接入点，以接入点名称作为模型名称，例如：
+                              <code className="rounded bg-green-100 px-1 dark:bg-green-900">
+                                ep-20240608051426-tkxvl
+                              </code>
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   )}
-                />
+                </div>
+              </div>
+
+              {/* 模型和映射配置区域 */}
+              {form.watch('type') !== '43' && (
+                <div className="rounded-lg border border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 p-6 dark:border-green-800 dark:from-green-950 dark:to-emerald-950">
+                  <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-green-800 dark:text-green-200">
+                    <span>🤖</span> 模型配置
+                  </h3>
+                  <div className="space-y-6">
+                    <FormField
+                      control={form.control}
+                      name="models"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-medium text-green-700 dark:text-green-300">
+                            支持的模型
+                          </FormLabel>
+                          <FormControl>
+                            <div className="space-y-4">
+                              <div className="grid max-h-60 grid-cols-2 gap-3 overflow-y-auto rounded-lg border border-green-200 bg-white p-4 dark:border-green-700 dark:bg-gray-900 md:grid-cols-3 lg:grid-cols-4">
+                                {modelOptions.map((item) => (
+                                  <div
+                                    key={item.id}
+                                    className="flex items-center space-x-2 rounded p-2 transition-colors hover:bg-green-50 dark:hover:bg-green-900"
+                                  >
+                                    <Checkbox
+                                      id={item.id}
+                                      checked={field.value?.includes(item.id)}
+                                      onCheckedChange={(checked) => {
+                                        const values = field.value ?? [];
+                                        const newValues = checked
+                                          ? [...values, item.id]
+                                          : values.filter((v) => v !== item.id);
+                                        field.onChange(newValues);
+                                      }}
+                                      className="data-[state=checked]:border-green-500 data-[state=checked]:bg-green-500"
+                                    />
+                                    <label
+                                      htmlFor={item.id}
+                                      className="cursor-pointer text-sm font-medium leading-none"
+                                      title={item.id}
+                                    >
+                                      {item.id}
+                                    </label>
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-green-300 text-green-700 hover:bg-green-50"
+                                  onClick={() => {
+                                    const currentType = form.watch('type');
+                                    const allRelatedModelIds =
+                                      relatedModels[currentType];
+                                    const relatedModelIds = modelOptions
+                                      .filter(
+                                        (m) =>
+                                          allRelatedModelIds?.includes(m.id)
+                                      )
+                                      .map((m) => m.id);
+                                    field.onChange(relatedModelIds);
+                                  }}
+                                >
+                                  填充相关模型
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-green-300 text-green-700 hover:bg-green-50"
+                                  onClick={() => {
+                                    const allModelIds = modelOptions.map(
+                                      (m) => m.id
+                                    );
+                                    field.onChange(allModelIds);
+                                  }}
+                                >
+                                  全选
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-green-300 text-green-700 hover:bg-green-50"
+                                  onClick={() => field.onChange([])}
+                                >
+                                  清空
+                                </Button>
+                              </div>
+                              <div className="text-sm text-green-600 dark:text-green-400">
+                                已选择 {field.value?.length || 0} 个模型
+                              </div>
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="model_mapping"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-medium text-green-700 dark:text-green-300">
+                            模型重定向
+                          </FormLabel>
+                          <FormControl>
+                            <Textarea
+                              className="h-auto max-h-64 min-h-32 resize-none overflow-auto border-green-300 focus:border-green-500"
+                              placeholder={`可选配置，用于修改请求体中的模型名称，格式为 JSON 字符串\n示例：\n${JSON.stringify(
+                                MODEL_MAPPING_EXAMPLE,
+                                null,
+                                2
+                              )}`}
+                              {...field}
+                            />
+                          </FormControl>
+                          <div className="text-sm text-green-600 dark:text-green-400">
+                            💡 该配置可以将请求中的模型名称替换为实际的模型名称
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="customModelName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-medium text-green-700 dark:text-green-300">
+                            自定义模型名称
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              className="border-green-300 focus:border-green-500 focus:ring-green-200"
+                              placeholder="请输入自定义模型名称，多个模型用逗号分隔，例如：gpt-4o,claude-3.5-sonnet"
+                              {...field}
+                            />
+                          </FormControl>
+                          <div className="text-sm text-green-600 dark:text-green-400">
+                            输入的自定义模型将自动添加到上面选择的模型列表中
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
               )}
 
               {form.watch('type') === '33' && (
@@ -2003,26 +2258,86 @@ ${type2secretPrompt(form.watch('type'))}`}
                   </FormItem>
                 )}
               />
-            </div>
-            <div className="flex gap-4">
-              <Button type="button" onClick={() => window.history.back()}>
-                Go Back
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting
-                  ? form.watch('batch_create') && batchProgress.total > 0
-                    ? `创建中... (${batchProgress.current}/${batchProgress.total})`
-                    : '提交中...'
-                  : channelId !== 'create'
-                  ? '更新渠道'
-                  : form.watch('batch_create')
-                  ? '批量创建渠道'
-                  : '创建渠道'}
-              </Button>
-            </div>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+
+              {/* 提交按钮区域 */}
+              <div className="rounded-lg border border-gray-200 bg-gradient-to-r from-gray-50 to-slate-50 p-6 dark:border-gray-800 dark:from-gray-950 dark:to-slate-950">
+                <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
+                  <div className="flex gap-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                      onClick={() => window.history.back()}
+                    >
+                      <span className="mr-2">⬅️</span>
+                      返回列表
+                    </Button>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    {isSubmitting && (
+                      <div className="flex items-center gap-2 text-sm text-blue-600">
+                        <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-blue-600"></div>
+                        <span>
+                          {form.watch('batch_create') && batchProgress.total > 0
+                            ? `批量创建中... (${batchProgress.current}/${batchProgress.total})`
+                            : '处理中...'}
+                        </span>
+                      </div>
+                    )}
+
+                    <Button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="bg-gradient-to-r from-blue-500 to-purple-600 px-8 py-2 font-semibold text-white hover:from-blue-600 hover:to-purple-700"
+                    >
+                      {!isSubmitting && (
+                        <span className="mr-2">
+                          {channelId !== 'create'
+                            ? '✅'
+                            : form.watch('batch_create')
+                            ? '🚀'
+                            : '➕'}
+                        </span>
+                      )}
+                      {isSubmitting
+                        ? form.watch('batch_create') && batchProgress.total > 0
+                          ? `创建中... (${batchProgress.current}/${batchProgress.total})`
+                          : '提交中...'
+                        : channelId !== 'create'
+                        ? '更新渠道配置'
+                        : form.watch('batch_create')
+                        ? '开始批量创建'
+                        : '创建新渠道'}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* 表单状态提示 */}
+                <div className="mt-4 border-t border-gray-200 pt-4 dark:border-gray-700">
+                  <div className="grid grid-cols-1 gap-4 text-sm md:grid-cols-3">
+                    <div className="flex items-center gap-2 text-blue-600">
+                      <span>ℹ️</span>
+                      <span>
+                        {channelId !== 'create' ? '编辑模式' : '创建模式'}
+                        {form.watch('batch_create') && ' - 批量创建'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-green-600">
+                      <span>✓</span>
+                      <span>自动保存配置</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-purple-600">
+                      <span>🔒</span>
+                      <span>安全验证通过</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

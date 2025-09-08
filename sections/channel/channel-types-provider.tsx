@@ -1,10 +1,17 @@
 'use client';
 
-import { Channel } from '@/lib/types';
-import React, { createContext, useContext } from 'react';
+import { CHANNEL_OPTIONS } from '@/constants';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+
+type ChannelType = {
+  key: number;
+  text: string;
+  value: number;
+  color: string;
+};
 
 interface ChannelTypesContextType {
-  channelTypes: Channel[];
+  channelTypes: ChannelType[];
 }
 
 const ChannelTypesContext = createContext<ChannelTypesContextType | undefined>(
@@ -12,12 +19,28 @@ const ChannelTypesContext = createContext<ChannelTypesContextType | undefined>(
 );
 
 export const ChannelTypesProvider = ({
-  children,
-  channelTypes = []
+  children
 }: {
   children: React.ReactNode;
-  channelTypes?: Channel[];
 }) => {
+  const [channelTypes, setChannelTypes] = useState<ChannelType[]>([]);
+
+  useEffect(() => {
+    const fetchTypes = async () => {
+      try {
+        const res = await fetch('/api/channel/types', {
+          credentials: 'include'
+        });
+        const { data } = await res.json();
+        setChannelTypes(data || []);
+      } catch (error) {
+        // 如果API失败，使用本地常量作为fallback
+        setChannelTypes(CHANNEL_OPTIONS);
+      }
+    };
+    fetchTypes();
+  }, []);
+
   return (
     <ChannelTypesContext.Provider value={{ channelTypes }}>
       {children}

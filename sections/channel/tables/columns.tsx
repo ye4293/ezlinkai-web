@@ -12,44 +12,16 @@ import { Channel } from '@/lib/types';
 import { ColumnDef } from '@tanstack/react-table';
 import { CellAction } from './cell-action';
 import { renderNumber } from '@/utils/render';
-import { useState, useEffect, useContext } from 'react';
+import { useState } from 'react';
 import React from 'react';
 import { toast } from 'sonner';
 import { CHANNEL_OPTIONS } from '@/constants';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
+import { useChannelTypes } from '../channel-types-provider';
 
 interface ColumnsProps {
   onManageKeys: (channel: Channel) => void;
-}
-
-type ChannelType = {
-  key: number;
-  text: string;
-  value: number;
-  color: string;
-};
-
-function useChannelTypes() {
-  const [types, setTypes] = useState<ChannelType[]>([]);
-
-  useEffect(() => {
-    const fetchTypes = async () => {
-      try {
-        const res = await fetch('/api/channel/types', {
-          credentials: 'include'
-        });
-        const { data } = await res.json();
-        setTypes(data);
-      } catch (error) {
-        // 如果API失败，使用本地常量作为fallback
-        setTypes(CHANNEL_OPTIONS);
-      }
-    };
-    fetchTypes();
-  }, []);
-
-  return types;
 }
 
 const getStatusInfo = (status: number) => {
@@ -82,6 +54,9 @@ const StatusCell = ({ row }: { row: any }) => {
       };
       const res = await fetch(`/api/channel`, {
         method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify(params),
         credentials: 'include'
       });
@@ -277,28 +252,6 @@ const getColorStyle = (colorName: string) => {
   return colorMap[colorName] || '#6b7280';
 };
 
-// 创建 Context
-const ChannelTypesContext = React.createContext<ChannelType[]>([]);
-
-// 创建 Provider 组件
-export function ChannelTypesProvider({
-  children
-}: {
-  children: React.ReactNode;
-}) {
-  const types = useChannelTypes();
-  return (
-    <ChannelTypesContext.Provider value={types}>
-      {children}
-    </ChannelTypesContext.Provider>
-  );
-}
-
-// 创建自定义 hook 来使用 context
-const useChannelTypesContext = () => {
-  return useContext(ChannelTypesContext);
-};
-
 // Priority Cell Component
 const PriorityCell = ({ row }: { row: any }) => {
   const [value, setValue] = useState(row.getValue('priority') as number);
@@ -312,6 +265,9 @@ const PriorityCell = ({ row }: { row: any }) => {
       };
       const res = await fetch(`/api/channel`, {
         method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify(params),
         credentials: 'include'
       });
@@ -349,6 +305,9 @@ const WeightCell = ({ row }: { row: any }) => {
       };
       const res = await fetch(`/api/channel`, {
         method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify(params),
         credentials: 'include'
       });
@@ -386,6 +345,9 @@ const ChannelRatioCell = ({ row }: { row: any }) => {
       };
       const res = await fetch(`/api/channel`, {
         method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify(params),
         credentials: 'include'
       });
@@ -414,7 +376,7 @@ const ChannelRatioCell = ({ row }: { row: any }) => {
 
 // Type Cell Component with Color
 const TypeCell = ({ row }: { row: any }) => {
-  const types = useChannelTypesContext();
+  const { channelTypes: types } = useChannelTypes();
   const typeValue = row.getValue('type') as number;
   const typeInfo = types.find((item) => item.key === typeValue);
   const typeText = typeInfo?.text || '';
