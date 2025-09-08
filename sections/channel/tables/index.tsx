@@ -9,7 +9,7 @@ import { CHANNEL_OPTIONS } from '@/constants';
 import { useToggle } from '@/hooks/use-toggle';
 import { Channel } from '@/lib/types';
 import React, { Dispatch, SetStateAction, useEffect, useMemo } from 'react';
-import { ChannelTypesProvider } from '../channel-types-provider';
+import { ChannelTypesProvider } from './channel-types-provider';
 import MultiKeyModal from '../multi-key-modal';
 import { columns } from './columns';
 import { useTableFilters } from './use-table-filters';
