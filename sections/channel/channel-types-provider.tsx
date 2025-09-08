@@ -1,12 +1,10 @@
 'use client';
 
-import { serverFetch } from '@/app/lib/serverFetch';
-import { ChannelType } from '@/lib/types';
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import { Channel } from '@/lib/types';
+import React, { createContext, useContext } from 'react';
 
 interface ChannelTypesContextType {
-  channelTypes: ChannelType[];
-  loading: boolean;
+  channelTypes: Channel[];
 }
 
 const ChannelTypesContext = createContext<ChannelTypesContextType | undefined>(
@@ -14,30 +12,14 @@ const ChannelTypesContext = createContext<ChannelTypesContextType | undefined>(
 );
 
 export const ChannelTypesProvider = ({
-  children
+  children,
+  channelTypes = []
 }: {
   children: React.ReactNode;
+  channelTypes?: Channel[];
 }) => {
-  const [channelTypes, setChannelTypes] = useState<ChannelType[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchChannelTypes = async () => {
-      try {
-        const res = await serverFetch('/api/channel/types');
-        const { data } = await res.json();
-        setChannelTypes(data);
-      } catch (error) {
-        console.error('Failed to fetch channel types:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchChannelTypes();
-  }, []);
-
   return (
-    <ChannelTypesContext.Provider value={{ channelTypes, loading }}>
+    <ChannelTypesContext.Provider value={{ channelTypes }}>
       {children}
     </ChannelTypesContext.Provider>
   );

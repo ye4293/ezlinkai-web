@@ -10,6 +10,7 @@ import {
   useProductTableFilters
 } from './use-product-table-filters';
 import { columns } from './columns';
+import { getCoreRowModel, useReactTable } from '@tanstack/react-table';
 
 export default function ProductTable({
   data,
@@ -27,6 +28,14 @@ export default function ProductTable({
     setPage,
     setSearchQuery
   } = useProductTableFilters();
+
+  const table = useReactTable({
+    data,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    manualPagination: true,
+    enableRowSelection: true
+  });
 
   return (
     <div className="space-y-4 ">
@@ -49,7 +58,12 @@ export default function ProductTable({
           onReset={resetFilters}
         />
       </div>
-      <DataTable columns={columns} data={data} totalItems={totalData} />
+      <DataTable
+        table={table}
+        columns={columns}
+        data={data}
+        totalItems={totalData}
+      />
     </div>
   );
 }

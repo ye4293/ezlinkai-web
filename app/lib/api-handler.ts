@@ -1,7 +1,5 @@
 import { auth } from '@/auth';
 import { NextRequest } from 'next/server';
-import { cookies } from 'next/headers';
-import { getSession } from './session';
 
 interface ApiHandlerOptions {
   requireAuth?: boolean;
@@ -101,9 +99,7 @@ export class ApiHandler {
         headers: { 'Content-Type': 'application/json' }
       });
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('API Handler Error:', error);
-      }
+      // Error logging removed for production
       return new Response(
         JSON.stringify({
           error: 'Internal Server Error',
@@ -124,38 +120,23 @@ export class ApiHandler {
 }
 
 export async function apiHandler(handler: any) {
-  const session = await getSession();
   return async (req: NextRequest) => {
     try {
       const method = req.method;
       const endpoint = req.nextUrl.pathname;
       const handlerInstance = new ApiHandler({ endpoint, requireAuth: true });
 
-      let response;
-      let status = 500;
-      let headers = {};
-
       if (method === 'GET') {
-        response = await handlerInstance.get(req);
-        status = response.status;
-        headers = response.headers;
+        return await handlerInstance.get(req);
       } else if (method === 'POST') {
-        response = await handlerInstance.post(req);
-        status = response.status;
-        headers = response.headers;
+        return await handlerInstance.post(req);
       } else if (method === 'PUT') {
-        response = await handlerInstance.put(req);
-        status = response.status;
-        headers = response.headers;
+        return await handlerInstance.put(req);
       } else if (method === 'DELETE') {
-        response = await handlerInstance.delete(req);
-        status = response.status;
-        headers = response.headers;
+        return await handlerInstance.delete(req);
       } else {
         return new Response('Method Not Allowed', { status: 405 });
       }
-
-      return new Response(response, { status, headers });
     } catch (error: any) {
       // global error handler
       if (typeof error === 'string') {

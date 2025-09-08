@@ -5,11 +5,11 @@ import { DataTable } from '@/components/ui/table/data-table';
 import { DataTableResetFilter } from '@/components/ui/table/data-table-reset-filter';
 import { DataTableSearch } from '@/components/ui/table/data-table-search';
 import { DataTableSingleFilterBox } from '@/components/ui/table/data-table-single-filter-box';
-import { CHANNEL_OPTIONS } from '@/constants';
+// No need to import CHANNEL_OPTIONS
 import { useToggle } from '@/hooks/use-toggle';
 import { Channel } from '@/lib/types';
 import React, { Dispatch, SetStateAction, useEffect, useMemo } from 'react';
-import { ChannelTypesProvider } from './channel-types-provider';
+import { ChannelTypesProvider } from '../channel-types-provider';
 import MultiKeyModal from '../multi-key-modal';
 import { columns } from './columns';
 import { useTableFilters } from './use-table-filters';
@@ -53,10 +53,10 @@ export default function ChannelTable({
     React.useState<VisibilityState>({});
 
   const {
-    name,
-    setName,
-    type,
-    setType,
+    searchQuery,
+    setSearchQuery,
+    statusFilter,
+    setStatusFilter,
     isAnyFilterActive,
     resetFilters,
     page,
@@ -66,12 +66,12 @@ export default function ChannelTable({
   } = useTableFilters();
 
   const multiKeyModal = useToggle();
-  const [selectedChannelId, setSelectedChannelId] = React.useState<
-    number | undefined
-  >();
+  const [selectedChannel, setSelectedChannel] = React.useState<Channel | null>(
+    null
+  );
 
-  const handleOpenMultiKeyModal = (channelId: number) => {
-    setSelectedChannelId(channelId);
+  const handleOpenMultiKeyModal = (channel: Channel) => {
+    setSelectedChannel(channel);
     multiKeyModal.onOpen();
   };
 
@@ -93,16 +93,19 @@ export default function ChannelTable({
         <div className="flex flex-wrap items-center gap-4">
           <DataTableSearch
             searchKey="Name"
-            searchQuery={name}
-            setSearchQuery={setName}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
             setPage={setPage}
           />
           <DataTableSingleFilterBox
-            filterKey="type"
-            title="Type"
-            options={CHANNEL_OPTIONS}
-            setFilterValue={setType}
-            filterValue={type}
+            filterKey="status"
+            title="Status"
+            options={[
+              { label: 'Enabled', value: '1' },
+              { label: 'Disabled', value: '2' }
+            ]}
+            setFilterValue={setStatusFilter}
+            filterValue={statusFilter}
           />
           <DataTableResetFilter
             isFilterActive={isAnyFilterActive}
@@ -162,9 +165,9 @@ export default function ChannelTable({
         </ChannelTypesProvider>
       </div>
       <MultiKeyModal
-        channelId={selectedChannelId}
-        isOpen={multiKeyModal.isOpen}
-        onClose={multiKeyModal.onClose}
+        channel={selectedChannel}
+        open={multiKeyModal.isOpen}
+        onOpenChange={multiKeyModal.onClose}
       />
     </>
   );
