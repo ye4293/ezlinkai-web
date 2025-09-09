@@ -10,20 +10,53 @@ import {
 } from '@/components/ui/tooltip';
 import { LogStat } from '@/lib/types';
 import { ColumnDef } from '@tanstack/react-table';
+import { CopyableCell } from '@/components/ui/copyable-cell';
+
+// 解析重试序列的辅助函数
+const parseRetrySequence = (
+  other: string
+): {
+  channelIds: number[];
+  retrySequence: string;
+  displayText: string;
+} | null => {
+  if (!other) return null;
+
+  const adminInfoMatch = other.match(/adminInfo:(\[.*?\])/);
+  if (!adminInfoMatch) return null;
+
+  try {
+    const channelIds = JSON.parse(adminInfoMatch[1]);
+    if (!Array.isArray(channelIds) || channelIds.length === 0) return null;
+
+    const retrySequence = channelIds.join('->');
+    const displayText =
+      retrySequence.length > 15
+        ? `${channelIds[0]}->...${
+            channelIds.length > 1 ? `(${channelIds.length})` : ''
+          }`
+        : retrySequence;
+
+    return { channelIds, retrySequence, displayText };
+  } catch (error) {
+    console.error('解析adminInfo失败:', error);
+    return null;
+  }
+};
 
 /** 类型 */
 const renderType = (status: number) => {
   switch (status) {
     case 1:
-      return <Badge variant="secondary">Top up</Badge>;
+      return <span>Top up</span>;
     case 2:
-      return <Badge variant="default">Consumption</Badge>;
+      return <span>Consumption</span>;
     case 3:
-      return <Badge variant="outline">Management</Badge>;
+      return <span>Management</span>;
     case 4:
-      return <Badge variant="outline">System</Badge>;
+      return <span>System</span>;
     default:
-      return <Badge variant="destructive">Unknown</Badge>;
+      return <span>Unknown</span>;
   }
 };
 
@@ -58,43 +91,81 @@ export const columns: ColumnDef<LogStat>[] = [
     accessorKey: 'created_at',
     header: () => <div className="text-center">Time</div>,
     cell: ({ row }) => {
-      const timestamp = row.getValue('created_at');
+      const timestamp = row.getValue('created_at') as number;
+      const formattedTime = dayjs(Number(timestamp) * 1000).format(
+        'YYYY-MM-DD HH:mm:ss'
+      );
       return (
         <div className="text-left">
-          {dayjs(Number(timestamp) * 1000).format('YYYY-MM-DD HH:mm:ss')}
+          <CopyableCell value={formattedTime} label="时间">
+            {formattedTime}
+          </CopyableCell>
         </div>
       );
-    }
+    },
+    enableHiding: true
   },
-  // 渠道
+  // 管理员
   {
     id: 'channel',
     accessorKey: 'channel',
     header: () => <div className="text-left">Channel</div>,
-    cell: ({ row }) => (
-      <div className="text-left">{row.getValue('channel')}</div>
-    )
+    cell: ({ row }) => {
+      const channel = row.getValue('channel') as number;
+      return (
+        <div className="text-left">
+          <CopyableCell value={channel} label="渠道ID">
+            {channel}
+          </CopyableCell>
+        </div>
+      );
+    },
+    enableHiding: true
   },
   {
     accessorKey: 'username',
     header: () => <div className="text-left">User</div>,
-    cell: ({ row }) => (
-      <div className="text-left">{row.getValue('username')}</div>
-    )
+    cell: ({ row }) => {
+      const username = row.getValue('username') as string;
+      return (
+        <div className="text-left">
+          <CopyableCell value={username} label="用户名">
+            {username}
+          </CopyableCell>
+        </div>
+      );
+    },
+    enableHiding: true
   },
   {
     accessorKey: 'token_name',
     header: () => <div className="text-left">Token</div>,
-    cell: ({ row }) => (
-      <div className="text-left">{row.getValue('token_name')}</div>
-    )
+    cell: ({ row }) => {
+      const tokenName = row.getValue('token_name') as string;
+      return (
+        <div className="text-left">
+          <CopyableCell value={tokenName} label="Token名称">
+            {tokenName}
+          </CopyableCell>
+        </div>
+      );
+    },
+    enableHiding: true
   },
   {
     accessorKey: 'type',
     header: () => <div className="text-left">Type</div>,
-    cell: ({ row }) => (
-      <div className="text-left">{renderType(row.getValue('type'))}</div>
-    )
+    cell: ({ row }) => {
+      const type = row.getValue('type') as number;
+      return (
+        <div className="text-left">
+          <CopyableCell value={type} label="类型">
+            {renderType(type)}
+          </CopyableCell>
+        </div>
+      );
+    },
+    enableHiding: true
   },
   {
     accessorKey: 'model_name',
@@ -106,97 +177,115 @@ export const columns: ColumnDef<LogStat>[] = [
 
       return (
         <div className="text-left">
+          <CopyableCell value={modelName} label="模型名称">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant="outline">{truncatedModelName}</Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{modelName}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </CopyableCell>
+        </div>
+      );
+    },
+    enableHiding: true
+  },
+  {
+    accessorKey: 'prompt_tokens',
+    header: () => <div className="text-left">Prompt</div>,
+    cell: ({ row }) => {
+      const promptTokens = row.getValue('prompt_tokens') as number;
+      return (
+        <div className="text-left">
+          <CopyableCell value={promptTokens} label="输入Token">
+            {promptTokens}
+          </CopyableCell>
+        </div>
+      );
+    },
+    enableHiding: true
+  },
+  {
+    accessorKey: 'completion_tokens',
+    header: () => <div className="text-left">Completion</div>,
+    cell: ({ row }) => {
+      const completionTokens = row.getValue('completion_tokens') as number;
+      return (
+        <div className="text-left">
+          <CopyableCell value={completionTokens} label="输出Token">
+            {completionTokens}
+          </CopyableCell>
+        </div>
+      );
+    },
+    enableHiding: true
+  },
+  {
+    id: 'retry',
+    accessorKey: 'other',
+    header: () => <div className="w-24 text-center">重试</div>,
+    size: 120,
+    cell: ({ row }) => {
+      const other = row.original.other as string;
+      const parsed = parseRetrySequence(other);
+
+      if (!parsed) {
+        return <div className="w-24 text-center">-</div>;
+      }
+
+      const { channelIds, retrySequence, displayText } = parsed;
+
+      return (
+        <div className="w-24 text-center">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Badge variant="outline">{truncatedModelName}</Badge>
+                <span
+                  className="inline-block max-w-full cursor-help truncate font-mono text-xs text-blue-600"
+                  title={retrySequence}
+                >
+                  {displayText}
+                </span>
               </TooltipTrigger>
-              <TooltipContent>
-                <p>{modelName}</p>
+              <TooltipContent side="top" className="max-w-xs">
+                <div className="space-y-1">
+                  <p className="font-medium">渠道重试序列</p>
+                  <p className="break-all font-mono text-xs">{retrySequence}</p>
+                  <p className="text-xs text-muted-foreground">
+                    共 {channelIds.length} 次尝试
+                  </p>
+                </div>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
         </div>
       );
-    }
-  },
-  {
-    accessorKey: 'prompt_tokens',
-    header: () => <div className="text-right">Prompt</div>,
-    cell: ({ row }) => (
-      <div className="text-right">{row.getValue('prompt_tokens')}</div>
-    )
-  },
-  {
-    accessorKey: 'completion_tokens',
-    header: () => <div className="text-right">Completion</div>,
-    cell: ({ row }) => (
-      <div className="text-right">{row.getValue('completion_tokens')}</div>
-    )
-  },
-  {
-    id: 'retry',
-    accessorKey: 'other',
-    header: () => <div className="text-left">Retry</div>,
-    cell: ({ row }) => {
-      const other = row.original.other as string;
-
-      if (!other) {
-        return <div className="text-left">-</div>;
-      }
-
-      // 解析adminInfo字段 - 直接匹配 adminInfo:[833,833,834] 格式
-      const adminInfoMatch = other.match(/adminInfo:\[(.*?)\]/);
-      if (!adminInfoMatch) {
-        return <div className="text-left">-</div>;
-      }
-
-      try {
-        // 解析逗号分隔的字符串为数组
-        const channelIds = adminInfoMatch[1]
-          .split(',')
-          .map((id) => parseInt(id.trim()));
-        if (Array.isArray(channelIds) && channelIds.length > 0) {
-          // 将数组转换为箭头连接的字符串
-          const retrySequence = channelIds.join('->');
-          const truncatedRetrySequence =
-            retrySequence.length > 20
-              ? `${retrySequence.substring(0, 20)}...`
-              : retrySequence;
-          return (
-            <div className="text-left">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="font-mono text-sm text-blue-600">
-                      {truncatedRetrySequence}
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>渠道重试序列: {retrySequence}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-          );
-        }
-      } catch (error) {
-        console.error('解析adminInfo失败:', error);
-      }
-
-      return <div className="text-left">-</div>;
-    }
+    },
+    enableHiding: true
   },
   {
     accessorKey: 'quota',
-    header: () => <div className="text-right">Quota</div>,
-    cell: ({ row }) => (
-      <div className="text-right">{processQuota(row.getValue('quota'))}</div>
-    )
+    header: () => <div className="text-left">Quota</div>,
+    cell: ({ row }) => {
+      const quota = row.getValue('quota') as number;
+      const processedQuota = processQuota(quota);
+      return (
+        <div className="text-left">
+          <CopyableCell value={processedQuota} label="配额">
+            {processedQuota}
+          </CopyableCell>
+        </div>
+      );
+    },
+    enableHiding: true
   },
   {
     accessorKey: 'duration',
-    header: () => <div className="text-right">Duration/First Word</div>,
+    header: () => <div className="text-left">Duration/First Word</div>,
     cell: ({ row }) => {
       const duration = row.getValue('duration') as number;
       // 修复：处理数据库中的数字类型（1/0）转换为布尔值
@@ -221,7 +310,7 @@ export const columns: ColumnDef<LogStat>[] = [
       }
 
       return (
-        <div className="flex items-center justify-end gap-1.5 text-right">
+        <div className="flex items-center gap-1.5 text-left">
           <span>{duration}</span>
           {isStream && (
             <>
@@ -257,7 +346,8 @@ export const columns: ColumnDef<LogStat>[] = [
           )}
         </div>
       );
-    }
+    },
+    enableHiding: true
   },
   {
     id: 'content',
@@ -270,18 +360,21 @@ export const columns: ColumnDef<LogStat>[] = [
 
       return (
         <div className="text-left">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span>{truncatedContent}</span>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{content}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <CopyableCell value={content} label="详细信息">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>{truncatedContent}</span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{content}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </CopyableCell>
         </div>
       );
-    }
+    },
+    enableHiding: true
   }
 ];

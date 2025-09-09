@@ -10,7 +10,6 @@ import {
   GENDER_OPTIONS,
   useEmployeeTableFilters
 } from './use-employee-table-filters';
-import { getCoreRowModel, useReactTable } from '@tanstack/react-table';
 
 export default function EmployeeTable({
   data,
@@ -28,14 +27,6 @@ export default function EmployeeTable({
     setPage,
     setSearchQuery
   } = useEmployeeTableFilters();
-
-  const table = useReactTable({
-    data,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    manualPagination: true,
-    enableRowSelection: true
-  });
 
   return (
     <div className="space-y-4 ">
@@ -58,12 +49,7 @@ export default function EmployeeTable({
           onReset={resetFilters}
         />
       </div>
-      <DataTable
-        table={table}
-        columns={columns}
-        data={data}
-        totalItems={totalData}
-      />
+      <DataTable columns={columns} data={data} totalItems={totalData} />
     </div>
   );
 }

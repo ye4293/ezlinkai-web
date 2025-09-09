@@ -14,7 +14,6 @@ import {
   STATUS_OPTIONS,
   useTableFilters
 } from './use-table-filters';
-import { getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { useSession } from 'next-auth/react';
 
 export default function MidjourneyTable({
@@ -53,14 +52,6 @@ export default function MidjourneyTable({
     dateRange,
     setDateRange
   } = useTableFilters();
-
-  const table = useReactTable({
-    data,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    manualPagination: true,
-    enableRowSelection: true
-  });
 
   return (
     <div className="space-y-4 ">
@@ -116,12 +107,7 @@ export default function MidjourneyTable({
           }}
         />
       </div>
-      <DataTable
-        table={table}
-        columns={columns}
-        data={data}
-        totalItems={totalData}
-      />
+      <DataTable columns={columns} data={data} totalItems={totalData} />
     </div>
   );
 }

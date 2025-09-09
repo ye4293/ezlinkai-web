@@ -7,7 +7,6 @@ import { DataTableSearch } from '@/components/ui/table/data-table-search';
 import { Token } from '@/lib/types';
 import { columns } from './columns';
 import { STATUS_OPTIONS, useTableFilters } from './use-table-filters';
-import { getCoreRowModel, useReactTable } from '@tanstack/react-table';
 
 export default function TokenTable({
   data,
@@ -25,14 +24,6 @@ export default function TokenTable({
     setPage,
     setSearchQuery
   } = useTableFilters();
-
-  const table = useReactTable({
-    data,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    manualPagination: true,
-    enableRowSelection: true
-  });
 
   return (
     <div className="space-y-4 ">
@@ -55,12 +46,7 @@ export default function TokenTable({
           onReset={resetFilters}
         />
       </div>
-      <DataTable
-        table={table}
-        columns={columns}
-        data={data}
-        totalItems={totalData}
-      />
+      <DataTable columns={columns} data={data} totalItems={totalData} />
     </div>
   );
 }

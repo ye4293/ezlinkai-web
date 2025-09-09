@@ -1,46 +1,19 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/table/data-table';
+import { DataTableFilterBox } from '@/components/ui/table/data-table-filter-box';
 import { DataTableResetFilter } from '@/components/ui/table/data-table-reset-filter';
 import { DataTableSearch } from '@/components/ui/table/data-table-search';
-import { DataTableSingleFilterBox } from '@/components/ui/table/data-table-single-filter-box';
-// No need to import CHANNEL_OPTIONS
-import { useToggle } from '@/hooks/use-toggle';
 import { Channel } from '@/lib/types';
-import React, { Dispatch, SetStateAction, useEffect, useMemo } from 'react';
-import { ChannelTypesProvider } from '../channel-types-provider';
-import MultiKeyModal from '../multi-key-modal';
-import { columns } from './columns';
-import { useTableFilters } from './use-table-filters';
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu';
-import { MixerHorizontalIcon } from '@radix-ui/react-icons';
-import {
-  getCoreRowModel,
-  useReactTable,
-  VisibilityState
-} from '@tanstack/react-table';
-
-const columnDisplayNames: { [key: string]: string } = {
-  select: 'Select',
-  id: 'ID',
-  name: 'Name',
-  type: 'Type',
-  group: 'Group',
-  status: 'Status',
-  response_time: 'Response Time',
-  used_quota: 'Used Quota',
-  balance: 'Balance',
-  priority: 'Priority',
-  actions: 'Actions'
-};
+import { columns, ChannelTypesProvider } from './columns';
+import { STATUS_OPTIONS, useTableFilters } from './use-table-filters';
+import React from 'react';
+import { Button } from '@/components/ui/button';
+import { Trash, Ban, CircleSlash2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { AlertModal } from '@/components/modal/alert-modal';
+import { useRouter } from 'next/navigation';
+import MultiKeyManagementModal from '../multi-key-modal';
 
 export default function ChannelTable({
   data,
@@ -49,127 +22,230 @@ export default function ChannelTable({
   data: Channel[];
   totalData: number;
 }) {
-  const [selectedRows, setSelectedRows] = React.useState<Channel[]>([]);
-  const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({});
-
   const {
-    searchQuery,
-    setSearchQuery,
     statusFilter,
     setStatusFilter,
     isAnyFilterActive,
     resetFilters,
-    page,
+    searchQuery,
     setPage,
+    setSearchQuery,
+    page,
     pageSize,
     setPageSize
   } = useTableFilters();
+  const router = useRouter();
 
-  const multiKeyModal = useToggle();
-  const [selectedChannel, setSelectedChannel] = React.useState<Channel | null>(
-    null
-  );
+  const [selectedChannels, setSelectedChannels] = React.useState<Channel[]>([]);
+  const [batchLoading, setBatchLoading] = React.useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
+  const [resetSelection, setResetSelection] = React.useState(false);
+  const [selectedChannelForModal, setSelectedChannelForModal] =
+    React.useState<Channel | null>(null);
+  const [isMultiKeyModalOpen, setIsMultiKeyModalOpen] = React.useState(false);
 
   const handleOpenMultiKeyModal = (channel: Channel) => {
-    setSelectedChannel(channel);
-    multiKeyModal.onOpen();
+    console.log('handleOpenMultiKeyModal called with channel:', channel);
+    setSelectedChannelForModal(channel);
+    setIsMultiKeyModalOpen(true);
   };
 
-  const table = useReactTable({
-    data,
-    columns: columns({ onManageKeys: handleOpenMultiKeyModal }),
-    state: {
-      columnVisibility
+  // 优化数据刷新逻辑 - 使用useCallback和防抖
+  const refreshData = React.useCallback(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('触发数据刷新', { page, pageSize });
+    }
+    router.refresh();
+  }, [router, page, pageSize]);
+
+  // 当分页状态变化时，重新获取数据
+  React.useEffect(() => {
+    // 防抖机制：避免快速连续的状态变化
+    const timeoutId = setTimeout(refreshData, 100);
+    return () => clearTimeout(timeoutId);
+  }, [refreshData]);
+
+  // 处理页面大小变化，重置到第一页
+  const handlePageSizeChange = React.useCallback(
+    (newPageSize: number) => {
+      // 使用 startTransition 来批量更新状态，避免多次触发useEffect
+      React.startTransition(() => {
+        setPageSize(newPageSize);
+        setPage(1);
+      });
     },
-    onColumnVisibilityChange: setColumnVisibility,
-    getCoreRowModel: getCoreRowModel(),
-    manualPagination: true,
-    enableRowSelection: true
-  });
+    [setPageSize, setPage]
+  );
+
+  const batchOperation = async (action: 'delete' | 'enable' | 'disable') => {
+    if (selectedChannels.length === 0) {
+      toast.error('请选择要操作的渠道');
+      return;
+    }
+
+    setBatchLoading(true);
+
+    try {
+      let successCount = 0;
+      let failCount = 0;
+
+      for (const channel of selectedChannels) {
+        try {
+          let res;
+          const channelData = channel as any;
+
+          switch (action) {
+            case 'delete':
+              res = await fetch(`/api/channel/${channelData.id}`, {
+                method: 'DELETE',
+                credentials: 'include'
+              });
+              break;
+            case 'enable':
+              res = await fetch(`/api/channel/`, {
+                method: 'PUT',
+                body: JSON.stringify({ id: channelData.id, status: 1 }),
+                credentials: 'include'
+              });
+              break;
+            case 'disable':
+              res = await fetch(`/api/channel/`, {
+                method: 'PUT',
+                body: JSON.stringify({ id: channelData.id, status: 2 }),
+                credentials: 'include'
+              });
+              break;
+          }
+
+          if (res?.ok) {
+            const result = await res.json();
+            if (result.success) {
+              successCount++;
+            } else {
+              failCount++;
+            }
+          } else {
+            failCount++;
+          }
+        } catch (error) {
+          failCount++;
+        }
+      }
+
+      const actionText =
+        action === 'delete' ? '删除' : action === 'enable' ? '启用' : '禁用';
+      if (failCount === 0) {
+        toast.success(`批量${actionText}成功：${successCount} 个渠道`);
+      } else if (successCount === 0) {
+        toast.error(`批量${actionText}失败：${failCount} 个渠道`);
+      } else {
+        toast.warning(
+          `批量${actionText}完成：成功 ${successCount} 个，失败 ${failCount} 个`
+        );
+      }
+
+      setSelectedChannels([]);
+      // 触发DataTable重置选中状态
+      setResetSelection(true);
+      setTimeout(() => setResetSelection(false), 100); // 短暂触发后重置
+      router.refresh();
+    } finally {
+      setBatchLoading(false);
+      setDeleteModalOpen(false);
+    }
+  };
+
+  const handleBatchDelete = () => {
+    setDeleteModalOpen(true);
+  };
+
+  const confirmBatchDelete = () => {
+    batchOperation('delete');
+  };
 
   return (
-    <>
-      <div className="space-y-4">
-        <div className="flex flex-wrap items-center gap-4">
-          <DataTableSearch
-            searchKey="Name"
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            setPage={setPage}
-          />
-          <DataTableSingleFilterBox
-            filterKey="status"
-            title="Status"
-            options={[
-              { label: 'Enabled', value: '1' },
-              { label: 'Disabled', value: '2' }
-            ]}
-            setFilterValue={setStatusFilter}
-            filterValue={statusFilter}
-          />
-          <DataTableResetFilter
-            isFilterActive={isAnyFilterActive}
-            onReset={() => {
-              resetFilters();
-              setPage(1);
-            }}
-          />
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="ml-auto">
-                <MixerHorizontalIcon className="mr-2 h-4 w-4" />
-                View
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {table
-                .getAllColumns()
-                .filter(
-                  (column) =>
-                    typeof column.accessorFn !== 'undefined' &&
-                    column.getCanHide()
-                )
-                .map((column) => {
-                  return (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      className="capitalize"
-                      checked={column.getIsVisible()}
-                      onCheckedChange={(value) =>
-                        column.toggleVisibility(!!value)
-                      }
-                    >
-                      {columnDisplayNames[column.id] || column.id}
-                    </DropdownMenuCheckboxItem>
-                  );
-                })}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-        <ChannelTypesProvider>
-          <DataTable
-            table={table}
-            columns={columns({ onManageKeys: handleOpenMultiKeyModal })}
-            data={data}
-            totalItems={totalData}
-            onSelectionChange={setSelectedRows}
-            resetSelection={!data.length}
-            currentPage={page}
-            pageSize={pageSize}
-            setCurrentPage={setPage}
-            setPageSize={setPageSize}
-            pageSizeOptions={[10, 50, 100, 500]}
-          />
-        </ChannelTypesProvider>
-      </div>
-      <MultiKeyModal
-        channel={selectedChannel}
-        open={multiKeyModal.isOpen}
-        onOpenChange={multiKeyModal.onClose}
+    <div className="space-y-4 ">
+      <AlertModal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={confirmBatchDelete}
+        loading={batchLoading}
       />
-    </>
+      <div className="flex flex-wrap items-center gap-4">
+        <DataTableSearch
+          searchKey="ID,Name,Key"
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          setPage={setPage}
+        />
+        <DataTableFilterBox
+          filterKey="status"
+          title="Status"
+          options={STATUS_OPTIONS}
+          setFilterValue={setStatusFilter}
+          filterValue={statusFilter}
+        />
+        <div className="flex items-center gap-2">
+          {selectedChannels.length > 0 && (
+            <span className="mr-2 text-sm text-muted-foreground">
+              已选择 {selectedChannels.length} 个渠道
+            </span>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleBatchDelete}
+            disabled={batchLoading || selectedChannels.length === 0}
+            className="text-destructive hover:text-destructive"
+          >
+            <Trash className="mr-2 h-4 w-4" />
+            批量删除
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => batchOperation('enable')}
+            disabled={batchLoading || selectedChannels.length === 0}
+            className="text-green-600 hover:text-green-600"
+          >
+            <CircleSlash2 className="mr-2 h-4 w-4" />
+            批量启用
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => batchOperation('disable')}
+            disabled={batchLoading || selectedChannels.length === 0}
+            className="text-orange-600 hover:text-orange-600"
+          >
+            <Ban className="mr-2 h-4 w-4" />
+            批量禁用
+          </Button>
+        </div>
+        <DataTableResetFilter
+          isFilterActive={isAnyFilterActive}
+          onReset={resetFilters}
+        />
+      </div>
+      <ChannelTypesProvider>
+        <DataTable
+          columns={columns({ onManageKeys: handleOpenMultiKeyModal })}
+          data={data}
+          totalItems={totalData}
+          onSelectionChange={setSelectedChannels}
+          resetSelection={resetSelection}
+          currentPage={page}
+          pageSize={pageSize}
+          setCurrentPage={setPage}
+          setPageSize={handlePageSizeChange}
+          pageSizeOptions={[10, 50, 100, 500]}
+        />
+      </ChannelTypesProvider>
+      <MultiKeyManagementModal
+        open={isMultiKeyModalOpen}
+        onOpenChange={setIsMultiKeyModalOpen}
+        channel={selectedChannelForModal}
+      />
+    </div>
   );
 }

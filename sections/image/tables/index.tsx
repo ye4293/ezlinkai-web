@@ -9,7 +9,6 @@ import { ImageStat } from '@/lib/types';
 import { LOG_OPTIONS } from '@/constants';
 import { columns } from './columns';
 import { STATUS_OPTIONS, useTableFilters } from './use-table-filters';
-import { getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { useSession } from 'next-auth/react';
 
 export default function ImageTable({
@@ -50,14 +49,6 @@ export default function ImageTable({
     dateRange,
     setDateRange
   } = useTableFilters();
-
-  const table = useReactTable({
-    data,
-    columns: filterColumns,
-    getCoreRowModel: getCoreRowModel(),
-    manualPagination: true,
-    enableRowSelection: true
-  });
 
   return (
     <div className="space-y-4 ">
@@ -117,12 +108,7 @@ export default function ImageTable({
           }}
         />
       </div>
-      <DataTable
-        table={table}
-        columns={filterColumns}
-        data={data}
-        totalItems={totalData}
-      />
+      <DataTable columns={filterColumns} data={data} totalItems={totalData} />
     </div>
   );
 }

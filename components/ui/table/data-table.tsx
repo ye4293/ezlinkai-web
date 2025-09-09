@@ -21,11 +21,17 @@ import {
 } from '@radix-ui/react-icons';
 import {
   ColumnDef,
+  PaginationState,
+  getCoreRowModel,
+  getPaginationRowModel,
+  useReactTable,
   flexRender,
-  Table as ReactTable
+  RowSelectionState,
+  VisibilityState
 } from '@tanstack/react-table';
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { DataTableViewOptions } from './data-table-column-toggle';
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -38,7 +44,7 @@ interface DataTableProps<TData, TValue> {
   setCurrentPage?: (page: number) => void;
   setPageSize?: (size: number) => void;
   pageSizeOptions?: number[];
-  table: ReactTable<TData>;
+  showColumnToggle?: boolean;
 }
 
 export function DataTable<TData, TValue>({
@@ -52,11 +58,10 @@ export function DataTable<TData, TValue>({
   setCurrentPage: externalSetCurrentPage,
   setPageSize: externalSetPageSize,
   pageSizeOptions = [10, 50, 100, 500],
-  table
+  showColumnToggle = false
 }: DataTableProps<TData, TValue>) {
-  // 移除对 setRowSelection 的依赖，因为 table 实例中已包含
-  // const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
-  const rowSelection = table.getState().rowSelection;
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
 
   // 内部分页状态（用于向下兼容）
   const [internalCurrentPage, setInternalCurrentPage] = useState(1);
@@ -74,6 +79,54 @@ export function DataTable<TData, TValue>({
     [totalItems, pageSize]
   );
 
+  const pagination: PaginationState = useMemo(
+    () => ({
+      pageIndex: currentPage - 1,
+      pageSize: pageSize
+    }),
+    [currentPage, pageSize]
+  );
+
+  // 监听数据变化，当数据长度变化时重置选中状态
+  const [prevDataLength, setPrevDataLength] = useState(data.length);
+  useEffect(() => {
+    if (data.length !== prevDataLength) {
+      setRowSelection({});
+      setPrevDataLength(data.length);
+    }
+  }, [data.length, prevDataLength]);
+
+  // 监听resetSelection属性，当父组件要求重置时清除选中状态
+  useEffect(() => {
+    if (resetSelection) {
+      setRowSelection({});
+    }
+  }, [resetSelection]);
+
+  // 优化表格配置 - 使用useMemo缓存配置对象
+  const tableConfig = useMemo(
+    () => ({
+      data,
+      columns,
+      state: {
+        pagination,
+        rowSelection,
+        columnVisibility
+      },
+      pageCount,
+      getCoreRowModel: getCoreRowModel(),
+      getPaginationRowModel: getPaginationRowModel(),
+      onRowSelectionChange: setRowSelection,
+      onColumnVisibilityChange: setColumnVisibility,
+      enableRowSelection: true,
+      enableHiding: true,
+      manualPagination: true
+    }),
+    [data, columns, pagination, rowSelection, columnVisibility, pageCount]
+  );
+
+  const table = useReactTable(tableConfig);
+
   useEffect(() => {
     if (onSelectionChange) {
       const selectedRowsData = table
@@ -85,6 +138,11 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="w-full space-y-4">
+      {showColumnToggle && (
+        <div className="flex justify-end">
+          <DataTableViewOptions table={table} />
+        </div>
+      )}
       <ScrollArea className="h-[calc(80vh-220px)] rounded-md border">
         <Table className="relative">
           <TableHeader>
@@ -169,8 +227,8 @@ export function DataTable<TData, TValue>({
               {data.length > 0 ? (
                 <>
                   Showing {(currentPage - 1) * pageSize + 1} to{' '}
-                  {Math.min(currentPage * pageSize, totalItems)} of {totalItems}{' '}
-                  entries
+                  {Math.min(currentPage * pageSize, data.length)} of{' '}
+                  {data.length} entries
                 </>
               ) : (
                 'No entries found'

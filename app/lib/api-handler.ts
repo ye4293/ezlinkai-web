@@ -99,7 +99,9 @@ export class ApiHandler {
         headers: { 'Content-Type': 'application/json' }
       });
     } catch (error) {
-      // Error logging removed for production
+      if (process.env.NODE_ENV === 'development') {
+        console.error('API Handler Error:', error);
+      }
       return new Response(
         JSON.stringify({
           error: 'Internal Server Error',
@@ -117,45 +119,4 @@ export class ApiHandler {
   public post = (req: NextRequest) => this.handleRequest(req, 'POST');
   public put = (req: NextRequest) => this.handleRequest(req, 'PUT');
   public delete = (req: NextRequest) => this.handleRequest(req, 'DELETE');
-}
-
-export async function apiHandler(handler: any) {
-  return async (req: NextRequest) => {
-    try {
-      const method = req.method;
-      const endpoint = req.nextUrl.pathname;
-      const handlerInstance = new ApiHandler({ endpoint, requireAuth: true });
-
-      if (method === 'GET') {
-        return await handlerInstance.get(req);
-      } else if (method === 'POST') {
-        return await handlerInstance.post(req);
-      } else if (method === 'PUT') {
-        return await handlerInstance.put(req);
-      } else if (method === 'DELETE') {
-        return await handlerInstance.delete(req);
-      } else {
-        return new Response('Method Not Allowed', { status: 405 });
-      }
-    } catch (error: any) {
-      // global error handler
-      if (typeof error === 'string') {
-        // custom application error
-        const isInvalidJson =
-          error.startsWith('Invalid JSON:') ||
-          error.startsWith('Invalid JSON:');
-        if (isInvalidJson) {
-          return new Response(error, { status: 400 });
-        }
-        return new Response(error, { status: 400 });
-      }
-
-      if (error.name === 'JsonWebTokenError') {
-        return new Response('Unauthorized', { status: 401 });
-      }
-
-      // default to 500 server error
-      return new Response(error.message, { status: 500 });
-    }
-  };
 }

@@ -13,11 +13,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { DataTable } from '@/components/ui/table/data-table';
 import { Input } from '@/components/ui/input';
-import {
-  ColumnDef,
-  getCoreRowModel,
-  useReactTable
-} from '@tanstack/react-table';
+import { ColumnDef } from '@tanstack/react-table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useRouter } from 'next/navigation';
 
@@ -322,14 +318,6 @@ export const ModelsModal: React.FC<ModelsModalProps> = ({
     model.id.toLowerCase().includes(search.toLowerCase())
   );
 
-  const table = useReactTable({
-    data: filteredModels,
-    columns: modelColumns,
-    getCoreRowModel: getCoreRowModel(),
-    manualPagination: true,
-    enableRowSelection: true
-  });
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl">
@@ -346,7 +334,6 @@ export const ModelsModal: React.FC<ModelsModalProps> = ({
             onChange={(e) => setSearch(e.target.value)}
           />
           <DataTable
-            table={table}
             columns={modelColumns}
             data={filteredModels}
             totalItems={filteredModels.length}
