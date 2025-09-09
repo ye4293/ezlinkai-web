@@ -413,6 +413,138 @@ const ActionsCell = ({
   );
 };
 
+// Used Quota Cell Component - 完全重构版本
+const UsedQuotaCell = ({ row }: { row: any }) => {
+  const rawUsedQuota = row.getValue('used_quota') as number;
+  const router = useRouter();
+  const [isClearing, setIsClearing] = useState(false);
+  const [justCleared, setJustCleared] = useState(false);
+
+  // 计算实际配额值
+  const actualQuota = rawUsedQuota ? rawUsedQuota / 500000 : 0;
+
+  // 格式化配额显示
+  const formatDisplayValue = (value: number) => {
+    if (value === 0) return '0';
+    if (value >= 1000000000) return `${(value / 1000000000).toFixed(2)}B`;
+    if (value >= 1000000) return `${(value / 1000000).toFixed(2)}M`;
+    if (value >= 1000) return `${(value / 1000).toFixed(2)}K`;
+    return value.toFixed(2);
+  };
+
+  // 清空配额函数
+  const handleClearQuota = async () => {
+    const displayValue = formatDisplayValue(actualQuota);
+    if (
+      !confirm(
+        `确认清空渠道 "${row.original.name}" 的配额？\n当前值: ${displayValue}`
+      )
+    ) {
+      return;
+    }
+
+    setIsClearing(true);
+    try {
+      const response = await fetch(
+        `/api/channel/clear_quota/${row.original.id}`,
+        {
+          method: 'GET',
+          credentials: 'include'
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`请求失败: ${response.status}`);
+      }
+
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.message || '清空失败');
+      }
+
+      setJustCleared(true);
+      toast.success(`配额已清空: ${row.original.name}`);
+      setTimeout(() => {
+        router.refresh();
+        setJustCleared(false);
+      }, 1500);
+    } catch (error) {
+      toast.error(
+        `清空失败: ${error instanceof Error ? error.message : '未知错误'}`
+      );
+    } finally {
+      setIsClearing(false);
+    }
+  };
+
+  // 渲染配额值
+  const displayValue = justCleared ? '0' : formatDisplayValue(actualQuota);
+  const hasValue = actualQuota > 0;
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        justifyContent: 'center'
+      }}
+    >
+      {/* 配额显示 */}
+      <div
+        style={{
+          padding: '6px 12px',
+          border: '1px solid #e5e7eb',
+          borderRadius: '6px',
+          backgroundColor: justCleared
+            ? '#dcfce7'
+            : hasValue
+            ? '#ffffff'
+            : '#f9fafb',
+          color: justCleared ? '#059669' : hasValue ? '#374151' : '#6b7280',
+          fontSize: '14px',
+          fontWeight: '500',
+          minWidth: '60px',
+          textAlign: 'center' as const,
+          position: 'relative' as const
+        }}
+      >
+        {displayValue}
+        {justCleared && (
+          <span style={{ marginLeft: '4px', color: '#10b981' }}>✓</span>
+        )}
+      </div>
+
+      {/* 清空按钮 */}
+      {!justCleared && (
+        <button
+          onClick={handleClearQuota}
+          disabled={isClearing || !hasValue}
+          style={{
+            width: '28px',
+            height: '28px',
+            border: '1px solid',
+            borderRadius: '6px',
+            backgroundColor: !hasValue ? '#f9fafb' : '#fef2f2',
+            borderColor: !hasValue ? '#e5e7eb' : '#fecaca',
+            color: !hasValue ? '#9ca3af' : '#dc2626',
+            cursor: !hasValue ? 'not-allowed' : 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '14px'
+          }}
+          title={
+            !hasValue ? '无配额可清空' : isClearing ? '清空中...' : '清空配额'
+          }
+        >
+          {isClearing ? '⟳' : '🗑'}
+        </button>
+      )}
+    </div>
+  );
+};
+
 // Balance Cell Component
 const BalanceCell = ({ row }: { row: any }) => {
   const router = useRouter();
@@ -628,6 +760,11 @@ export const columns = ({
           row.getValue('test_time'),
           row.getValue('response_time')
         )
+    },
+    {
+      accessorKey: 'used_quota',
+      header: () => <div className="text-center">Used Quota</div>,
+      cell: ({ row }) => <UsedQuotaCell row={row} />
     },
     {
       accessorKey: 'balance',

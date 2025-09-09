@@ -36,6 +36,7 @@ const columnDisplayNames: { [key: string]: string } = {
   group: 'Group',
   status: 'Status',
   response_time: 'Response Time',
+  used_quota: 'Used Quota',
   balance: 'Balance',
   priority: 'Priority',
   actions: 'Actions'

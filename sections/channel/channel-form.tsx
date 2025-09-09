@@ -291,7 +291,10 @@ export default function ChannelForm() {
           form.reset({
             type: String(channelData.type),
             name: channelData.name,
-            groups: channelData.group?.split(',') || [],
+            groups:
+              channelData.group
+                ?.split(',')
+                .filter((g: string) => g.trim() !== '') || [],
             key: channelData.key,
             base_url: channelData.base_url,
             other: channelData.other,
@@ -808,7 +811,7 @@ export default function ChannelForm() {
 
       const baseParams: Omit<ParamsOption, 'key' | 'name'> = {
         type: Number(values.type),
-        group: values.groups.join(','),
+        group: values.groups.filter((g: string) => g.trim() !== '').join(','),
         models: finalModels.join(','),
         base_url: values.base_url || '',
         other: values.other || '',
@@ -959,7 +962,7 @@ export default function ChannelForm() {
         const params = {
           type: Number(values.type),
           name: values.name,
-          group: values.groups.join(','),
+          group: values.groups.filter((g: string) => g.trim() !== '').join(','),
           models: finalModels.join(','),
           key: values.key || '',
           base_url: values.base_url || '',
@@ -1012,26 +1015,28 @@ export default function ChannelForm() {
 
   return (
     <div className="mx-auto w-full max-w-6xl">
-      <Card className="shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
-          <CardTitle className="flex items-center gap-2 text-left text-2xl font-bold">
-            <span className="text-3xl">🔧</span>
+      <Card className="border-gray-200 shadow-sm dark:border-gray-800">
+        <CardHeader className="border-b border-gray-100 bg-white dark:border-gray-800 dark:bg-gray-950">
+          <CardTitle className="flex items-center gap-3 text-left text-2xl font-semibold text-gray-900 dark:text-gray-100">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800">
+              <span className="text-lg">⚙️</span>
+            </div>
             {channelId !== 'create' ? '编辑渠道' : '创建渠道'}
           </CardTitle>
-          <p className="text-sm text-blue-100">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
             {channelId !== 'create'
               ? '修改渠道配置信息，确保渠道正常运行'
               : '配置新的渠道信息，支持单个和批量创建'}
           </p>
         </CardHeader>
-        <CardContent className="p-8">
+        <CardContent className="p-6">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               {/* 主要配置区域 */}
-              <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 <div className="space-y-6">
-                  <div className="rounded-lg border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-6 dark:border-blue-800 dark:from-blue-950 dark:to-indigo-950">
-                    <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-blue-800 dark:text-blue-200">
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-5 dark:border-gray-700 dark:bg-gray-900">
+                    <h3 className="mb-4 flex items-center gap-2 text-lg font-medium text-gray-800 dark:text-gray-200">
                       <span>⚙️</span> 基础配置
                     </h3>
                     <div className="space-y-4">
@@ -1040,7 +1045,7 @@ export default function ChannelForm() {
                         name="type"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="font-medium text-blue-700 dark:text-blue-300">
+                            <FormLabel className="font-medium text-gray-700 dark:text-gray-300">
                               渠道类型
                             </FormLabel>
                             <Select
@@ -1051,7 +1056,7 @@ export default function ChannelForm() {
                               value={field.value}
                             >
                               <FormControl>
-                                <SelectTrigger className="border-blue-300 focus:border-blue-500 focus:ring-blue-200">
+                                <SelectTrigger className="border-gray-300 focus:border-gray-500 focus:ring-gray-200">
                                   <SelectValue placeholder="选择渠道类型" />
                                 </SelectTrigger>
                               </FormControl>
@@ -1076,12 +1081,12 @@ export default function ChannelForm() {
                         name="name"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="font-medium text-blue-700 dark:text-blue-300">
+                            <FormLabel className="font-medium text-gray-700 dark:text-gray-300">
                               渠道名称
                             </FormLabel>
                             <FormControl>
                               <Input
-                                className="border-blue-300 focus:border-blue-500 focus:ring-blue-200"
+                                className="border-gray-300 focus:border-gray-500 focus:ring-gray-200"
                                 placeholder="请输入渠道名称"
                                 {...field}
                               />
@@ -1096,7 +1101,7 @@ export default function ChannelForm() {
                         name="groups"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="font-medium text-blue-700 dark:text-blue-300">
+                            <FormLabel className="font-medium text-gray-700 dark:text-gray-300">
                               分组
                             </FormLabel>
                             <FormControl>
@@ -1104,7 +1109,7 @@ export default function ChannelForm() {
                                 {groupOptions.map((item) => (
                                   <div
                                     key={item}
-                                    className="flex items-center space-x-2 rounded-md border border-gray-200 bg-white p-2 transition-colors hover:bg-blue-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-blue-900"
+                                    className="flex items-center space-x-2 rounded-md border border-gray-200 bg-white p-2 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700"
                                   >
                                     <Checkbox
                                       id={item}
@@ -1121,7 +1126,7 @@ export default function ChannelForm() {
                                         );
                                         field.onChange(newValues);
                                       }}
-                                      className="data-[state=checked]:border-blue-500 data-[state=checked]:bg-blue-500"
+                                      className="data-[state=checked]:border-gray-500 data-[state=checked]:bg-gray-500"
                                     />
                                     <label
                                       htmlFor={item}
@@ -1213,8 +1218,8 @@ export default function ChannelForm() {
 
                 {/* 右侧配置区域 */}
                 <div className="space-y-6">
-                  <div className="rounded-lg border border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50 p-6 dark:border-purple-800 dark:from-purple-950 dark:to-pink-950">
-                    <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-purple-800 dark:text-purple-200">
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-5 dark:border-gray-700 dark:bg-gray-900">
+                    <h3 className="mb-4 flex items-center gap-2 text-lg font-medium text-gray-800 dark:text-gray-200">
                       <span>🔑</span> 性能配置
                     </h3>
                     <div className="space-y-4">
@@ -1224,7 +1229,7 @@ export default function ChannelForm() {
                           name="channel_ratio"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="font-medium text-purple-700 dark:text-purple-300">
+                              <FormLabel className="font-medium text-gray-700 dark:text-gray-300">
                                 渠道倍率
                               </FormLabel>
                               <FormControl>
@@ -1232,7 +1237,7 @@ export default function ChannelForm() {
                                   type="number"
                                   step="0.1"
                                   min="0.1"
-                                  className="border-purple-300 focus:border-purple-500 focus:ring-purple-200"
+                                  className="border-gray-300 focus:border-gray-500 focus:ring-gray-200"
                                   placeholder="1.0"
                                   {...field}
                                   value={field.value || ''}
@@ -1256,14 +1261,14 @@ export default function ChannelForm() {
                           name="priority"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="font-medium text-purple-700 dark:text-purple-300">
+                              <FormLabel className="font-medium text-gray-700 dark:text-gray-300">
                                 优先级
                               </FormLabel>
                               <FormControl>
                                 <Input
                                   type="number"
                                   min="0"
-                                  className="border-purple-300 focus:border-purple-500 focus:ring-purple-200"
+                                  className="border-gray-300 focus:border-gray-500 focus:ring-gray-200"
                                   placeholder="0"
                                   {...field}
                                   value={field.value || ''}
@@ -1285,14 +1290,14 @@ export default function ChannelForm() {
                           name="weight"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="font-medium text-purple-700 dark:text-purple-300">
+                              <FormLabel className="font-medium text-gray-700 dark:text-gray-300">
                                 权重
                               </FormLabel>
                               <FormControl>
                                 <Input
                                   type="number"
                                   min="0"
-                                  className="border-purple-300 focus:border-purple-500 focus:ring-purple-200"
+                                  className="border-gray-300 focus:border-gray-500 focus:ring-gray-200"
                                   placeholder="0"
                                   {...field}
                                   value={field.value || ''}
@@ -1314,9 +1319,9 @@ export default function ChannelForm() {
                         control={form.control}
                         name="auto_disabled"
                         render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between rounded-lg border border-purple-200 bg-white p-4 dark:border-purple-800 dark:bg-gray-900">
+                          <FormItem className="flex flex-row items-center justify-between rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
                             <div className="space-y-0.5">
-                              <FormLabel className="text-base font-medium text-purple-700 dark:text-purple-300">
+                              <FormLabel className="text-base font-medium text-gray-700 dark:text-gray-300">
                                 自动禁用
                               </FormLabel>
                               <div className="text-[0.8rem] text-muted-foreground">
@@ -1327,7 +1332,7 @@ export default function ChannelForm() {
                               <Checkbox
                                 checked={field.value}
                                 onCheckedChange={field.onChange}
-                                className="data-[state=checked]:border-purple-500 data-[state=checked]:bg-purple-500"
+                                className="data-[state=checked]:border-gray-500 data-[state=checked]:bg-gray-500"
                               />
                             </FormControl>
                           </FormItem>
@@ -1342,8 +1347,8 @@ export default function ChannelForm() {
                     form.watch('type') === '17' ||
                     form.watch('type') === '34' ||
                     form.watch('type') === '40') && (
-                    <div className="rounded-lg border border-orange-200 bg-gradient-to-r from-orange-50 to-red-50 p-6 dark:border-orange-800 dark:from-orange-950 dark:to-red-950">
-                      <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-orange-800 dark:text-orange-200">
+                    <div className="rounded-lg border border-gray-200 bg-gray-50 p-5 dark:border-gray-700 dark:bg-gray-900">
+                      <h3 className="mb-4 flex items-center gap-2 text-lg font-medium text-gray-800 dark:text-gray-200">
                         <span>🎯</span> 特殊配置
                       </h3>
                       <div className="space-y-4">
@@ -1353,12 +1358,12 @@ export default function ChannelForm() {
                             name="other"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel className="font-medium text-orange-700 dark:text-orange-300">
+                                <FormLabel className="font-medium text-gray-700 dark:text-gray-300">
                                   星火模型版本
                                 </FormLabel>
                                 <FormControl>
                                   <Textarea
-                                    className="h-auto max-h-24 min-h-16 resize-none overflow-auto border-orange-300 focus:border-orange-500"
+                                    className="h-auto max-h-24 min-h-16 resize-none overflow-auto border-gray-300 focus:border-gray-500"
                                     placeholder="请输入星火大模型版本，注意是接口地址中的版本号，例如：v2.1"
                                     {...field}
                                   />
@@ -1375,12 +1380,12 @@ export default function ChannelForm() {
                             name="other"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel className="font-medium text-orange-700 dark:text-orange-300">
+                                <FormLabel className="font-medium text-gray-700 dark:text-gray-300">
                                   知识库 ID
                                 </FormLabel>
                                 <FormControl>
                                   <Input
-                                    className="border-orange-300 focus:border-orange-500 focus:ring-orange-200"
+                                    className="border-gray-300 focus:border-gray-500 focus:ring-gray-200"
                                     placeholder="请输入知识库 ID，例如：123456"
                                     {...field}
                                   />
@@ -1397,12 +1402,12 @@ export default function ChannelForm() {
                             name="other"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel className="font-medium text-orange-700 dark:text-orange-300">
+                                <FormLabel className="font-medium text-gray-700 dark:text-gray-300">
                                   插件参数
                                 </FormLabel>
                                 <FormControl>
                                   <Input
-                                    className="border-orange-300 focus:border-orange-500 focus:ring-orange-200"
+                                    className="border-gray-300 focus:border-gray-500 focus:ring-gray-200"
                                     placeholder="请输入插件参数，即 X-DashScope-Plugin 请求头的取值"
                                     {...field}
                                   />
@@ -1467,8 +1472,8 @@ export default function ChannelForm() {
 
               {/* 模型和映射配置区域 */}
               {form.watch('type') !== '43' && (
-                <div className="rounded-lg border border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 p-6 dark:border-green-800 dark:from-green-950 dark:to-emerald-950">
-                  <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-green-800 dark:text-green-200">
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-5 dark:border-gray-700 dark:bg-gray-900">
+                  <h3 className="mb-4 flex items-center gap-2 text-lg font-medium text-gray-800 dark:text-gray-200">
                     <span>🤖</span> 模型配置
                   </h3>
                   <div className="space-y-6">
@@ -1477,16 +1482,16 @@ export default function ChannelForm() {
                       name="models"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="font-medium text-green-700 dark:text-green-300">
+                          <FormLabel className="font-medium text-gray-700 dark:text-gray-300">
                             支持的模型
                           </FormLabel>
                           <FormControl>
                             <div className="space-y-4">
-                              <div className="grid max-h-60 grid-cols-2 gap-3 overflow-y-auto rounded-lg border border-green-200 bg-white p-4 dark:border-green-700 dark:bg-gray-900 md:grid-cols-3 lg:grid-cols-4">
+                              <div className="grid max-h-60 grid-cols-2 gap-3 overflow-y-auto rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 md:grid-cols-3 lg:grid-cols-4">
                                 {modelOptions.map((item) => (
                                   <div
                                     key={item.id}
-                                    className="flex items-center space-x-2 rounded p-2 transition-colors hover:bg-green-50 dark:hover:bg-green-900"
+                                    className="flex items-center space-x-2 rounded p-2 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700"
                                   >
                                     <Checkbox
                                       id={item.id}
@@ -1498,7 +1503,7 @@ export default function ChannelForm() {
                                           : values.filter((v) => v !== item.id);
                                         field.onChange(newValues);
                                       }}
-                                      className="data-[state=checked]:border-green-500 data-[state=checked]:bg-green-500"
+                                      className="data-[state=checked]:border-gray-500 data-[state=checked]:bg-gray-500"
                                     />
                                     <label
                                       htmlFor={item.id}
@@ -1515,7 +1520,7 @@ export default function ChannelForm() {
                                   type="button"
                                   size="sm"
                                   variant="outline"
-                                  className="border-green-300 text-green-700 hover:bg-green-50"
+                                  className="border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
                                   onClick={() => {
                                     const currentType = form.watch('type');
                                     const allRelatedModelIds =
@@ -1535,7 +1540,7 @@ export default function ChannelForm() {
                                   type="button"
                                   size="sm"
                                   variant="outline"
-                                  className="border-green-300 text-green-700 hover:bg-green-50"
+                                  className="border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
                                   onClick={() => {
                                     const allModelIds = modelOptions.map(
                                       (m) => m.id
@@ -1549,13 +1554,13 @@ export default function ChannelForm() {
                                   type="button"
                                   size="sm"
                                   variant="outline"
-                                  className="border-green-300 text-green-700 hover:bg-green-50"
+                                  className="border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
                                   onClick={() => field.onChange([])}
                                 >
                                   清空
                                 </Button>
                               </div>
-                              <div className="text-sm text-green-600 dark:text-green-400">
+                              <div className="text-sm text-gray-600 dark:text-gray-400">
                                 已选择 {field.value?.length || 0} 个模型
                               </div>
                             </div>
@@ -1570,12 +1575,12 @@ export default function ChannelForm() {
                       name="model_mapping"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="font-medium text-green-700 dark:text-green-300">
+                          <FormLabel className="font-medium text-gray-700 dark:text-gray-300">
                             模型重定向
                           </FormLabel>
                           <FormControl>
                             <Textarea
-                              className="h-auto max-h-64 min-h-32 resize-none overflow-auto border-green-300 focus:border-green-500"
+                              className="h-auto max-h-64 min-h-32 resize-none overflow-auto border-gray-300 focus:border-gray-500"
                               placeholder={`可选配置，用于修改请求体中的模型名称，格式为 JSON 字符串\n示例：\n${JSON.stringify(
                                 MODEL_MAPPING_EXAMPLE,
                                 null,
@@ -1584,7 +1589,7 @@ export default function ChannelForm() {
                               {...field}
                             />
                           </FormControl>
-                          <div className="text-sm text-green-600 dark:text-green-400">
+                          <div className="text-sm text-gray-600 dark:text-gray-400">
                             💡 该配置可以将请求中的模型名称替换为实际的模型名称
                           </div>
                           <FormMessage />
@@ -1597,17 +1602,17 @@ export default function ChannelForm() {
                       name="customModelName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="font-medium text-green-700 dark:text-green-300">
+                          <FormLabel className="font-medium text-gray-700 dark:text-gray-300">
                             自定义模型名称
                           </FormLabel>
                           <FormControl>
                             <Input
-                              className="border-green-300 focus:border-green-500 focus:ring-green-200"
+                              className="border-gray-300 focus:border-gray-500 focus:ring-gray-200"
                               placeholder="请输入自定义模型名称，多个模型用逗号分隔，例如：gpt-4o,claude-3.5-sonnet"
                               {...field}
                             />
                           </FormControl>
-                          <div className="text-sm text-green-600 dark:text-green-400">
+                          <div className="text-sm text-gray-600 dark:text-gray-400">
                             输入的自定义模型将自动添加到上面选择的模型列表中
                           </div>
                           <FormMessage />
@@ -2260,13 +2265,13 @@ ${type2secretPrompt(form.watch('type'))}`}
               />
 
               {/* 提交按钮区域 */}
-              <div className="rounded-lg border border-gray-200 bg-gradient-to-r from-gray-50 to-slate-50 p-6 dark:border-gray-800 dark:from-gray-950 dark:to-slate-950">
+              <div className="rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
                 <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
                   <div className="flex gap-3">
                     <Button
                       type="button"
                       variant="outline"
-                      className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                      className="border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
                       onClick={() => window.history.back()}
                     >
                       <span className="mr-2">⬅️</span>
@@ -2276,8 +2281,8 @@ ${type2secretPrompt(form.watch('type'))}`}
 
                   <div className="flex items-center gap-4">
                     {isSubmitting && (
-                      <div className="flex items-center gap-2 text-sm text-blue-600">
-                        <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-blue-600"></div>
+                      <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                        <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-gray-600 dark:border-gray-400"></div>
                         <span>
                           {form.watch('batch_create') && batchProgress.total > 0
                             ? `批量创建中... (${batchProgress.current}/${batchProgress.total})`
@@ -2289,7 +2294,7 @@ ${type2secretPrompt(form.watch('type'))}`}
                     <Button
                       type="submit"
                       disabled={isSubmitting}
-                      className="bg-gradient-to-r from-blue-500 to-purple-600 px-8 py-2 font-semibold text-white hover:from-blue-600 hover:to-purple-700"
+                      className="bg-gray-900 px-8 py-2 font-medium text-white hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200"
                     >
                       {!isSubmitting && (
                         <span className="mr-2">
@@ -2316,18 +2321,18 @@ ${type2secretPrompt(form.watch('type'))}`}
                 {/* 表单状态提示 */}
                 <div className="mt-4 border-t border-gray-200 pt-4 dark:border-gray-700">
                   <div className="grid grid-cols-1 gap-4 text-sm md:grid-cols-3">
-                    <div className="flex items-center gap-2 text-blue-600">
+                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                       <span>ℹ️</span>
                       <span>
                         {channelId !== 'create' ? '编辑模式' : '创建模式'}
                         {form.watch('batch_create') && ' - 批量创建'}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 text-green-600">
+                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                       <span>✓</span>
                       <span>自动保存配置</span>
                     </div>
-                    <div className="flex items-center gap-2 text-purple-600">
+                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                       <span>🔒</span>
                       <span>安全验证通过</span>
                     </div>

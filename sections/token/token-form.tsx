@@ -28,7 +28,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { CalendarIcon } from '@radix-ui/react-icons';
 import { addDays, format, addMonths, addHours, addMinutes } from 'date-fns';
-import { renderQuotaWithPrompt,renderQuotaNum } from '@/utils/render';
+import { renderQuotaWithPrompt, renderQuotaNum } from '@/utils/render';
 import { Token } from '@/lib/types';
 import { toast } from 'sonner';
 
@@ -53,6 +53,7 @@ export default function TokenForm() {
   const [isLoading, setIsLoading] = useState(true);
   const [isExpired, setIsExpired] = useState<Boolean | null>(null);
   const [tokenData, setTokenData] = useState<Object | null>(null);
+  const [displayValue, setDisplayValue] = useState<string>(''); // 用于管理显示的美元金额
 
   useEffect(() => {
     setIsLoading(true);
@@ -61,6 +62,9 @@ export default function TokenForm() {
     const getTokenDetail = async () => {
       if (tokenId === 'create') {
         form.setValue('remain_quota', 500000);
+        setDisplayValue(renderQuotaNum(500000).toString());
+        setIsLoading(false);
+        return;
       }
       if (!tokenId || tokenId === 'create') return;
 
@@ -88,6 +92,9 @@ export default function TokenForm() {
         /** token_remind_threshold */
         // token_remind_threshold: data.token_remind_threshold
       });
+
+      // 初始化显示值
+      setDisplayValue(renderQuotaNum(data.remain_quota || 0).toString());
     };
 
     getTokenDetail();
@@ -106,7 +113,12 @@ export default function TokenForm() {
 
   useEffect(() => {
     // Force re-render when unlimited_quota changes
-    form.setValue('remain_quota', form.getValues('remain_quota'));
+    const currentQuota = form.getValues('remain_quota');
+    form.setValue('remain_quota', currentQuota);
+    // 同步显示值
+    if (currentQuota !== undefined) {
+      setDisplayValue(renderQuotaNum(currentQuota).toString());
+    }
   }, [form.getValues('unlimited_quota')]);
 
   if (isLoading && tokenId !== 'create') {
@@ -312,11 +324,15 @@ export default function TokenForm() {
                     </FormLabel>
                     <FormControl>
                       <Input
-                        {...field}
                         type="number"
                         step="0.01"
-                        value={renderQuotaNum(field.value || 0)}
+                        value={displayValue}
                         onChange={(e) => {
+                          // 只更新显示值，不立即转换
+                          setDisplayValue(e.target.value);
+                        }}
+                        onBlur={(e) => {
+                          // 在失去焦点时才进行最终转换
                           const dollarAmount = parseFloat(e.target.value) || 0;
                           const quotaPerUnit = parseFloat(
                             localStorage.getItem('quota_per_unit') || '500000'
@@ -325,7 +341,10 @@ export default function TokenForm() {
                             dollarAmount * quotaPerUnit
                           );
                           field.onChange(quotaAmount);
+                          // 同步显示值，确保格式一致
+                          setDisplayValue(dollarAmount.toString());
                         }}
+                        disabled={form.getValues('unlimited_quota')}
                       />
                     </FormControl>
                     <FormDescription>
@@ -343,6 +362,11 @@ export default function TokenForm() {
                   onClick={() => {
                     const currentValue = form.getValues('unlimited_quota');
                     form.setValue('unlimited_quota', !currentValue); // Toggle the value
+                    // 如果切换到有限额度，确保显示值同步
+                    if (currentValue) {
+                      const currentQuota = form.getValues('remain_quota') || 0;
+                      setDisplayValue(renderQuotaNum(currentQuota).toString());
+                    }
                     // Force re-render to reflect the change
                     form.trigger('unlimited_quota');
                   }}
