@@ -113,7 +113,11 @@ export const preloadData = async <T>(
     const data = await fetcher();
     cache.set(key, data, ttl);
   } catch (error) {
-    console.warn('Preload failed:', error);
+    // 预加载失败，静默忽略
+    if (process.env.NODE_ENV === 'development') {
+      // eslint-disable-next-line no-console
+      console.warn('Preload failed:', error);
+    }
   }
 };
 

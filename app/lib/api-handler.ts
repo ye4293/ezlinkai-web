@@ -100,6 +100,7 @@ export class ApiHandler {
       });
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
+        // eslint-disable-next-line no-console
         console.error('API Handler Error:', error);
       }
       return new Response(

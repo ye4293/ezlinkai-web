@@ -25,6 +25,7 @@ request.interceptors.request.use(
 
     // 开发环境下的调试信息
     if (process.env.NODE_ENV === 'development') {
+      // eslint-disable-next-line no-console
       console.log('🚀 请求拦截器 - 配置检查:', {
         baseURL: config.baseURL,
         url: config.url,

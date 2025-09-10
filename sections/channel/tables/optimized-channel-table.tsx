@@ -1,13 +1,14 @@
 'use client';
 
-import React, { memo, useMemo, useCallback } from 'react';
-import { ChannelTable } from './channel-table';
-import { columns } from './columns';
+import React, { memo, useMemo, useCallback, useState } from 'react';
+import { DataTable } from '@/components/ui/table/data-table';
+import { columns, ChannelTypesProvider } from './columns';
 import { Channel } from '@/lib/types';
 import { useChannelData } from '../hooks/use-channel-data';
 import { useTableFilters } from './use-table-filters';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import MultiKeyManagementModal from '../multi-key-modal';
 
 interface OptimizedChannelTableProps {
   initialData?: Channel[];
@@ -21,9 +22,16 @@ const OptimizedChannelTable = memo(
       statusFilter,
       page,
       pageSize,
+      setPage,
+      setPageSize,
       resetFilters,
       isAnyFilterActive
     } = useTableFilters();
+
+    // 多密钥管理Modal状态
+    const [isMultiKeyModalOpen, setIsMultiKeyModalOpen] = useState(false);
+    const [selectedChannelForModal, setSelectedChannelForModal] =
+      useState<Channel | null>(null);
 
     const {
       data: channels,
@@ -55,6 +63,17 @@ const OptimizedChannelTable = memo(
 
     // 计算页面数量
     const pageCount = Math.ceil(displayTotal / pageSize);
+
+    // 管理密钥的回调函数
+    const handleManageKeys = useCallback((channel: Channel) => {
+      setSelectedChannelForModal(channel);
+      setIsMultiKeyModalOpen(true);
+    }, []);
+
+    // 生成列配置
+    const tableColumns = useMemo(() => {
+      return columns({ onManageKeys: handleManageKeys });
+    }, [handleManageKeys]);
 
     // 错误处理
     if (error) {
@@ -134,13 +153,24 @@ const OptimizedChannelTable = memo(
         )}
 
         {/* 数据表格 */}
-        <ChannelTable
-          columns={columns}
-          data={displayData}
-          searchKey="name"
-          pageNo={page}
-          totalUsers={displayTotal}
-          pageCount={pageCount}
+        <ChannelTypesProvider>
+          <DataTable
+            columns={tableColumns}
+            data={displayData}
+            totalItems={displayTotal}
+            currentPage={page}
+            pageSize={pageSize}
+            setCurrentPage={setPage}
+            setPageSize={setPageSize}
+            pageSizeOptions={[10, 20, 50, 100]}
+          />
+        </ChannelTypesProvider>
+
+        {/* 多密钥管理Modal */}
+        <MultiKeyManagementModal
+          open={isMultiKeyModalOpen}
+          onOpenChange={setIsMultiKeyModalOpen}
+          channel={selectedChannelForModal}
         />
       </div>
     );

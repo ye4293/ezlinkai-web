@@ -6,11 +6,9 @@ import request from '@/app/lib/clientFetch';
 import { fetchWithCache, generateCacheKey } from '@/lib/cache-utils';
 
 interface ChannelListResponse {
-  data: {
-    list: Channel[];
-    total: number;
-    currentPage: number;
-  };
+  list: Channel[];
+  total: number;
+  currentPage: number;
 }
 
 interface UseChannelDataParams {
@@ -60,13 +58,19 @@ export const useChannelData = ({
 
       const response = await fetchWithCache(
         cacheKey,
-        () => request.get<ChannelListResponse>(`/api/channel/search?${params}`),
+        () =>
+          request.get<{ data: ChannelListResponse }>(
+            `/api/channel/search?${params}`
+          ),
         2 * 60 * 1000 // 2分钟缓存
       );
 
-      if (response?.data) {
-        setData(response.data.list || []);
-        setTotal(response.data.total || 0);
+      // response 是从 clientFetch 返回的，结构是 { data: { list: [], total: 0 } }
+      const data = response as unknown as { data: ChannelListResponse };
+
+      if (data?.data?.list) {
+        setData(data.data.list);
+        setTotal(data.data.total || 0);
       } else {
         setData([]);
         setTotal(0);

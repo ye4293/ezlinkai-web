@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // eslint-disable-next-line no-console
     console.log(`[test-timeout] 收到请求，将等待 ${delay}ms`);
 
     // 模拟长时间运行的进程
@@ -46,6 +47,7 @@ export async function POST(request: NextRequest) {
     const endTime = Date.now();
     const actualDuration = endTime - startTime;
 
+    // eslint-disable-next-line no-console
     console.log(
       `[test-timeout] 等待了 ${delay}ms，实际用时 ${actualDuration}ms，现在发送响应`
     );
@@ -68,7 +70,9 @@ export async function POST(request: NextRequest) {
       errorMessage = error.message;
     }
 
+    // eslint-disable-next-line no-console
     console.error('[test-timeout] 发生错误:', error);
+    // eslint-disable-next-line no-console
     console.error(`[test-timeout] 错误发生时间: ${actualDuration}ms`);
 
     return NextResponse.json(
