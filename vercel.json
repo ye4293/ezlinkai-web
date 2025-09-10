@@ -1,13 +1,10 @@
 {
   "functions": {
     "app/api/**/*.ts": {
-      "maxDuration": 60
-    },
-    "app/**/*.tsx": {
-      "maxDuration": 30
+      "maxDuration": 300
     }
   },
-  "regions": ["iad1", "sfo1"],
+  "regions": ["iad1", "sfo1", "hnd1"],
   "rewrites": [
     {
       "source": "/api/:path*",

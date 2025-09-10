@@ -6,10 +6,10 @@ import axios, {
 } from 'axios';
 import { getSession } from 'next-auth/react';
 
-// 创建 axios 实例 - 针对高并发长时间请求优化
+// 创建 axios 实例 - Vercel Pro 会员 5 分钟超时
 const request: AxiosInstance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_BASE_URL, // 基础URL
-  timeout: 330000, // 5.5分钟超时，支持长时间AI推理请求 (10-300s)
+  timeout: 295000, // Pro 会员：5 分钟超时，预留 5 秒安全余量
   headers: {
     'Content-Type': 'application/json'
   }

@@ -1,18 +1,16 @@
-// import { cookies } from 'next/headers';
 import { auth } from '@/auth';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import PageContainer from '@/components/layout/page-container';
-import ChannelTable from '../tables';
+import OptimizedChannelTable from '../tables/optimized-channel-table';
 import { buttonVariants } from '@/components/ui/button';
 import { Heading } from '@/components/ui/heading';
 import { Separator } from '@/components/ui/separator';
-// import { Channel } from '@/constants/data';
 import { Channel } from '@/lib/types';
-// import { fakeUsers } from '@/constants/mock-api';
 import { searchParamsCache } from '@/lib/searchparams';
 import { cn } from '@/lib/utils';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
+import { cache } from 'react';
 
 const breadcrumbItems = [
   { title: 'Dashboard', link: '/dashboard' },
@@ -21,19 +19,46 @@ const breadcrumbItems = [
 
 type TChannelListingPage = {};
 
+// 缓存数据获取函数
+const getChannelData = cache(
+  async (params: URLSearchParams, accessToken: string) => {
+    try {
+      const baseUrl =
+        process.env.NEXT_PUBLIC_API_BASE_URL + `/api/channel/search?${params}`;
+
+      const res = await fetch(baseUrl, {
+        credentials: 'include',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Cache-Control': 'public, max-age=60, stale-while-revalidate=300' // 添加缓存头
+        },
+        next: {
+          revalidate: 60, // ISR: 60秒重新验证
+          tags: ['channel-list'] // 标记缓存，便于失效
+        }
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+
+      const { data } = await res.json();
+      return {
+        total: (data && data.total) || 0,
+        channels: (data && data.list) || ([] as Channel[])
+      };
+    } catch (error) {
+      console.error('Failed to fetch channel data:', error);
+      return { total: 0, channels: [] as Channel[] };
+    }
+  }
+);
+
 export default async function ChannelListingPage({}: TChannelListingPage) {
-  // Showcasing the use of search params cache in nested RSCs
   const page = searchParamsCache.get('page');
   const search = searchParamsCache.get('q');
   const status = searchParamsCache.get('status');
   const pageLimit = searchParamsCache.get('limit');
-
-  // const filters = {
-  //   page,
-  //   limit: pageLimit,
-  //   ...(search && { search }),
-  //   ...(status && { genders: status })
-  // };
 
   const params = new URLSearchParams({
     page: String(page),
@@ -41,31 +66,23 @@ export default async function ChannelListingPage({}: TChannelListingPage) {
     ...(search && { keyword: search }),
     ...(status && { status: status })
   });
+
   const session = await auth();
-  // const _cookie = 'session=' + cookies().get('session')?.value + '==';
-  const baseUrl =
-    process.env.NEXT_PUBLIC_API_BASE_URL + `/api/channel/search?${params}`;
-  // console.log('baseUrl', baseUrl)
-  const res = await fetch(
-    // process.env.NEXT_PUBLIC_API_BASE_URL + `/api/channel/search?page=${params.page}&pagesize=${params.pagesize}`,
-    baseUrl,
-    {
-      credentials: 'include',
-      headers: {
-        // Cookie: _cookie
-        Authorization: `Bearer ${session?.user?.accessToken}`
-      }
-    }
+
+  if (!session?.user?.accessToken) {
+    return (
+      <PageContainer>
+        <div className="py-8 text-center">
+          <p className="text-red-500">认证失败，请重新登录</p>
+        </div>
+      </PageContainer>
+    );
+  }
+
+  const { total: totalData, channels } = await getChannelData(
+    params,
+    session.user.accessToken
   );
-  const { data } = await res.json();
-  // console.log('----data----', data.currentPage)
-  // console.log('----params----', params)
-  const totalData = (data && data.total) || 0;
-  const channel: Channel[] = (data && data.list) || [];
-  // mock api call
-  // const data = await fakeUsers.getUsers(filters);
-  // const totalUsers = data.total_users;
-  // const channel: Channel[] = data.users;
 
   return (
     <PageContainer scrollable>
@@ -86,7 +103,10 @@ export default async function ChannelListingPage({}: TChannelListingPage) {
           </Link>
         </div>
         <Separator />
-        <ChannelTable data={channel} totalData={totalData} />
+        <OptimizedChannelTable
+          initialData={channels}
+          initialTotal={totalData}
+        />
       </div>
     </PageContainer>
   );

@@ -233,12 +233,6 @@ const MultiKeyManagementModal: React.FC<MultiKeyManagementModalProps> = ({
 
     setLoading(true);
     try {
-      console.log(
-        `🔄 开始批量${status === 1 ? '启用' : '禁用'}操作，正在获取渠道"${
-          channel.name
-        }"的所有密钥...`
-      );
-
       // 首先获取所有密钥的索引（分多次请求以确保获取完整）
       let allKeys: KeyDetail[] = [];
       let currentPage = 1;
@@ -265,9 +259,6 @@ const MultiKeyManagementModal: React.FC<MultiKeyManagementModalProps> = ({
         const totalCount = (allKeysRes as any).data.total_count || 0;
 
         allKeys.push(...pageKeys);
-        console.log(
-          `📖 获取数据页${currentPage}：本页${pageKeys.length}个密钥，累计${allKeys.length}个，渠道总密钥数${totalCount}`
-        );
 
         // 检查是否还有更多数据
         if (allKeys.length >= totalCount || pageKeys.length < pageSize) {
@@ -282,19 +273,8 @@ const MultiKeyManagementModal: React.FC<MultiKeyManagementModalProps> = ({
         return;
       }
 
-      console.log(
-        `✅ 完成数据获取：总共收集到${allKeys.length}个密钥 (包含所有分页数据，不仅是当前显示页面)`
-      );
-
       // 提取所有密钥的索引
       const keyIndices = allKeys.map((key: KeyDetail) => key.index);
-      console.log(
-        `🔑 密钥索引范围: ${keyIndices[0]}-${
-          keyIndices[keyIndices.length - 1]
-        } (预览: ${keyIndices.slice(0, 5).join(', ')}${
-          keyIndices.length > 5 ? '...' : ''
-        })`
-      );
 
       // 执行批量操作
       const res = await request.post('/api/channel/keys/batch-toggle', {
@@ -304,17 +284,15 @@ const MultiKeyManagementModal: React.FC<MultiKeyManagementModalProps> = ({
       });
 
       if ((res as any).success) {
-        const message = `✅ 批量操作成功！已${
-          status === 1 ? '启用' : '禁用'
-        }整个渠道的所有${keyIndices.length}个密钥`;
+        const message = `成功${status === 1 ? '启用' : '禁用'}所有密钥 (共 ${
+          keyIndices.length
+        } 个)`;
         alert(message);
-        console.log(message);
         fetchKeyData();
       } else {
         throw new Error((res as any).message);
       }
     } catch (err) {
-      console.error('批量操作失败:', err);
       alert(`操作失败: ${err instanceof Error ? err.message : '未知错误'}`);
     } finally {
       setLoading(false);

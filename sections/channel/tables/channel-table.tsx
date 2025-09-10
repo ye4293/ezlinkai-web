@@ -8,7 +8,7 @@ import {
   getPaginationRowModel,
   useReactTable
 } from '@tanstack/react-table';
-import React from 'react';
+import React, { memo, useMemo, useCallback } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,7 +48,7 @@ interface DataTableProps<TData, TValue> {
   };
 }
 
-export function ChannelTable<TData, TValue>({
+const ChannelTable = memo(function ChannelTable<TData, TValue>({
   columns,
   data,
   pageNo,
@@ -72,8 +72,8 @@ export function ChannelTable<TData, TValue>({
   /* this can be used to get the selectedrows 
   console.log("value", table.getFilteredSelectedRowModel()); */
 
-  // Create query string
-  const createQueryString = React.useCallback(
+  // Create query string - 优化性能，减少不必要的重新计算
+  const createQueryString = useCallback(
     (params: Record<string, string | number | null>) => {
       const newSearchParams = new URLSearchParams(searchParams?.toString());
 
@@ -97,65 +97,77 @@ export function ChannelTable<TData, TValue>({
       pageSize: fallbackPerPage
     });
 
+  // 优化分页更新，减少不必要的路由变化
   React.useEffect(() => {
-    router.push(
-      `${pathname}?${createQueryString({
-        page: pageIndex + 1,
-        limit: pageSize
-      })}`,
-      {
-        scroll: false
-      }
-    );
+    const timeoutId = setTimeout(() => {
+      router.push(
+        `${pathname}?${createQueryString({
+          page: pageIndex + 1,
+          limit: pageSize
+        })}`,
+        {
+          scroll: false
+        }
+      );
+    }, 100); // 添加小延迟避免频繁更新
 
+    return () => clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pageIndex, pageSize]);
 
-  const table = useReactTable({
-    data,
-    columns,
-    pageCount: pageCount ?? -1,
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    state: {
-      pagination: { pageIndex, pageSize }
-    },
-    onPaginationChange: setPagination,
-    getPaginationRowModel: getPaginationRowModel(),
-    manualPagination: true,
-    manualFiltering: true
-  });
+  // 使用 useMemo 优化表格配置
+  const table = useMemo(
+    () =>
+      useReactTable({
+        data,
+        columns,
+        pageCount: pageCount ?? -1,
+        getCoreRowModel: getCoreRowModel(),
+        getFilteredRowModel: getFilteredRowModel(),
+        state: {
+          pagination: { pageIndex, pageSize }
+        },
+        onPaginationChange: setPagination,
+        getPaginationRowModel: getPaginationRowModel(),
+        manualPagination: true,
+        manualFiltering: true
+      }),
+    [data, columns, pageCount, pageIndex, pageSize, setPagination]
+  );
 
   const searchValue = table.getColumn(searchKey)?.getFilterValue() as string;
 
+  // 优化搜索防抖，减少API调用
   React.useEffect(() => {
-    if (searchValue?.length > 0) {
-      router.push(
-        `${pathname}?${createQueryString({
-          page: null,
-          limit: null,
-          search: searchValue
-        })}`,
-        {
-          scroll: false
-        }
-      );
-    }
-    if (searchValue?.length === 0 || searchValue === undefined) {
-      router.push(
-        `${pathname}?${createQueryString({
-          page: null,
-          limit: null,
-          search: null
-        })}`,
-        {
-          scroll: false
-        }
-      );
-    }
+    const timeoutId = setTimeout(() => {
+      if (searchValue?.length > 0) {
+        router.push(
+          `${pathname}?${createQueryString({
+            page: null,
+            limit: null,
+            q: searchValue // 修正参数名
+          })}`,
+          {
+            scroll: false
+          }
+        );
+      } else if (searchValue?.length === 0 || searchValue === undefined) {
+        router.push(
+          `${pathname}?${createQueryString({
+            page: null,
+            limit: null,
+            q: null
+          })}`,
+          {
+            scroll: false
+          }
+        );
+      }
 
-    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+      setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+    }, 300); // 增加防抖时间
 
+    return () => clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchValue]);
 
@@ -334,4 +346,6 @@ export function ChannelTable<TData, TValue>({
       </div>
     </>
   );
-}
+});
+
+export { ChannelTable };
