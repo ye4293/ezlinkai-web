@@ -1,0 +1,17 @@
+{
+  "functions": {
+    "app/api/**/*.ts": {
+      "maxDuration": 60
+    },
+    "app/**/*.tsx": {
+      "maxDuration": 30
+    }
+  },
+  "regions": ["iad1", "sfo1"],
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "/api/:path*"
+    }
+  ]
+}

@@ -7,9 +7,9 @@ import axios, {
 import { auth } from '@/auth';
 import { getSession } from 'next-auth/react';
 
-// 创建 axios 实例 - 使用动态baseURL
+// 创建 axios 实例 - 针对高并发长时间请求优化
 const request: AxiosInstance = axios.create({
-  timeout: 60000, // 请求超时时间
+  timeout: 330000, // 5.5分钟超时，支持长时间AI推理请求 (10-300s)
   headers: {
     'Content-Type': 'application/json'
   }
