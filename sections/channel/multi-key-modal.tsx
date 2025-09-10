@@ -124,36 +124,44 @@ const MultiKeyManagementModal: React.FC<MultiKeyManagementModalProps> = ({
   const [keyStats, setKeyStats] = useState<KeyStats | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 20 });
   const [totalKeys, setTotalKeys] = useState(0);
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [batchLoading, setBatchLoading] = useState(false);
 
-  const fetchKeyData = useCallback(async () => {
+  // 加载统计信息（只在初始化时调用）
+  const fetchKeyStats = useCallback(async () => {
     if (!channel) return;
 
-    setIsLoading(true);
-    setError(null);
-
     try {
-      // 优化：先快速加载统计信息
       const statsRes = await request.get(
         `/api/channel/${channel.id}/keys/stats`
       );
 
       if ((statsRes as any).success) {
         setKeyStats((statsRes as any).data);
-        setIsLoading(false); // 统计信息加载完成，立即显示
       } else {
         throw new Error((statsRes as any).message || '获取统计信息失败');
       }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '获取统计信息失败');
+    }
+  }, [channel]);
 
-      // 然后异步加载详情数据
+  // 加载详情数据（用于分页）
+  const fetchKeyDetails = useCallback(async () => {
+    if (!channel) return;
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
       const detailsRes = await request.get(
         `/api/channel/${channel.id}/keys/details`,
         {
           params: {
             page: pagination.pageIndex + 1,
-            page_size: Math.min(pagination.pageSize, 20), // 限制每页最大数量
+            page_size: Math.min(pagination.pageSize, 50), // 限制每页最大数量
             status: statusFilter === 'all' ? undefined : statusFilter
           }
         }
@@ -167,15 +175,29 @@ const MultiKeyManagementModal: React.FC<MultiKeyManagementModalProps> = ({
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : '发生未知错误');
+    } finally {
       setIsLoading(false);
     }
   }, [channel, pagination, statusFilter]);
+
+  // 完整刷新（同时刷新统计和详情）
+  const fetchKeyData = useCallback(async () => {
+    await Promise.all([fetchKeyStats(), fetchKeyDetails()]);
+  }, [fetchKeyStats, fetchKeyDetails]);
 
   useEffect(() => {
     if (open && channel) {
       fetchKeyData();
     }
   }, [open, channel, fetchKeyData]);
+
+  // 监听分页和筛选变化，只重新加载详情数据
+  useEffect(() => {
+    if (open && channel && keyStats) {
+      // 只有在已有统计信息时才加载详情
+      fetchKeyDetails();
+    }
+  }, [pagination, statusFilter, open, channel, keyStats, fetchKeyDetails]);
 
   const handleToggleKeyStatus = async (
     keyIndex: number,
@@ -191,7 +213,7 @@ const MultiKeyManagementModal: React.FC<MultiKeyManagementModalProps> = ({
       });
       if ((res as any).success) {
         alert('操作成功');
-        fetchKeyData();
+        fetchKeyData(); // 单个状态切换需要更新统计信息
       } else {
         throw new Error((res as any).message);
       }
@@ -201,21 +223,56 @@ const MultiKeyManagementModal: React.FC<MultiKeyManagementModalProps> = ({
   };
 
   const handleBatchToggle = async (status: number) => {
-    if (!channel) return;
+    if (!channel || batchLoading) return;
+
+    setBatchLoading(true);
     try {
+      // 首先获取所有密钥的索引
+      const allKeysRes = await request.get(
+        `/api/channel/${channel.id}/keys/details`,
+        {
+          params: {
+            page: 1,
+            page_size: 10000, // 获取所有密钥
+            status: undefined // 不筛选状态
+          }
+        }
+      );
+
+      if (!(allKeysRes as any).success) {
+        throw new Error((allKeysRes as any).message || '获取密钥列表失败');
+      }
+
+      const allKeys = (allKeysRes as any).data.keys || [];
+      if (allKeys.length === 0) {
+        alert('没有找到密钥');
+        return;
+      }
+
+      // 提取所有密钥的索引
+      const keyIndices = allKeys.map((key: KeyDetail) => key.index);
+
+      // 执行批量操作
       const res = await request.post('/api/channel/keys/batch-toggle', {
         channel_id: channel.id,
-        key_indices: Array.from({ length: keyDetails.length }, (_, i) => i),
+        key_indices: keyIndices,
         enabled: status === 1
       });
+
       if ((res as any).success) {
-        alert(`成功${status === 1 ? '启用' : '禁用'}所有密钥`);
+        alert(
+          `成功${status === 1 ? '启用' : '禁用'}所有密钥 (共 ${
+            keyIndices.length
+          } 个)`
+        );
         fetchKeyData();
       } else {
         throw new Error((res as any).message);
       }
     } catch (err) {
       alert(`操作失败: ${err instanceof Error ? err.message : '未知错误'}`);
+    } finally {
+      setBatchLoading(false);
     }
   };
 
@@ -344,18 +401,23 @@ const MultiKeyManagementModal: React.FC<MultiKeyManagementModalProps> = ({
 
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <Button onClick={fetchKeyData} size="sm">
+                <Button onClick={fetchKeyDetails} size="sm">
                   刷新
                 </Button>
                 <Button
                   onClick={() => handleBatchToggle(2)}
                   size="sm"
                   variant="destructive"
+                  disabled={batchLoading}
                 >
-                  禁用全部
+                  {batchLoading ? '禁用中...' : '禁用全部'}
                 </Button>
-                <Button onClick={() => handleBatchToggle(1)} size="sm">
-                  启用全部
+                <Button
+                  onClick={() => handleBatchToggle(1)}
+                  size="sm"
+                  disabled={batchLoading}
+                >
+                  {batchLoading ? '启用中...' : '启用全部'}
                 </Button>
                 <Button
                   onClick={handleDeleteDisabledKeys}
@@ -406,7 +468,7 @@ const MultiKeyManagementModal: React.FC<MultiKeyManagementModalProps> = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {keyDetails.length === 0 && !error ? (
+                  {(keyDetails.length === 0 && !error) || isLoading ? (
                     // 表格加载状态
                     Array.from({ length: 5 }).map((_, i) => (
                       <TableRow key={i}>
