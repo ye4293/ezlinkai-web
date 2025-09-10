@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import { CHANNEL_OPTIONS } from '@/constants';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
+import { invalidateCache } from '@/lib/cache-utils';
 
 interface ColumnsProps {
   onManageKeys: (channel: Channel) => void;
@@ -92,6 +93,9 @@ const StatusCell = ({ row }: { row: any }) => {
       toast.success(
         `Channel '${row.original.name}' status changed from ${oldStatusInfo.text} to ${newStatusInfo.text}`
       );
+
+      // 清除缓存以确保获取最新数据
+      invalidateCache('channels');
       router.refresh();
     } catch (error) {
       toast.error('Failed to update status');
@@ -317,6 +321,8 @@ const PriorityCell = ({ row }: { row: any }) => {
       });
       if (!res.ok) throw new Error('Failed to update priority');
 
+      // 清除缓存以确保获取最新数据
+      invalidateCache('channels');
       router.refresh();
     } catch (error) {
       setValue(row.getValue('priority'));
@@ -354,6 +360,8 @@ const WeightCell = ({ row }: { row: any }) => {
       });
       if (!res.ok) throw new Error('Failed to update weight');
 
+      // 清除缓存以确保获取最新数据
+      invalidateCache('channels');
       router.refresh();
     } catch (error) {
       setValue(row.getValue('weight'));
@@ -391,6 +399,8 @@ const ChannelRatioCell = ({ row }: { row: any }) => {
       });
       if (!res.ok) throw new Error('Failed to update channel ratio');
 
+      // 清除缓存以确保获取最新数据
+      invalidateCache('channels');
       router.refresh();
     } catch (error) {
       setValue(row.getValue('channel_ratio'));
@@ -503,6 +513,8 @@ const UsedQuotaCell = ({ row }: { row: any }) => {
       setJustCleared(true);
       toast.success(`配额已清空: ${row.original.name}`);
       setTimeout(() => {
+        // 清除缓存以确保获取最新数据
+        invalidateCache('channels');
         router.refresh();
         setJustCleared(false);
       }, 1500);
@@ -598,6 +610,9 @@ const BalanceCell = ({ row }: { row: any }) => {
     const { success, message } = await res.json();
     if (!success) {
       toast.error(message);
+    } else {
+      // 只有在成功时才清除缓存
+      invalidateCache('channels');
     }
 
     router.refresh();
