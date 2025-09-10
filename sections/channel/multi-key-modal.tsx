@@ -127,7 +127,8 @@ const MultiKeyManagementModal: React.FC<MultiKeyManagementModalProps> = ({
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 20 });
   const [totalKeys, setTotalKeys] = useState(0);
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [batchLoading, setBatchLoading] = useState(false);
+  const [enableLoading, setEnableLoading] = useState(false);
+  const [disableLoading, setDisableLoading] = useState(false);
 
   // 加载统计信息（只在初始化时调用）
   const fetchKeyStats = useCallback(async () => {
@@ -223,34 +224,77 @@ const MultiKeyManagementModal: React.FC<MultiKeyManagementModalProps> = ({
   };
 
   const handleBatchToggle = async (status: number) => {
-    if (!channel || batchLoading) return;
+    const isEnabling = status === 1;
+    const setLoading = isEnabling ? setEnableLoading : setDisableLoading;
 
-    setBatchLoading(true);
+    if (!channel) return;
+    if ((isEnabling && enableLoading) || (!isEnabling && disableLoading))
+      return;
+
+    setLoading(true);
     try {
-      // 首先获取所有密钥的索引
-      const allKeysRes = await request.get(
-        `/api/channel/${channel.id}/keys/details`,
-        {
-          params: {
-            page: 1,
-            page_size: 10000, // 获取所有密钥
-            status: undefined // 不筛选状态
-          }
-        }
+      console.log(
+        `🔄 开始批量${status === 1 ? '启用' : '禁用'}操作，正在获取渠道"${
+          channel.name
+        }"的所有密钥...`
       );
 
-      if (!(allKeysRes as any).success) {
-        throw new Error((allKeysRes as any).message || '获取密钥列表失败');
+      // 首先获取所有密钥的索引（分多次请求以确保获取完整）
+      let allKeys: KeyDetail[] = [];
+      let currentPage = 1;
+      const pageSize = 100;
+      let hasMoreData = true;
+
+      while (hasMoreData) {
+        const allKeysRes = await request.get(
+          `/api/channel/${channel.id}/keys/details`,
+          {
+            params: {
+              page: currentPage,
+              page_size: pageSize
+              // 不传status参数，获取所有状态的密钥
+            }
+          }
+        );
+
+        if (!(allKeysRes as any).success) {
+          throw new Error((allKeysRes as any).message || '获取密钥列表失败');
+        }
+
+        const pageKeys = (allKeysRes as any).data.keys || [];
+        const totalCount = (allKeysRes as any).data.total_count || 0;
+
+        allKeys.push(...pageKeys);
+        console.log(
+          `📖 获取数据页${currentPage}：本页${pageKeys.length}个密钥，累计${allKeys.length}个，渠道总密钥数${totalCount}`
+        );
+
+        // 检查是否还有更多数据
+        if (allKeys.length >= totalCount || pageKeys.length < pageSize) {
+          hasMoreData = false;
+        } else {
+          currentPage++;
+        }
       }
 
-      const allKeys = (allKeysRes as any).data.keys || [];
       if (allKeys.length === 0) {
         alert('没有找到密钥');
         return;
       }
 
+      console.log(
+        `✅ 完成数据获取：总共收集到${allKeys.length}个密钥 (包含所有分页数据，不仅是当前显示页面)`
+      );
+
       // 提取所有密钥的索引
       const keyIndices = allKeys.map((key: KeyDetail) => key.index);
+      console.log(
+        `🔑 密钥索引范围: ${keyIndices[0]}-${
+          keyIndices[keyIndices.length - 1]
+        } (预览: ${keyIndices.slice(0, 5).join(', ')}${
+          keyIndices.length > 5 ? '...' : ''
+        })`
+      );
 
       // 执行批量操作
       const res = await request.post('/api/channel/keys/batch-toggle', {
@@ -260,19 +304,20 @@ const MultiKeyManagementModal: React.FC<MultiKeyManagementModalProps> = ({
       });
 
       if ((res as any).success) {
-        alert(
-          `成功${status === 1 ? '启用' : '禁用'}所有密钥 (共 ${
-            keyIndices.length
-          } 个)`
-        );
+        const message = `✅ 批量操作成功！已${
+          status === 1 ? '启用' : '禁用'
+        }整个渠道的所有${keyIndices.length}个密钥`;
+        alert(message);
+        console.log(message);
         fetchKeyData();
       } else {
         throw new Error((res as any).message);
       }
     } catch (err) {
+      console.error('批量操作失败:', err);
       alert(`操作失败: ${err instanceof Error ? err.message : '未知错误'}`);
     } finally {
-      setBatchLoading(false);
+      setLoading(false);
     }
   };
 
@@ -408,16 +453,16 @@ const MultiKeyManagementModal: React.FC<MultiKeyManagementModalProps> = ({
                   onClick={() => handleBatchToggle(2)}
                   size="sm"
                   variant="destructive"
-                  disabled={batchLoading}
+                  disabled={disableLoading}
                 >
-                  {batchLoading ? '禁用中...' : '禁用全部'}
+                  {disableLoading ? '禁用中...' : '禁用全部'}
                 </Button>
                 <Button
                   onClick={() => handleBatchToggle(1)}
                   size="sm"
-                  disabled={batchLoading}
+                  disabled={enableLoading}
                 >
-                  {batchLoading ? '启用中...' : '启用全部'}
+                  {enableLoading ? '启用中...' : '启用全部'}
                 </Button>
                 <Button
                   onClick={handleDeleteDisabledKeys}
