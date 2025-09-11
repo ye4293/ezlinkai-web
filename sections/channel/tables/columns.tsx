@@ -77,7 +77,16 @@ const StatusCell = ({
 }) => {
   const [status, setStatus] = useState(row.getValue('status') as number);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [justUpdated, setJustUpdated] = useState(false);
   const router = useRouter();
+
+  // 同步外部状态变化
+  React.useEffect(() => {
+    const newStatus = row.getValue('status') as number;
+    if (newStatus !== status && !isUpdating) {
+      setStatus(newStatus);
+    }
+  }, [row.getValue('status'), status, isUpdating]);
 
   const handleStatusChange = async (newStatus: boolean) => {
     if (isUpdating) return; // 防止重复请求
@@ -109,6 +118,9 @@ const StatusCell = ({
       // 清除缓存
       invalidateCache('channels');
 
+      // 显示成功状态
+      setJustUpdated(true);
+
       toast.success(
         `Channel '${row.original.name}' status changed from ${oldStatusInfo.text} to ${newStatusInfo.text}`
       );
@@ -117,15 +129,24 @@ const StatusCell = ({
       if (onDataChange) {
         setTimeout(async () => {
           await onDataChange();
+          // 1.5秒后清除成功状态
+          setTimeout(() => {
+            setJustUpdated(false);
+          }, 1500);
         }, 100);
       } else {
         setTimeout(() => {
           router.refresh();
+          // 1.5秒后清除成功状态
+          setTimeout(() => {
+            setJustUpdated(false);
+          }, 1500);
         }, 100);
       }
     } catch (error) {
       toast.error('Failed to update status');
       setStatus(oldStatus); // 更新失败时，恢复原状
+      setJustUpdated(false); // 确保不显示成功状态
     } finally {
       setIsUpdating(false);
     }
@@ -148,11 +169,39 @@ const StatusCell = ({
     <div className="flex items-center justify-center gap-2">
       {/* Hack to prevent Tailwind CSS from purging dynamic classes */}
       <div className="hidden data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-orange-500"></div>
-      <Switch checked={isChecked} onCheckedChange={handleStatusChange} />
-      <Badge variant={currentStatusInfo.variant}>
-        {currentStatusInfo.text}
+
+      {/* Switch - 始终可用，立即反映状态变化 */}
+      <Switch
+        checked={isChecked}
+        onCheckedChange={handleStatusChange}
+        disabled={false} // 不禁用，让用户看到立即反馈
+        className={switchClassName}
+      />
+
+      {/* 状态Badge - 显示不同状态 */}
+      <Badge
+        variant={justUpdated ? 'default' : currentStatusInfo.variant}
+        className={`transition-all duration-200 ${
+          isUpdating ? 'opacity-75' : ''
+        } ${justUpdated ? 'border-green-600 bg-green-600 text-white' : ''}`}
+      >
+        {isUpdating ? (
+          <div className="flex items-center gap-1">
+            <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+            <span>更新中...</span>
+          </div>
+        ) : justUpdated ? (
+          <div className="flex items-center gap-1">
+            <span className="text-green-100">✓</span>
+            <span>已更新</span>
+          </div>
+        ) : (
+          currentStatusInfo.text
+        )}
       </Badge>
-      {status === 3 && reason && (
+
+      {/* 自动禁用信息 */}
+      {status === 3 && reason && !isUpdating && (
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
