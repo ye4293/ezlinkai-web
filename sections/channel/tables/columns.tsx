@@ -22,6 +22,7 @@ import { invalidateCache } from '@/lib/cache-utils';
 
 interface ColumnsProps {
   onManageKeys: (channel: Channel) => void;
+  onDataChange?: () => Promise<void>;
 }
 
 type ChannelType = {
@@ -67,39 +68,66 @@ const getStatusInfo = (status: number) => {
 };
 
 // Status Cell Component
-const StatusCell = ({ row }: { row: any }) => {
+const StatusCell = ({
+  row,
+  onDataChange
+}: {
+  row: any;
+  onDataChange?: () => Promise<void>;
+}) => {
   const [status, setStatus] = useState(row.getValue('status') as number);
+  const [isUpdating, setIsUpdating] = useState(false);
   const router = useRouter();
 
   const handleStatusChange = async (newStatus: boolean) => {
+    if (isUpdating) return; // 防止重复请求
+
     const oldStatus = status;
     const newStatusValue = newStatus ? 1 : 2; // 启用: 1, 手动禁用: 2
+
+    // 立即更新UI状态
     setStatus(newStatusValue);
+    setIsUpdating(true);
 
     try {
       const params = {
         id: row.original.id,
         status: newStatusValue
       };
+
       const res = await fetch(`/api/channel`, {
         method: 'PUT',
         body: JSON.stringify(params),
         credentials: 'include'
       });
+
       if (!res.ok) throw new Error('Failed to update status');
 
       const oldStatusInfo = getStatusInfo(oldStatus);
       const newStatusInfo = getStatusInfo(newStatusValue);
+
+      // 清除缓存
+      invalidateCache('channels');
+
       toast.success(
         `Channel '${row.original.name}' status changed from ${oldStatusInfo.text} to ${newStatusInfo.text}`
       );
 
-      // 清除缓存以确保获取最新数据
-      invalidateCache('channels');
-      router.refresh();
+      // 使用直接数据刷新而不是路由刷新
+      if (onDataChange) {
+        setTimeout(async () => {
+          await onDataChange();
+        }, 100);
+      } else {
+        setTimeout(() => {
+          router.refresh();
+        }, 100);
+      }
     } catch (error) {
       toast.error('Failed to update status');
       setStatus(oldStatus); // 更新失败时，恢复原状
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -304,7 +332,13 @@ const useChannelTypesContext = () => {
 };
 
 // Priority Cell Component
-const PriorityCell = ({ row }: { row: any }) => {
+const PriorityCell = ({
+  row,
+  onDataChange
+}: {
+  row: any;
+  onDataChange?: () => Promise<void>;
+}) => {
   const [value, setValue] = useState(row.getValue('priority') as number);
   const router = useRouter();
 
@@ -323,7 +357,12 @@ const PriorityCell = ({ row }: { row: any }) => {
 
       // 清除缓存以确保获取最新数据
       invalidateCache('channels');
-      router.refresh();
+
+      if (onDataChange) {
+        await onDataChange();
+      } else {
+        router.refresh();
+      }
     } catch (error) {
       setValue(row.getValue('priority'));
     }
@@ -343,7 +382,13 @@ const PriorityCell = ({ row }: { row: any }) => {
 };
 
 // Weight Cell Component
-const WeightCell = ({ row }: { row: any }) => {
+const WeightCell = ({
+  row,
+  onDataChange
+}: {
+  row: any;
+  onDataChange?: () => Promise<void>;
+}) => {
   const [value, setValue] = useState(row.getValue('weight') as number);
   const router = useRouter();
 
@@ -362,7 +407,12 @@ const WeightCell = ({ row }: { row: any }) => {
 
       // 清除缓存以确保获取最新数据
       invalidateCache('channels');
-      router.refresh();
+
+      if (onDataChange) {
+        await onDataChange();
+      } else {
+        router.refresh();
+      }
     } catch (error) {
       setValue(row.getValue('weight'));
     }
@@ -382,7 +432,13 @@ const WeightCell = ({ row }: { row: any }) => {
 };
 
 // Channel Ratio Cell Component
-const ChannelRatioCell = ({ row }: { row: any }) => {
+const ChannelRatioCell = ({
+  row,
+  onDataChange
+}: {
+  row: any;
+  onDataChange?: () => Promise<void>;
+}) => {
   const [value, setValue] = useState(row.getValue('channel_ratio') as number);
   const router = useRouter();
 
@@ -401,7 +457,12 @@ const ChannelRatioCell = ({ row }: { row: any }) => {
 
       // 清除缓存以确保获取最新数据
       invalidateCache('channels');
-      router.refresh();
+
+      if (onDataChange) {
+        await onDataChange();
+      } else {
+        router.refresh();
+      }
     } catch (error) {
       setValue(row.getValue('channel_ratio'));
     }
@@ -633,7 +694,8 @@ const BalanceCell = ({ row }: { row: any }) => {
 };
 
 export const columns = ({
-  onManageKeys
+  onManageKeys,
+  onDataChange
 }: ColumnsProps): ColumnDef<Channel>[] => {
   // 移除这里的useRouter，将其移到需要的组件中
 
@@ -788,22 +850,24 @@ export const columns = ({
     {
       accessorKey: 'priority',
       header: () => <div className="text-center">Priority</div>,
-      cell: ({ row }) => <PriorityCell row={row} />
+      cell: ({ row }) => <PriorityCell row={row} onDataChange={onDataChange} />
     },
     {
       accessorKey: 'weight',
       header: () => <div className="text-center">Weight</div>,
-      cell: ({ row }) => <WeightCell row={row} />
+      cell: ({ row }) => <WeightCell row={row} onDataChange={onDataChange} />
     },
     {
       accessorKey: 'channel_ratio',
       header: () => <div className="text-center">Channel Ratio</div>,
-      cell: ({ row }) => <ChannelRatioCell row={row} />
+      cell: ({ row }) => (
+        <ChannelRatioCell row={row} onDataChange={onDataChange} />
+      )
     },
     {
       accessorKey: 'status',
       header: () => <div className="text-center">Status</div>,
-      cell: ({ row }) => <StatusCell row={row} />
+      cell: ({ row }) => <StatusCell row={row} onDataChange={onDataChange} />
     },
     {
       accessorKey: 'response_time',

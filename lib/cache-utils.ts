@@ -121,9 +121,28 @@ export const preloadData = async <T>(
   }
 };
 
-// 缓存失效
+// 缓存失效 - 支持模式匹配
 export const invalidateCache = (pattern: string): void => {
-  cache.clear(); // 简化实现，清空所有缓存
+  // 如果是清空所有缓存
+  if (pattern === '*') {
+    cache.clear();
+    return;
+  }
+
+  // 模式匹配删除特定缓存
+  const cacheEntries = Array.from((cache as any).cache.entries()) as Array<
+    [string, any]
+  >;
+  for (const [key] of cacheEntries) {
+    if (key.startsWith(pattern)) {
+      cache.delete(key);
+    }
+  }
+
+  // 如果没有找到匹配项，清空所有缓存作为保险
+  if (cacheEntries.filter(([key]) => key.startsWith(pattern)).length === 0) {
+    cache.clear();
+  }
 };
 
 export default cache;

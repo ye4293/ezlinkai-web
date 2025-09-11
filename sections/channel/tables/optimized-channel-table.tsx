@@ -72,8 +72,11 @@ const OptimizedChannelTable = memo(
 
     // 生成列配置
     const tableColumns = useMemo(() => {
-      return columns({ onManageKeys: handleManageKeys });
-    }, [handleManageKeys]);
+      return columns({
+        onManageKeys: handleManageKeys,
+        onDataChange: refetch // 传递数据刷新函数
+      });
+    }, [handleManageKeys, refetch]);
 
     // 错误处理
     if (error) {
