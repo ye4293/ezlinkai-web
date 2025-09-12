@@ -37,8 +37,8 @@ export default async function ImageListingPage({}: TImageListingPage) {
     ...(username && { username }),
     ...(provider && { provider }),
     ...(modelName && { model_name: modelName }),
-    ...(startTime && { start_timestamp: String(Number(startTime) * 1000) }), // 用毫秒
-    ...(endTime && { end_timestamp: String(Number(endTime) * 1000) })
+    ...(startTime && { start_timestamp: String(startTime) }),
+    ...(endTime && { end_timestamp: String(endTime) })
   });
 
   const session = await auth();

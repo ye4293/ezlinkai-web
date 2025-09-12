@@ -49,8 +49,8 @@ export default async function VideoListingPage({}: TVideoListingPage) {
     ...(mjId && { mj_id: mjId }),
     ...(channel && { channel: String(channel) }),
     ...(username && { username }),
-    ...(startTime && { start_timestamp: String(Number(startTime) * 1000) }), // 用毫秒
-    ...(endTime && { end_timestamp: String(Number(endTime) * 1000) })
+    ...(startTime && { start_timestamp: String(startTime) }),
+    ...(endTime && { end_timestamp: String(endTime) })
   });
   // console.log('Midjourney params', params);
   const session = await auth();

@@ -350,6 +350,70 @@ export const columns: ColumnDef<LogStat>[] = [
     enableHiding: true
   },
   {
+    accessorKey: 'x_request_id',
+    header: () => <div className="text-left">X-Request-ID</div>,
+    cell: ({ row }) => {
+      const xRequestId = row.getValue('x_request_id') as string;
+      if (!xRequestId) return <div className="text-left">-</div>;
+      const truncatedId =
+        xRequestId.length > 12
+          ? `${xRequestId.substring(0, 12)}...`
+          : xRequestId;
+
+      return (
+        <div className="text-left">
+          <CopyableCell value={xRequestId} label="X-Request-ID">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="cursor-help font-mono text-xs">
+                    {truncatedId}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="font-mono">{xRequestId}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </CopyableCell>
+        </div>
+      );
+    },
+    enableHiding: true
+  },
+  {
+    accessorKey: 'x_response_id',
+    header: () => <div className="text-left">X-Response-ID</div>,
+    cell: ({ row }) => {
+      const xResponseId = row.getValue('x_response_id') as string;
+      if (!xResponseId) return <div className="text-left">-</div>;
+      const truncatedId =
+        xResponseId.length > 12
+          ? `${xResponseId.substring(0, 12)}...`
+          : xResponseId;
+
+      return (
+        <div className="text-left">
+          <CopyableCell value={xResponseId} label="X-Response-ID">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="cursor-help font-mono text-xs">
+                    {truncatedId}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="font-mono">{xResponseId}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </CopyableCell>
+        </div>
+      );
+    },
+    enableHiding: true
+  },
+  {
     id: 'content',
     accessorKey: 'content',
     header: () => <div className="text-left">Details</div>,

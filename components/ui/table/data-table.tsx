@@ -45,6 +45,7 @@ interface DataTableProps<TData, TValue> {
   setPageSize?: (size: number) => void;
   pageSizeOptions?: number[];
   showColumnToggle?: boolean;
+  initialColumnVisibility?: VisibilityState;
 }
 
 export function DataTable<TData, TValue>({
@@ -58,10 +59,13 @@ export function DataTable<TData, TValue>({
   setCurrentPage: externalSetCurrentPage,
   setPageSize: externalSetPageSize,
   pageSizeOptions = [10, 50, 100, 500],
-  showColumnToggle = false
+  showColumnToggle = false,
+  initialColumnVisibility
 }: DataTableProps<TData, TValue>) {
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(
+    initialColumnVisibility || {}
+  );
 
   // 内部分页状态（用于向下兼容）
   const [internalCurrentPage, setInternalCurrentPage] = useState(1);

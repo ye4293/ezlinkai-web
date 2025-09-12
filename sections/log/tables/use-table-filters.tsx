@@ -3,7 +3,11 @@
 import { searchParams } from '@/lib/searchparams';
 import { useQueryState } from 'nuqs';
 import { useCallback, useMemo, useState } from 'react';
-import { DateRange } from 'react-day-picker';
+
+interface DateTimeRange {
+  from: Date | undefined;
+  to: Date | undefined;
+}
 
 export const STATUS_OPTIONS = [
   { value: '1', label: 'Enabled' },
@@ -46,6 +50,20 @@ export function useTableFilters() {
       .withDefault('')
   );
 
+  const [xRequestId, setXRequestId] = useQueryState(
+    'x_request_id',
+    searchParams.x_request_id
+      .withOptions({ shallow: false, throttleMs: 1000 })
+      .withDefault('')
+  );
+
+  const [xResponseId, setXResponseId] = useQueryState(
+    'x_response_id',
+    searchParams.x_response_id
+      .withOptions({ shallow: false, throttleMs: 1000 })
+      .withDefault('')
+  );
+
   const [typeFilter, setTypeFilter] = useQueryState(
     'type',
     searchParams.type.withOptions({ shallow: false }).withDefault('')
@@ -71,28 +89,24 @@ export function useTableFilters() {
     searchParams.end_timestamp.withOptions({ shallow: false }).withDefault('')
   );
 
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(() => ({
+  const [dateTimeRange, setDateTimeRange] = useState<DateTimeRange>(() => ({
     from: startTimestamp
       ? new Date(parseInt(startTimestamp) * 1000)
       : undefined,
     to: endTimestamp ? new Date(parseInt(endTimestamp) * 1000) : undefined
   }));
 
-  // 将日期转换为秒级时间戳
-  const handleDateRangeChange = useCallback(
-    (range: DateRange | undefined) => {
-      setDateRange(range);
-      // 如果有开始日期，设置为当天开始时间的时间戳（秒）
+  // 将日期时间转换为秒级时间戳
+  const handleDateTimeRangeChange = useCallback(
+    (range: DateTimeRange | undefined) => {
+      setDateTimeRange(range || { from: undefined, to: undefined });
+
+      // 直接使用精确的时间戳（秒）
       const startTimestamp = range?.from
-        ? Math.floor(
-            new Date(range.from.setHours(0, 0, 0, 0)).getTime() / 1000
-          ).toString()
+        ? Math.floor(range.from.getTime() / 1000).toString()
         : null;
-      // 如果有结束日期，设置为当天结束时间的时间戳（秒）
       const endTimestamp = range?.to
-        ? Math.floor(
-            new Date(range.to.setHours(23, 59, 59, 999)).getTime() / 1000
-          ).toString()
+        ? Math.floor(range.to.getTime() / 1000).toString()
         : null;
 
       setStartTimestamp(startTimestamp);
@@ -107,10 +121,12 @@ export function useTableFilters() {
     setModelName(null);
     setChannelId(null);
     setUserName(null);
+    setXRequestId(null);
+    setXResponseId(null);
     setTypeFilter(null);
     setStartTimestamp(null);
     setEndTimestamp(null);
-    setDateRange({ from: undefined, to: undefined });
+    setDateTimeRange({ from: undefined, to: undefined });
 
     setPage(1);
   }, [
@@ -118,11 +134,13 @@ export function useTableFilters() {
     setModelName,
     setChannelId,
     setUserName,
+    setXRequestId,
+    setXResponseId,
     setTypeFilter,
     setPage,
     setStartTimestamp,
     setEndTimestamp,
-    setDateRange
+    setDateTimeRange
   ]);
 
   const isAnyFilterActive = useMemo(() => {
@@ -131,6 +149,8 @@ export function useTableFilters() {
       !!modelName ||
       !!channelId ||
       !!userName ||
+      !!xRequestId ||
+      !!xResponseId ||
       !!typeFilter ||
       !!startTimestamp ||
       !!endTimestamp
@@ -140,6 +160,8 @@ export function useTableFilters() {
     modelName,
     channelId,
     userName,
+    xRequestId,
+    xResponseId,
     typeFilter,
     startTimestamp,
     endTimestamp
@@ -154,6 +176,10 @@ export function useTableFilters() {
     setChannelId,
     userName,
     setUserName,
+    xRequestId,
+    setXRequestId,
+    xResponseId,
+    setXResponseId,
     typeFilter,
     setTypeFilter,
     page,
@@ -162,8 +188,8 @@ export function useTableFilters() {
     setPageSize,
     resetFilters,
     isAnyFilterActive,
-    dateRange,
-    setDateRange: handleDateRangeChange,
+    dateTimeRange,
+    setDateTimeRange: handleDateTimeRangeChange,
     startTimestamp,
     endTimestamp
   };

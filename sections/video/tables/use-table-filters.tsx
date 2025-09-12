@@ -3,7 +3,11 @@
 import { searchParams } from '@/lib/searchparams';
 import { useQueryState } from 'nuqs';
 import { useCallback, useMemo, useState } from 'react';
-import { DateRange } from 'react-day-picker';
+
+interface DateTimeRange {
+  from: Date | undefined;
+  to: Date | undefined;
+}
 
 export const STATUS_OPTIONS = [
   { value: '1', label: 'Enabled' },
@@ -58,6 +62,11 @@ export function useTableFilters() {
     searchParams.page.withDefault(1)
   );
 
+  const [pageSize, setPageSize] = useQueryState(
+    'limit',
+    searchParams.limit.withOptions({ shallow: false }).withDefault(10)
+  );
+
   const [startTimestamp, setStartTimestamp] = useQueryState(
     'start_timestamp',
     searchParams.start_timestamp.withOptions({ shallow: false }).withDefault('')
@@ -68,28 +77,24 @@ export function useTableFilters() {
     searchParams.end_timestamp.withOptions({ shallow: false }).withDefault('')
   );
 
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(() => ({
+  const [dateTimeRange, setDateTimeRange] = useState<DateTimeRange>(() => ({
     from: startTimestamp
       ? new Date(parseInt(startTimestamp) * 1000)
       : undefined,
     to: endTimestamp ? new Date(parseInt(endTimestamp) * 1000) : undefined
   }));
 
-  // 将日期转换为秒级时间戳
-  const handleDateRangeChange = useCallback(
-    (range: DateRange | undefined) => {
-      setDateRange(range);
-      // 如果有开始日期，设置为当天开始时间的时间戳（秒）
+  // 将日期时间转换为秒级时间戳
+  const handleDateTimeRangeChange = useCallback(
+    (range: DateTimeRange | undefined) => {
+      setDateTimeRange(range || { from: undefined, to: undefined });
+
+      // 直接使用精确的时间戳（秒）
       const startTimestamp = range?.from
-        ? Math.floor(
-            new Date(range.from.setHours(0, 0, 0, 0)).getTime() / 1000
-          ).toString()
+        ? Math.floor(range.from.getTime() / 1000).toString()
         : null;
-      // 如果有结束日期，设置为当天结束时间的时间戳（秒）
       const endTimestamp = range?.to
-        ? Math.floor(
-            new Date(range.to.setHours(23, 59, 59, 999)).getTime() / 1000
-          ).toString()
+        ? Math.floor(range.to.getTime() / 1000).toString()
         : null;
 
       setStartTimestamp(startTimestamp);
@@ -107,7 +112,7 @@ export function useTableFilters() {
     setUserName(null);
     setStartTimestamp(null);
     setEndTimestamp(null);
-    setDateRange({ from: undefined, to: undefined });
+    setDateTimeRange({ from: undefined, to: undefined });
 
     setPage(1);
   }, [
@@ -119,7 +124,7 @@ export function useTableFilters() {
     setPage,
     setStartTimestamp,
     setEndTimestamp,
-    setDateRange
+    setDateTimeRange
   ]);
 
   const isAnyFilterActive = useMemo(() => {
@@ -155,10 +160,12 @@ export function useTableFilters() {
     setUserName,
     page,
     setPage,
+    pageSize,
+    setPageSize,
     resetFilters,
     isAnyFilterActive,
-    dateRange,
-    setDateRange: handleDateRangeChange,
+    dateTimeRange,
+    setDateTimeRange: handleDateTimeRangeChange,
     startTimestamp,
     endTimestamp
   };

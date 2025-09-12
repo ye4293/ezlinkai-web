@@ -38,6 +38,10 @@ export interface LogStat {
   title?: string;
   /** 其他信息 */
   other?: string;
+  /** X-Request-ID */
+  x_request_id?: string;
+  /** X-Response-ID */
+  x_response_id?: string;
 }
 
 export type LogDataResult = {

@@ -29,6 +29,8 @@ export default async function LogListingPage({}: TLogListingPage) {
   const modelName = searchParamsCache.get('model_name');
   const channel = searchParamsCache.get('channel');
   const username = searchParamsCache.get('username');
+  const xRequestId = searchParamsCache.get('x_request_id');
+  const xResponseId = searchParamsCache.get('x_response_id');
   const type = searchParamsCache.get('type');
   const startTime = searchParamsCache.get('start_timestamp');
   const endTime = searchParamsCache.get('end_timestamp');
@@ -54,6 +56,8 @@ export default async function LogListingPage({}: TLogListingPage) {
     ...(modelName && { model_name: modelName }),
     ...(channel && { channel: String(channel) }),
     ...(username && { username }),
+    ...(xRequestId && { x_request_id: xRequestId }),
+    ...(xResponseId && { x_response_id: xResponseId }),
     ...(type && { type: String(type) }),
     ...(startTime && { start_timestamp: String(startTime) }),
     ...(endTime && { end_timestamp: String(endTime) })

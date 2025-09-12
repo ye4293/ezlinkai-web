@@ -19,6 +19,8 @@ export const searchParams = {
   model_name: parseAsString,
   channel: parseAsString,
   username: parseAsString,
+  x_request_id: parseAsString,
+  x_response_id: parseAsString,
   type: parseAsString,
   start_timestamp: parseAsString,
   end_timestamp: parseAsString
