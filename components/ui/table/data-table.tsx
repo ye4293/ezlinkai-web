@@ -150,64 +150,79 @@ export function DataTable<TData, TValue>({
           <DataTableViewOptions table={table} />
         </div>
       )}
-      <ScrollArea className="h-[calc(80vh-220px)] rounded-md border">
-        <Table className="relative">
-          <TableHeader className="sticky top-0 z-10 bg-background">
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead
-                    key={header.id}
-                    className="whitespace-nowrap"
-                    style={{
-                      minWidth:
-                        header.getSize() !== 150 ? header.getSize() : undefined
-                    }}
-                  >
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && 'selected'}
-                  className="touch-manipulation hover:bg-muted/50"
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell
-                      key={cell.id}
-                      className="whitespace-nowrap px-2 py-2 sm:px-4"
+      <ScrollArea className="h-[calc(80vh-220px)] w-full rounded-md border">
+        <div className="w-max min-w-full overflow-auto">
+          <Table
+            className="relative w-full min-w-[1200px]"
+            style={{
+              touchAction: 'pan-x pan-y',
+              WebkitOverflowScrolling: 'touch',
+              overflowX: 'auto',
+              overflowY: 'visible'
+            }}
+          >
+            <TableHeader className="sticky top-0 z-10 bg-background">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <TableHead
+                      key={header.id}
+                      className="whitespace-nowrap"
+                      style={{
+                        minWidth: Math.max(header.getSize() || 120, 120),
+                        width: header.getSize() || 150
+                      }}
                     >
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                    </TableHead>
                   ))}
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  No results.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && 'selected'}
+                    className="touch-manipulation hover:bg-muted/50"
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell
+                        key={cell.id}
+                        className="whitespace-nowrap px-2 py-2 sm:px-4"
+                        style={{
+                          minWidth: Math.max(cell.column.getSize() || 120, 120),
+                          width: cell.column.getSize() || 150
+                        }}
+                      >
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-24 text-center"
+                  >
+                    No results.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+        <ScrollBar orientation="vertical" />
         <ScrollBar orientation="horizontal" className="h-3 sm:h-2" />
       </ScrollArea>
 

@@ -70,6 +70,9 @@ const processQuota = (quota: number) => {
 export const columns: ColumnDef<LogStat>[] = [
   {
     id: 'select',
+    size: 50,
+    minSize: 50,
+    maxSize: 50,
     header: ({ table }) => (
       <Checkbox
         checked={table.getIsAllPageRowsSelected()}
@@ -89,6 +92,8 @@ export const columns: ColumnDef<LogStat>[] = [
   },
   {
     accessorKey: 'created_at',
+    size: 180,
+    minSize: 160,
     header: () => <div className="text-center">Time</div>,
     cell: ({ row }) => {
       const timestamp = row.getValue('created_at') as number;
@@ -109,6 +114,8 @@ export const columns: ColumnDef<LogStat>[] = [
   {
     id: 'channel',
     accessorKey: 'channel',
+    size: 100,
+    minSize: 80,
     header: () => <div className="text-left">Channel</div>,
     cell: ({ row }) => {
       const channel = row.getValue('channel') as number;
@@ -124,6 +131,8 @@ export const columns: ColumnDef<LogStat>[] = [
   },
   {
     accessorKey: 'username',
+    size: 120,
+    minSize: 100,
     header: () => <div className="text-left">User</div>,
     cell: ({ row }) => {
       const username = row.getValue('username') as string;
@@ -139,6 +148,8 @@ export const columns: ColumnDef<LogStat>[] = [
   },
   {
     accessorKey: 'token_name',
+    size: 140,
+    minSize: 120,
     header: () => <div className="text-left">Token</div>,
     cell: ({ row }) => {
       const tokenName = row.getValue('token_name') as string;
@@ -169,6 +180,8 @@ export const columns: ColumnDef<LogStat>[] = [
   },
   {
     accessorKey: 'model_name',
+    size: 160,
+    minSize: 140,
     header: () => <div className="text-left">Model</div>,
     cell: ({ row }) => {
       const modelName = row.getValue('model_name') as string;
@@ -416,6 +429,8 @@ export const columns: ColumnDef<LogStat>[] = [
   {
     id: 'content',
     accessorKey: 'content',
+    size: 200,
+    minSize: 150,
     header: () => <div className="text-left">Details</div>,
     cell: ({ row }) => {
       const content = row.getValue('content') as string;
