@@ -2,6 +2,70 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 移动端表格滚动优化 */
+.mobile-table-container {
+  overflow-x: auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
+  scroll-behavior: smooth;
+}
+
+/* 移动端滚动条样式 */
+.mobile-table-container::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+.mobile-table-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.mobile-table-container::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.mobile-table-container::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+/* 确保表格在小屏幕上能触发水平滚动 */
+@media (max-width: 768px) {
+  .mobile-table-container {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.3) transparent;
+  }
+
+  .mobile-table-container::-webkit-scrollbar {
+    height: 12px;
+    width: 12px;
+  }
+
+  .mobile-table-container::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.4);
+    border-radius: 6px;
+  }
+}
+
+/* iOS Safari 优化 */
+@supports (-webkit-touch-callout: none) {
+  .mobile-table-container {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+}
+
+/* Android Chrome 优化 */
+@media screen and (max-device-width: 768px) {
+  .mobile-table-container {
+    touch-action: pan-x pan-y;
+    overscroll-behavior: contain;
+  }
+}
+
 @layer base {
   :root {
     --background: 20 66% 99%;

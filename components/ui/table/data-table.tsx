@@ -145,86 +145,89 @@ export function DataTable<TData, TValue>({
       {showColumnToggle && (
         <div className="flex items-center justify-between">
           <div className="text-xs text-muted-foreground sm:hidden">
-            💡 左右滑动查看更多列
+            💡 左右滑动查看更多列 (表格宽度: 1500px)
           </div>
           <DataTableViewOptions table={table} />
         </div>
       )}
-      <ScrollArea className="h-[calc(80vh-220px)] w-full rounded-md border">
-        <div className="w-max min-w-full overflow-auto">
-          <Table
-            className="relative w-full min-w-[1200px]"
-            style={{
-              touchAction: 'pan-x pan-y',
-              WebkitOverflowScrolling: 'touch',
-              overflowX: 'auto',
-              overflowY: 'visible'
-            }}
-          >
-            <TableHeader className="sticky top-0 z-10 bg-background">
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <TableHead
-                      key={header.id}
-                      className="whitespace-nowrap"
+      <div
+        className="mobile-table-container h-[calc(80vh-220px)] w-full overflow-auto rounded-md border"
+        style={{
+          touchAction: 'pan-x pan-y',
+          WebkitOverflowScrolling: 'touch',
+          scrollbarWidth: 'thin',
+          scrollbarColor: 'rgb(203 213 225) transparent',
+          overscrollBehavior: 'contain'
+        }}
+      >
+        <Table
+          className="relative w-full min-w-[1500px]"
+          style={{
+            tableLayout: 'fixed',
+            width: '1500px'
+          }}
+        >
+          <TableHeader className="sticky top-0 z-10 bg-background">
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <TableHead
+                    key={header.id}
+                    className="whitespace-nowrap border-b border-border/40"
+                    style={{
+                      minWidth: Math.max(header.getSize() || 120, 120),
+                      width: header.getSize() || 150
+                    }}
+                  >
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && 'selected'}
+                  className="touch-manipulation hover:bg-muted/50"
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell
+                      key={cell.id}
+                      className="whitespace-nowrap px-2 py-2 sm:px-4"
                       style={{
-                        minWidth: Math.max(header.getSize() || 120, 120),
-                        width: header.getSize() || 150
+                        minWidth: Math.max(cell.column.getSize() || 120, 120),
+                        width: cell.column.getSize() || 150
                       }}
                     >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
+                    </TableCell>
                   ))}
                 </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    data-state={row.getIsSelected() && 'selected'}
-                    className="touch-manipulation hover:bg-muted/50"
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell
-                        key={cell.id}
-                        className="whitespace-nowrap px-2 py-2 sm:px-4"
-                        style={{
-                          minWidth: Math.max(cell.column.getSize() || 120, 120),
-                          width: cell.column.getSize() || 150
-                        }}
-                      >
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className="h-24 text-center"
-                  >
-                    No results.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-        <ScrollBar orientation="vertical" />
-        <ScrollBar orientation="horizontal" className="h-3 sm:h-2" />
-      </ScrollArea>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
+                  No results.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
 
       <div className="relative z-10 flex flex-col gap-4 px-2 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">

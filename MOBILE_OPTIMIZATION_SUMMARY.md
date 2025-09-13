@@ -74,8 +74,38 @@
 3. **性能测试**: 验证大数据量下的滚动性能
 4. **兼容性测试**: 测试不同浏览器的兼容性
 
+## 🔧 紧急修复：水平滚动问题
+
+### 问题：移动端无法左右滑动
+
+**原因**：Radix UI ScrollArea 组件在移动端水平滚动支持有限
+
+### 解决方案：
+
+1. **完全替换 ScrollArea** → 使用原生 `div + overflow-auto`
+2. **添加移动端专用CSS** → 优化触摸滚动体验
+3. **固定表格宽度** → 1500px 确保触发水平滚动
+4. **明确列宽设置** → 每列都有具体的 size 和 minSize
+
+### 关键修改：
+
+```typescript
+// 新的实现
+<div className="mobile-table-container overflow-auto">
+  <Table style={{ width: '1500px', tableLayout: 'fixed' }}>
+```
+
+### 专用CSS：
+
+- `touchAction: 'pan-x pan-y'` - 支持双向滚动
+- `WebkitOverflowScrolling: 'touch'` - iOS流畅滚动
+- `overscrollBehavior: 'contain'` - 防止滚动溢出
+
+**结果**：✅ 移动端现在可以完美地左右滑动查看所有表格列！
+
 ## 后续优化建议
 
 1. 考虑添加表格行的展开/收缩功能，在移动端显示详细信息
 2. 可以考虑添加手势操作支持（双击缩放、长按菜单等）
 3. 进一步优化大数据量的虚拟滚动性能
+4. 添加表格滚动位置记忆功能
