@@ -143,17 +143,27 @@ export function DataTable<TData, TValue>({
   return (
     <div className="w-full space-y-4">
       {showColumnToggle && (
-        <div className="flex justify-end">
+        <div className="flex items-center justify-between">
+          <div className="text-xs text-muted-foreground sm:hidden">
+            💡 左右滑动查看更多列
+          </div>
           <DataTableViewOptions table={table} />
         </div>
       )}
       <ScrollArea className="h-[calc(80vh-220px)] rounded-md border">
         <Table className="relative">
-          <TableHeader>
+          <TableHeader className="sticky top-0 z-10 bg-background">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
+                  <TableHead
+                    key={header.id}
+                    className="whitespace-nowrap"
+                    style={{
+                      minWidth:
+                        header.getSize() !== 150 ? header.getSize() : undefined
+                    }}
+                  >
                     {header.isPlaceholder
                       ? null
                       : flexRender(
@@ -171,9 +181,13 @@ export function DataTable<TData, TValue>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && 'selected'}
+                  className="touch-manipulation hover:bg-muted/50"
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell
+                      key={cell.id}
+                      className="whitespace-nowrap px-2 py-2 sm:px-4"
+                    >
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()
@@ -194,13 +208,13 @@ export function DataTable<TData, TValue>({
             )}
           </TableBody>
         </Table>
-        <ScrollBar orientation="horizontal" />
+        <ScrollBar orientation="horizontal" className="h-3 sm:h-2" />
       </ScrollArea>
 
-      <div className="relative z-10 flex items-center justify-between space-x-6 px-2 py-4">
-        <div className="flex items-center space-x-6">
-          <div className="flex items-center space-x-2">
-            <p className="text-sm font-medium">Rows per page</p>
+      <div className="relative z-10 flex flex-col gap-4 px-2 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
+          <div className="flex items-center gap-2">
+            <p className="text-xs font-medium sm:text-sm">Rows per page</p>
             <Select
               value={`${pageSize}`}
               onValueChange={(value) => {
@@ -214,7 +228,7 @@ export function DataTable<TData, TValue>({
                 }
               }}
             >
-              <SelectTrigger className="h-8 w-[70px]">
+              <SelectTrigger className="h-8 w-[60px] sm:w-[70px]">
                 <SelectValue placeholder={pageSize} />
               </SelectTrigger>
               <SelectContent side="top">
@@ -226,8 +240,8 @@ export function DataTable<TData, TValue>({
               </SelectContent>
             </Select>
           </div>
-          <div className="flex items-center space-x-2">
-            <span className="text-sm text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground sm:text-sm">
               {data.length > 0 ? (
                 <>
                   Showing {(currentPage - 1) * pageSize + 1} to{' '}
@@ -240,9 +254,9 @@ export function DataTable<TData, TValue>({
             </span>
           </div>
         </div>
-        <div className="flex items-center space-x-6">
-          <div className="flex items-center space-x-2">
-            <span className="text-sm font-medium">
+        <div className="flex items-center justify-between gap-4 sm:justify-end sm:gap-6">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium sm:text-sm">
               {data.length > 0 ? (
                 <>
                   Page {currentPage} of {pageCount}
@@ -252,50 +266,50 @@ export function DataTable<TData, TValue>({
               )}
             </span>
           </div>
-          <div className="flex items-center space-x-1">
+          <div className="flex items-center gap-1">
             <Button
               variant="outline"
-              className="relative z-20 h-8 w-8 p-0"
+              className="relative z-20 h-8 w-8 touch-manipulation p-0"
               onClick={useCallback(() => {
                 setCurrentPage(1);
               }, [setCurrentPage])}
               disabled={currentPage <= 1}
             >
               <span className="sr-only">Go to first page</span>
-              <DoubleArrowLeftIcon className="h-4 w-4" />
+              <DoubleArrowLeftIcon className="h-3 w-3 sm:h-4 sm:w-4" />
             </Button>
             <Button
               variant="outline"
-              className="relative z-20 h-8 w-8 p-0"
+              className="relative z-20 h-8 w-8 touch-manipulation p-0"
               onClick={useCallback(() => {
                 setCurrentPage(Math.max(1, currentPage - 1));
               }, [setCurrentPage, currentPage])}
               disabled={currentPage <= 1}
             >
               <span className="sr-only">Go to previous page</span>
-              <ChevronLeftIcon className="h-4 w-4" />
+              <ChevronLeftIcon className="h-3 w-3 sm:h-4 sm:w-4" />
             </Button>
             <Button
               variant="outline"
-              className="relative z-20 h-8 w-8 p-0"
+              className="relative z-20 h-8 w-8 touch-manipulation p-0"
               onClick={useCallback(() => {
                 setCurrentPage(Math.min(pageCount, currentPage + 1));
               }, [setCurrentPage, currentPage, pageCount])}
               disabled={currentPage >= pageCount}
             >
               <span className="sr-only">Go to next page</span>
-              <ChevronRightIcon className="h-4 w-4" />
+              <ChevronRightIcon className="h-3 w-3 sm:h-4 sm:w-4" />
             </Button>
             <Button
               variant="outline"
-              className="relative z-20 h-8 w-8 p-0"
+              className="relative z-20 h-8 w-8 touch-manipulation p-0"
               onClick={useCallback(() => {
                 setCurrentPage(pageCount);
               }, [setCurrentPage, pageCount])}
               disabled={currentPage >= pageCount}
             >
               <span className="sr-only">Go to last page</span>
-              <DoubleArrowRightIcon className="h-4 w-4" />
+              <DoubleArrowRightIcon className="h-3 w-3 sm:h-4 sm:w-4" />
             </Button>
           </div>
         </div>

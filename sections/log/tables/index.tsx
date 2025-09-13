@@ -12,6 +12,7 @@ import { useTableFilters } from './use-table-filters';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import React from 'react';
+import { useScreenSize } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
 import {
@@ -30,6 +31,7 @@ export default function LogTable({
 }) {
   const { data: session } = useSession();
   const router = useRouter();
+  const { isMobile, isTablet } = useScreenSize();
 
   // 根据角色权限过滤
   const filterColumns = columns.filter((item) => {
@@ -220,95 +222,127 @@ export default function LogTable({
   );
 
   return (
-    <div className="space-y-4 ">
-      <div className="flex flex-wrap items-center gap-4">
-        <DataTableSearch
-          searchKey="Token Name"
-          searchQuery={tokenName}
-          setSearchQuery={setTokenName}
-          setPage={setPage}
-        />
-        <DataTableSearch
-          searchKey="Model Name"
-          searchQuery={modelName}
-          setSearchQuery={setModelName}
-          setPage={setPage}
-        />
-        <DataTableSearch
-          searchKey="X-Request-ID"
-          searchQuery={xRequestId || ''}
-          setSearchQuery={setXRequestId}
-          setPage={setPage}
-        />
-        <DataTableSearch
-          searchKey="X-Response-ID"
-          searchQuery={xResponseId || ''}
-          setSearchQuery={setXResponseId}
-          setPage={setPage}
-        />
-        {[10, 100].includes((session?.user as any).role) && (
-          <>
+    <div className="space-y-4">
+      {/* 移动端优化的筛选器布局 */}
+      <div className="space-y-4">
+        {/* 第一行：主要搜索和导出 */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+          <div className="min-w-0 flex-1 sm:min-w-[200px] sm:flex-none">
             <DataTableSearch
-              searchKey="Channel ID"
-              searchQuery={channelId}
-              setSearchQuery={setChannelId}
+              searchKey="Token Name"
+              searchQuery={tokenName}
+              setSearchQuery={setTokenName}
               setPage={setPage}
             />
+          </div>
+          <div className="min-w-0 flex-1 sm:min-w-[200px] sm:flex-none">
             <DataTableSearch
-              searchKey="User Name"
-              searchQuery={userName}
-              setSearchQuery={setUserName}
+              searchKey="Model Name"
+              searchQuery={modelName}
+              setSearchQuery={setModelName}
               setPage={setPage}
             />
-          </>
-        )}
-        <DataTableSingleFilterBox
-          filterKey="type"
-          title="Type"
-          options={LOG_OPTIONS}
-          setFilterValue={setTypeFilter}
-          filterValue={typeFilter}
-        />
-        <DateTimeRangePicker
-          value={dateTimeRange}
-          onValueChange={(newRange) => {
-            setDateTimeRange(newRange);
-            setPage(1);
-          }}
-        />
-        <DataTableResetFilter
-          isFilterActive={isAnyFilterActive}
-          onReset={() => {
-            resetFilters();
-            setPage(1);
-          }}
-        />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="gap-2">
-              <Download className="h-4 w-4" />
-              Export
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={exportCurrentPage}>
-              <div className="flex flex-col gap-1">
-                <span>导出当前页数据</span>
-                <span className="text-xs text-muted-foreground">
-                  当前页 {data.length} 条记录
-                </span>
+          </div>
+          <div className="flex-shrink-0">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-2 text-xs sm:text-sm">
+                  <Download className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Export</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={exportCurrentPage}>
+                  <div className="flex flex-col gap-1">
+                    <span>导出当前页数据</span>
+                    <span className="text-xs text-muted-foreground">
+                      当前页 {data.length} 条记录
+                    </span>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={exportAllData}>
+                  <div className="flex flex-col gap-1">
+                    <span>导出全部符合条件的数据</span>
+                    <span className="text-xs text-muted-foreground">
+                      包含所有筛选条件的完整数据
+                    </span>
+                  </div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+
+        {/* 第二行：高级搜索（可折叠） */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+          <div className="min-w-0 flex-1 sm:min-w-[180px] sm:flex-none">
+            <DataTableSearch
+              searchKey="X-Request-ID"
+              searchQuery={xRequestId || ''}
+              setSearchQuery={setXRequestId}
+              setPage={setPage}
+            />
+          </div>
+          <div className="min-w-0 flex-1 sm:min-w-[180px] sm:flex-none">
+            <DataTableSearch
+              searchKey="X-Response-ID"
+              searchQuery={xResponseId || ''}
+              setSearchQuery={setXResponseId}
+              setPage={setPage}
+            />
+          </div>
+          {[10, 100].includes((session?.user as any).role) && (
+            <>
+              <div className="min-w-0 flex-1 sm:min-w-[180px] sm:flex-none">
+                <DataTableSearch
+                  searchKey="Channel ID"
+                  searchQuery={channelId}
+                  setSearchQuery={setChannelId}
+                  setPage={setPage}
+                />
               </div>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={exportAllData}>
-              <div className="flex flex-col gap-1">
-                <span>导出全部符合条件的数据</span>
-                <span className="text-xs text-muted-foreground">
-                  包含所有筛选条件的完整数据
-                </span>
+              <div className="min-w-0 flex-1 sm:min-w-[180px] sm:flex-none">
+                <DataTableSearch
+                  searchKey="User Name"
+                  searchQuery={userName}
+                  setSearchQuery={setUserName}
+                  setPage={setPage}
+                />
               </div>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+            </>
+          )}
+        </div>
+
+        {/* 第三行：过滤器和时间选择 */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+          <div className="flex-shrink-0">
+            <DataTableSingleFilterBox
+              filterKey="type"
+              title="Type"
+              options={LOG_OPTIONS}
+              setFilterValue={setTypeFilter}
+              filterValue={typeFilter}
+            />
+          </div>
+          <div className="min-w-0 flex-1">
+            <DateTimeRangePicker
+              value={dateTimeRange}
+              onValueChange={(newRange) => {
+                setDateTimeRange(newRange);
+                setPage(1);
+              }}
+            />
+          </div>
+          <div className="flex-shrink-0">
+            <DataTableResetFilter
+              isFilterActive={isAnyFilterActive}
+              onReset={() => {
+                resetFilters();
+                setPage(1);
+              }}
+            />
+          </div>
+        </div>
       </div>
       <DataTable
         columns={filterColumns}
@@ -321,8 +355,29 @@ export default function LogTable({
         pageSizeOptions={[10, 50, 100, 500]}
         showColumnToggle={true}
         initialColumnVisibility={{
+          // 默认隐藏的列
           x_request_id: false,
-          x_response_id: false
+          x_response_id: false,
+          // 根据屏幕尺寸智能隐藏列
+          ...(isMobile
+            ? {
+                // 移动端：只显示最重要的列
+                channel: false,
+                prompt_tokens: false,
+                completion_tokens: false,
+                duration: false,
+                retry: false,
+                content: false
+              }
+            : isTablet
+            ? {
+                // 平板端：隐藏部分次要列
+                prompt_tokens: false,
+                completion_tokens: false,
+                retry: false,
+                content: false
+              }
+            : {})
         }}
       />
     </div>

@@ -270,38 +270,42 @@ export function DateTimeRangePicker({
           <Button
             variant="outline"
             className={cn(
-              'w-[380px] justify-start text-left font-normal',
+              'w-full min-w-0 max-w-full justify-start text-left font-normal sm:w-[380px]',
               !range.from && !range.to && 'text-muted-foreground'
             )}
           >
-            <CalendarIcon className="mr-2 h-4 w-4" />
-            <span className="truncate">{getDisplayText()}</span>
+            <CalendarIcon className="mr-2 h-3 w-3 flex-shrink-0 sm:h-4 sm:w-4" />
+            <span className="truncate text-xs sm:text-sm">
+              {getDisplayText()}
+            </span>
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
-          <div className="flex">
+        <PopoverContent className="w-auto max-w-[95vw] p-0" align="start">
+          <div className="flex flex-col sm:flex-row">
             {/* 左侧：快捷选择 */}
-            <div className="border-r p-3">
+            <div className="border-b p-3 sm:border-b-0 sm:border-r">
               <div className="space-y-1">
                 <h4 className="mb-2 text-sm font-medium leading-none">
                   快捷选择
                 </h4>
-                {TIME_PRESETS.map((preset) => (
-                  <Button
-                    key={preset.label}
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-start"
-                    onClick={() => handlePresetSelect(preset)}
-                  >
-                    {preset.label}
-                  </Button>
-                ))}
+                <div className="grid grid-cols-2 gap-1 sm:grid-cols-1">
+                  {TIME_PRESETS.map((preset) => (
+                    <Button
+                      key={preset.label}
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start text-xs sm:text-sm"
+                      onClick={() => handlePresetSelect(preset)}
+                    >
+                      {preset.label}
+                    </Button>
+                  ))}
+                </div>
                 <Separator className="my-2" />
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="w-full justify-start text-muted-foreground"
+                  className="w-full justify-start text-xs text-muted-foreground sm:text-sm"
                   onClick={handleClear}
                 >
                   清除选择
@@ -310,7 +314,7 @@ export function DateTimeRangePicker({
             </div>
 
             {/* 右侧：详细设置 */}
-            <div className="space-y-3 p-3">
+            <div className="min-w-0 space-y-3 p-3">
               <h4 className="text-sm font-medium leading-none">精确设置</h4>
 
               {/* 手动输入时间 */}
@@ -341,8 +345,8 @@ export function DateTimeRangePicker({
                 </div>
               </div>
 
-              {/* 日历辅助选择 */}
-              <div>
+              {/* 日历辅助选择 - 在移动端隐藏或简化 */}
+              <div className="hidden sm:block">
                 <Label className="text-xs">日历选择（辅助）</Label>
                 <Calendar
                   mode="range"
@@ -356,6 +360,24 @@ export function DateTimeRangePicker({
                     date > new Date() || date < new Date('1900-01-01')
                   }
                   className="rounded-md border-0"
+                />
+              </div>
+
+              {/* 移动端简化日历 */}
+              <div className="sm:hidden">
+                <Label className="text-xs">日历选择</Label>
+                <Calendar
+                  mode="range"
+                  selected={{
+                    from: range.from,
+                    to: range.to
+                  }}
+                  onSelect={handleCalendarSelect}
+                  numberOfMonths={1}
+                  disabled={(date) =>
+                    date > new Date() || date < new Date('1900-01-01')
+                  }
+                  className="origin-top-left scale-90 rounded-md border-0"
                 />
               </div>
             </div>
