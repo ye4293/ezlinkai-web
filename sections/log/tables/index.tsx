@@ -5,7 +5,7 @@ import { DataTableSingleFilterBox } from '@/components/ui/table/data-table-singl
 import { DataTableResetFilter } from '@/components/ui/table/data-table-reset-filter';
 import { DataTableSearch } from '@/components/ui/table/data-table-search';
 import { DateTimeRangePicker } from '@/components/datetime-range-picker';
-import { LogStat } from '@/lib/types';
+import { LogStat } from '@/lib/types/log';
 import { LOG_OPTIONS } from '@/constants';
 import { columns } from './columns';
 import { useTableFilters } from './use-table-filters';

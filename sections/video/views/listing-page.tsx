@@ -6,7 +6,7 @@ import VideoTable from '../tables';
 import { buttonVariants } from '@/components/ui/button';
 import { Heading } from '@/components/ui/heading';
 import { Separator } from '@/components/ui/separator';
-import { VideoStat } from '@/lib/types';
+import { VideoStat } from '@/lib/types/video';
 // import { fakeUsers } from '@/constants/mock-api';
 import { searchParamsCache } from '@/lib/searchparams';
 import { cn } from '@/lib/utils';

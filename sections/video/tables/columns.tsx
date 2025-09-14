@@ -8,7 +8,7 @@ import {
   TooltipProvider
 } from '@/components/ui/tooltip';
 import { Progress } from '@/components/ui/progress';
-import { VideoStat } from '@/lib/types';
+import { VideoStat } from '@/lib/types/video';
 import { ColumnDef } from '@tanstack/react-table';
 import { CellAction } from './cell-action';
 

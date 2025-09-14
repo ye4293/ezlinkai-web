@@ -27,7 +27,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FileUploader } from '@/components/file-uploader';
-import { Channel } from '@/lib/types';
+import { Channel } from '@/lib/types/channel';
 import request from '@/app/lib/clientFetch';
 
 const formSchema = z.object({

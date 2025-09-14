@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 // import { Toaster } from '@/components/ui/toaster';
 // import { Toaster, toast } from 'sonner';
 import { toast } from 'sonner';
-import { Token } from '@/lib/types';
+import { Token } from '@/lib/types/token';
 import { ColumnDef } from '@tanstack/react-table';
 import { CellAction } from './cell-action';
 import { renderQuota } from '@/utils/render';

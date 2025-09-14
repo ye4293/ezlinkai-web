@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/tooltip';
 // import { Toaster } from '@/components/ui/toaster';
 import { Toaster, toast } from 'sonner';
-import { UserSelf } from '@/lib/types';
+import { UserSelf } from '@/lib/types/user';
 import { ColumnDef } from '@tanstack/react-table';
 import { CellAction } from './cell-action';
 import { renderQuota, renderNumber } from '@/utils/render';

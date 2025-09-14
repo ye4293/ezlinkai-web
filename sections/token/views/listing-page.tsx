@@ -5,7 +5,7 @@ import TokenTable from '../tables';
 import { buttonVariants } from '@/components/ui/button';
 import { Heading } from '@/components/ui/heading';
 import { Separator } from '@/components/ui/separator';
-import { Token } from '@/lib/types';
+import { Token } from '@/lib/types/token';
 import { searchParamsCache } from '@/lib/searchparams';
 import { cn } from '@/lib/utils';
 import { Plus } from 'lucide-react';

@@ -5,7 +5,7 @@ import { DataTableFilterBox } from '@/components/ui/table/data-table-filter-box'
 import { DataTableResetFilter } from '@/components/ui/table/data-table-reset-filter';
 import { DataTableSearch } from '@/components/ui/table/data-table-search';
 import { DateTimeRangePicker } from '@/components/datetime-range-picker';
-import { ImageStat } from '@/lib/types';
+import { ImageStat } from '@/lib/types/image';
 import { LOG_OPTIONS } from '@/constants';
 import { columns } from './columns';
 import { STATUS_OPTIONS, useTableFilters } from './use-table-filters';

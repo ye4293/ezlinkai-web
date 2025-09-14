@@ -6,7 +6,7 @@ import LogTable from '../tables';
 import { buttonVariants } from '@/components/ui/button';
 import { Heading } from '@/components/ui/heading';
 import { Separator } from '@/components/ui/separator';
-import { LogStat } from '@/lib/types';
+import { LogStat } from '@/lib/types/log';
 // import { fakeUsers } from '@/constants/mock-api';
 import { searchParamsCache } from '@/lib/searchparams';
 import { cn } from '@/lib/utils';

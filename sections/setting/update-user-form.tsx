@@ -24,7 +24,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { UserSelf } from '@/lib/types';
+import { UserSelf } from '@/lib/types/user';
 import { toast } from 'sonner';
 
 const formSchema = z.object({

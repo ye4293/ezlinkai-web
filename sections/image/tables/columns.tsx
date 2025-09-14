@@ -7,7 +7,7 @@ import {
   TooltipTrigger,
   TooltipProvider
 } from '@/components/ui/tooltip';
-import { ImageStat } from '@/lib/types';
+import { ImageStat } from '@/lib/types/image';
 import { ColumnDef } from '@tanstack/react-table';
 import { CellAction } from './cell-action';
 

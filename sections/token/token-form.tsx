@@ -29,7 +29,7 @@ import { cn } from '@/lib/utils';
 import { CalendarIcon } from '@radix-ui/react-icons';
 import { addDays, format, addMonths, addHours, addMinutes } from 'date-fns';
 import { renderQuotaWithPrompt, renderQuotaNum } from '@/utils/render';
-import { Token } from '@/lib/types';
+import { Token } from '@/lib/types/token';
 import { toast } from 'sonner';
 
 const formSchema = z.object({

@@ -8,7 +8,7 @@ import {
   TooltipProvider
 } from '@/components/ui/tooltip';
 import { Progress } from '@/components/ui/progress';
-import { MidjourneyStat } from '@/lib/types';
+import { MidjourneyStat } from '@/lib/types/midjourney';
 import { ColumnDef } from '@tanstack/react-table';
 import { CellAction } from './cell-action';
 

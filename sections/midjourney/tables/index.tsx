@@ -6,7 +6,7 @@ import { DataTableResetFilter } from '@/components/ui/table/data-table-reset-fil
 import { DataTableSearch } from '@/components/ui/table/data-table-search';
 import { CalendarDateRangePicker } from '@/components/date-range-picker';
 // import { Channel } from '@/constants/data';
-import { MidjourneyStat } from '@/lib/types';
+import { MidjourneyStat } from '@/lib/types/midjourney';
 import { LOG_OPTIONS } from '@/constants';
 import { columns } from './columns';
 import {

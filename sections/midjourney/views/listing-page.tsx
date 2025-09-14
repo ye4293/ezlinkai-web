@@ -6,7 +6,7 @@ import MidjourneyTable from '../tables';
 import { buttonVariants } from '@/components/ui/button';
 import { Heading } from '@/components/ui/heading';
 import { Separator } from '@/components/ui/separator';
-import { MidjourneyStat } from '@/lib/types';
+import { MidjourneyStat } from '@/lib/types/midjourney';
 // import { fakeUsers } from '@/constants/mock-api';
 import { searchParamsCache } from '@/lib/searchparams';
 import { cn } from '@/lib/utils';

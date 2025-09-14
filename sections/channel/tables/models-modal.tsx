@@ -8,13 +8,19 @@ import {
   DialogFooter
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Channel } from '@/lib/types';
+import { Channel } from '@/lib/types/channel';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { DataTable } from '@/components/ui/table/data-table';
 import { Input } from '@/components/ui/input';
-import { ColumnDef } from '@tanstack/react-table';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from '@/components/ui/table';
 import { useRouter } from 'next/navigation';
 
 interface ModelsModalProps {
@@ -238,81 +244,29 @@ export const ModelsModal: React.FC<ModelsModalProps> = ({
     }
   };
 
-  const modelColumns: ColumnDef<Model>[] = [
-    {
-      id: 'select',
-      header: ({ table }) => (
-        <Checkbox
-          checked={table.getIsAllPageRowsSelected()}
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label="Select all"
-        />
-      ),
-      cell: ({ row }) => (
-        <Checkbox
-          checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label="Select row"
-        />
-      ),
-      enableSorting: false,
-      enableHiding: false
-    },
-    {
-      accessorKey: 'name',
-      header: 'Model Name'
-    },
-    {
-      accessorKey: 'owned_by',
-      header: 'Status',
-      cell: ({ row }) => {
-        return <span>{row.original.owned_by}</span>;
-      }
-    },
-    {
-      accessorKey: 'responseTime',
-      header: '响应时间',
-      cell: ({ row }) => {
-        const model = row.original;
-        const { testStatus, responseTime } = model;
+  const [allSelected, setAllSelected] = useState(false);
 
-        if (testStatus === 'testing') {
-          return <span className="text-blue-600">测试中...</span>;
-        }
-
-        if (responseTime !== undefined) {
-          const colorClass =
-            testStatus === 'success'
-              ? 'text-green-600'
-              : testStatus === 'failed'
-              ? 'text-red-600'
-              : 'text-gray-600';
-          return <span className={colorClass}>{responseTime.toFixed(2)}s</span>;
-        }
-
-        return <span className="text-gray-400">未测试</span>;
-      }
-    },
-    {
-      id: 'actions',
-      header: 'Actions',
-      cell: ({ row }) => {
-        const model = row.original;
-        const istesting = model.testStatus === 'testing';
-
-        return (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => testModel(model.id)}
-            disabled={istesting}
-          >
-            {istesting ? '测试中...' : '测试'}
-          </Button>
-        );
-      }
+  const handleSelectAll = (checked: boolean) => {
+    setAllSelected(checked);
+    if (checked) {
+      setSelectedModels([...filteredModels]);
+    } else {
+      setSelectedModels([]);
     }
-  ];
+  };
+
+  const handleSelectModel = (model: Model, checked: boolean) => {
+    if (checked) {
+      setSelectedModels((prev) => [...prev, model]);
+    } else {
+      setSelectedModels((prev) => prev.filter((m) => m.id !== model.id));
+      setAllSelected(false);
+    }
+  };
+
+  const isModelSelected = (model: Model) => {
+    return selectedModels.some((m) => m.id === model.id);
+  };
 
   const filteredModels = models.filter((model) =>
     model.id.toLowerCase().includes(search.toLowerCase())
@@ -320,33 +274,192 @@ export const ModelsModal: React.FC<ModelsModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl">
-        <DialogHeader>
-          <DialogTitle>
-            Models for Channel:{' '}
-            <span className="font-bold">{channel.name}</span>
+      <DialogContent className="flex h-[800px] max-h-[95vh] w-[1200px] max-w-[95vw] flex-col">
+        <DialogHeader className="flex-shrink-0">
+          <DialogTitle className="text-center text-xl font-bold">
+            Models for Channel: {channel.name}
           </DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-2">
-          <Input
-            placeholder="Search model..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <DataTable
-            columns={modelColumns}
-            data={filteredModels}
-            totalItems={filteredModels.length}
-            pageSize={5}
-            onSelectionChange={setSelectedModels}
-          />
+        <div className="min-h-0 flex-1 space-y-6 py-4">
+          <div className="px-6">
+            <Input
+              placeholder="搜索模型..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="mx-auto block h-10 max-w-lg text-base"
+              disabled={loading}
+            />
+          </div>
+          <div className="min-h-0 flex-1 rounded-lg bg-gray-50/50 p-4">
+            {loading ? (
+              <div className="flex h-64 items-center justify-center">
+                <div className="space-y-4 text-center">
+                  <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
+                  </div>
+                  <div>
+                    <p className="text-lg font-medium text-gray-900">
+                      加载模型中...
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      正在获取频道 {channel.name} 的模型列表
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="h-full w-full overflow-auto">
+                <Table
+                  style={{ width: '1100px', tableLayout: 'fixed' }}
+                  className="mx-auto"
+                >
+                  <TableHeader className="sticky top-0 bg-background">
+                    <TableRow>
+                      <TableHead
+                        style={{ width: '80px' }}
+                        className="text-center"
+                      >
+                        <Checkbox
+                          checked={allSelected}
+                          onCheckedChange={handleSelectAll}
+                          aria-label="Select all"
+                        />
+                      </TableHead>
+                      <TableHead
+                        style={{ width: '600px' }}
+                        className="text-left"
+                      >
+                        模型名称
+                      </TableHead>
+                      <TableHead
+                        style={{ width: '140px' }}
+                        className="text-center"
+                      >
+                        状态
+                      </TableHead>
+                      <TableHead
+                        style={{ width: '140px' }}
+                        className="text-center"
+                      >
+                        响应时间
+                      </TableHead>
+                      <TableHead
+                        style={{ width: '140px' }}
+                        className="text-center"
+                      >
+                        操作
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredModels.map((model) => (
+                      <TableRow key={model.id} className="hover:bg-gray-50">
+                        <TableCell
+                          style={{ width: '80px' }}
+                          className="text-center"
+                        >
+                          <Checkbox
+                            checked={isModelSelected(model)}
+                            onCheckedChange={(checked) =>
+                              handleSelectModel(model, checked as boolean)
+                            }
+                            aria-label="Select row"
+                          />
+                        </TableCell>
+                        <TableCell
+                          style={{ width: '600px' }}
+                          className="text-left"
+                        >
+                          <div
+                            className="truncate pr-4 font-mono text-base text-gray-900"
+                            title={model.name}
+                          >
+                            {model.name}
+                          </div>
+                        </TableCell>
+                        <TableCell
+                          style={{ width: '140px' }}
+                          className="text-center"
+                        >
+                          <span className="inline-flex items-center rounded-full bg-blue-100 px-4 py-2 text-sm font-medium text-blue-800">
+                            {model.owned_by}
+                          </span>
+                        </TableCell>
+                        <TableCell
+                          style={{ width: '140px' }}
+                          className="text-center"
+                        >
+                          {model.testStatus === 'testing' ? (
+                            <span className="inline-flex animate-pulse items-center rounded-full bg-blue-100 px-4 py-2 text-sm font-medium text-blue-600">
+                              测试中
+                            </span>
+                          ) : model.responseTime !== undefined ? (
+                            <span
+                              className={`inline-flex items-center rounded-full px-4 py-2 font-mono text-sm font-medium ${
+                                model.testStatus === 'success'
+                                  ? 'bg-green-100 text-green-800'
+                                  : model.testStatus === 'failed'
+                                  ? 'bg-red-100 text-red-800'
+                                  : 'bg-gray-100 text-gray-800'
+                              }`}
+                            >
+                              {model.responseTime.toFixed(1)}s
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center rounded-full bg-gray-100 px-4 py-2 text-sm font-medium text-gray-500">
+                              未测试
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell
+                          style={{ width: '140px' }}
+                          className="text-center"
+                        >
+                          <Button
+                            variant={
+                              model.testStatus === 'testing'
+                                ? 'secondary'
+                                : 'outline'
+                            }
+                            size="default"
+                            onClick={() => testModel(model.id)}
+                            disabled={model.testStatus === 'testing'}
+                            className="h-9 px-4 text-sm"
+                          >
+                            {model.testStatus === 'testing' ? '测试中' : '测试'}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+
+                {/* 底部统计信息 */}
+                <div className="sticky bottom-0 border-t bg-background pt-3">
+                  <div className="flex items-center justify-center">
+                    <span className="text-sm text-gray-600">
+                      共 {filteredModels.length} 个模型
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Cancel
+        <DialogFooter className="flex-shrink-0 gap-4 border-t pt-6">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            className="h-10 px-6 text-base"
+          >
+            取消
           </Button>
-          <Button onClick={onBatchTest}>
-            批量测试选中的模型 ({selectedModels.length})
+          <Button
+            onClick={onBatchTest}
+            disabled={selectedModels.length === 0}
+            className="h-10 px-6 text-base"
+          >
+            批量测试选中模型 ({selectedModels.length})
           </Button>
         </DialogFooter>
       </DialogContent>

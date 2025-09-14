@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 // import { Channel } from '@/constants/data';
-import { Channel } from '@/lib/types';
+import { Channel } from '@/lib/types/channel';
 import { Edit, MoreHorizontal, Trash } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';

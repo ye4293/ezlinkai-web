@@ -5,7 +5,7 @@ import OptimizedChannelTable from '../tables/optimized-channel-table';
 import { buttonVariants } from '@/components/ui/button';
 import { Heading } from '@/components/ui/heading';
 import { Separator } from '@/components/ui/separator';
-import { Channel } from '@/lib/types';
+import { Channel } from '@/lib/types/channel';
 import { searchParamsCache } from '@/lib/searchparams';
 import { cn } from '@/lib/utils';
 import { Plus } from 'lucide-react';

@@ -8,7 +8,7 @@ import {
   TooltipTrigger,
   TooltipProvider
 } from '@/components/ui/tooltip';
-import { LogStat } from '@/lib/types';
+import { LogStat } from '@/lib/types/log';
 import { ColumnDef } from '@tanstack/react-table';
 import { CopyableCell } from '@/components/ui/copyable-cell';
 

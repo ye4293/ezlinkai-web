@@ -4,7 +4,7 @@ import { Breadcrumbs } from '@/components/breadcrumbs';
 import PageContainer from '@/components/layout/page-container';
 import ImageTable from '../tables';
 import { Separator } from '@/components/ui/separator';
-import { ImageStat } from '@/lib/types';
+import { ImageStat } from '@/lib/types/image';
 // import { fakeUsers } from '@/constants/mock-api';
 import { searchParamsCache } from '@/lib/searchparams';
 

@@ -31,7 +31,7 @@ import {
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 // import { cn } from '@/lib/utils';
-import { UserSelf } from '@/lib/types';
+import { UserSelf } from '@/lib/types/user';
 import { renderQuotaWithPrompt } from '@/utils/render';
 import { toast } from 'sonner';
 

@@ -1,265 +1,64 @@
 'use client';
-import { useRouter } from 'next/navigation';
+
+import { ColumnDef, Row } from '@tanstack/react-table';
+import { memo, useMemo } from 'react';
 import dayjs from 'dayjs';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   Tooltip,
   TooltipContent,
-  TooltipTrigger,
-  TooltipProvider
+  TooltipProvider,
+  TooltipTrigger
 } from '@/components/ui/tooltip';
-import { Channel } from '@/lib/types';
-import { ColumnDef } from '@tanstack/react-table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Link, RotateCcw } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
+import { Channel } from '@/lib/types/channel';
 import { CellAction } from './cell-action';
 import { renderNumber } from '@/utils/render';
-import { useState, useEffect, useContext } from 'react';
-import React from 'react';
 import { toast } from 'sonner';
-import { CHANNEL_OPTIONS } from '@/constants';
-import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
-import { invalidateCache } from '@/lib/cache-utils';
+import React from 'react';
 
-interface ColumnsProps {
-  onManageKeys: (channel: Channel) => void;
-  onDataChange?: () => Promise<void>;
-}
-
-type ChannelType = {
+// 直接使用后端返回的数据结构
+export type ChannelType = {
   key: number;
   text: string;
   value: number;
   color: string;
 };
 
-function useChannelTypes() {
-  const [types, setTypes] = useState<ChannelType[]>([]);
+// 常量定义
+const QUOTA_DIVISOR = 500000; // Used Quota 显示除数
 
-  useEffect(() => {
-    const fetchTypes = async () => {
-      try {
-        const res = await fetch('/api/channel/types', {
-          credentials: 'include'
-        });
-        const { data } = await res.json();
-        setTypes(data);
-      } catch (error) {
-        // 如果API失败，使用本地常量作为fallback
-        setTypes(CHANNEL_OPTIONS);
-      }
-    };
-    fetchTypes();
-  }, []);
-
-  return types;
-}
-
-const getStatusInfo = (status: number) => {
-  switch (status) {
-    case 1:
-      return { text: '已启用', variant: 'default' as const };
-    case 2:
-      return { text: '手动禁用', variant: 'secondary' as const };
-    case 3:
-      return { text: '自动禁用', variant: 'destructive' as const };
-    default:
-      return { text: '未知', variant: 'outline' as const };
-  }
+// 实用工具函数
+const isValidNumber = (value: any): value is number => {
+  return typeof value === 'number' && !isNaN(value) && isFinite(value);
 };
 
-// Status Cell Component
-const StatusCell = ({
-  row,
-  onDataChange
-}: {
-  row: any;
-  onDataChange?: () => Promise<void>;
-}) => {
-  const [status, setStatus] = useState(row.getValue('status') as number);
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [justUpdated, setJustUpdated] = useState(false);
-  const router = useRouter();
-
-  // 同步外部状态变化
-  React.useEffect(() => {
-    const newStatus = row.getValue('status') as number;
-    if (newStatus !== status && !isUpdating) {
-      setStatus(newStatus);
-    }
-  }, [row.getValue('status'), status, isUpdating]);
-
-  const handleStatusChange = async (newStatus: boolean) => {
-    if (isUpdating) return; // 防止重复请求
-
-    const oldStatus = status;
-    const newStatusValue = newStatus ? 1 : 2; // 启用: 1, 手动禁用: 2
-
-    // 立即更新UI状态
-    setStatus(newStatusValue);
-    setIsUpdating(true);
-
-    try {
-      const params = {
-        id: row.original.id,
-        status: newStatusValue
-      };
-
-      const res = await fetch(`/api/channel`, {
-        method: 'PUT',
-        body: JSON.stringify(params),
-        credentials: 'include'
-      });
-
-      if (!res.ok) throw new Error('Failed to update status');
-
-      const oldStatusInfo = getStatusInfo(oldStatus);
-      const newStatusInfo = getStatusInfo(newStatusValue);
-
-      // 清除缓存
-      invalidateCache('channels');
-
-      // 显示成功状态
-      setJustUpdated(true);
-
-      toast.success(
-        `Channel '${row.original.name}' status changed from ${oldStatusInfo.text} to ${newStatusInfo.text}`
-      );
-
-      // 使用直接数据刷新而不是路由刷新
-      if (onDataChange) {
-        setTimeout(async () => {
-          await onDataChange();
-          // 1.5秒后清除成功状态
-          setTimeout(() => {
-            setJustUpdated(false);
-          }, 1500);
-        }, 100);
-      } else {
-        setTimeout(() => {
-          router.refresh();
-          // 1.5秒后清除成功状态
-          setTimeout(() => {
-            setJustUpdated(false);
-          }, 1500);
-        }, 100);
-      }
-    } catch (error) {
-      toast.error('Failed to update status');
-      setStatus(oldStatus); // 更新失败时，恢复原状
-      setJustUpdated(false); // 确保不显示成功状态
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
-  const isChecked = status === 1;
-  const currentStatusInfo = getStatusInfo(status);
-  const channel = row.original as Channel;
-  const reason = channel.auto_disabled_reason;
-  const time = channel.auto_disabled_time;
-
-  let switchClassName = '';
-  if (status === 1) {
-    switchClassName = 'data-[state=checked]:bg-green-500';
-  } else if (status === 3) {
-    switchClassName = 'data-[state=unchecked]:bg-orange-500';
-  }
-
-  return (
-    <div className="flex items-center justify-center gap-2">
-      {/* Hack to prevent Tailwind CSS from purging dynamic classes */}
-      <div className="hidden data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-orange-500"></div>
-
-      {/* Switch - 始终可用，立即反映状态变化 */}
-      <Switch
-        checked={isChecked}
-        onCheckedChange={handleStatusChange}
-        disabled={false} // 不禁用，让用户看到立即反馈
-        className={switchClassName}
-      />
-
-      {/* 状态Badge - 显示不同状态 */}
-      <Badge
-        variant={justUpdated ? 'default' : currentStatusInfo.variant}
-        className={`transition-all duration-200 ${
-          isUpdating ? 'opacity-75' : ''
-        } ${justUpdated ? 'border-green-600 bg-green-600 text-white' : ''}`}
-      >
-        {isUpdating ? (
-          <div className="flex items-center gap-1">
-            <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
-            <span>更新中...</span>
-          </div>
-        ) : justUpdated ? (
-          <div className="flex items-center gap-1">
-            <span className="text-green-100">✓</span>
-            <span>已更新</span>
-          </div>
-        ) : (
-          currentStatusInfo.text
-        )}
-      </Badge>
-
-      {/* 自动禁用信息 */}
-      {status === 3 && reason && !isUpdating && (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="cursor-help">⚠️</span>
-            </TooltipTrigger>
-            <TooltipContent className="max-w-md shadow-lg">
-              <div className="space-y-2 p-2 font-mono text-xs">
-                <div className="font-sans text-sm font-bold text-foreground">
-                  自动禁用详情
-                </div>
-                <div className="space-y-1">
-                  <div className="flex">
-                    <span className="w-16 flex-shrink-0 text-muted-foreground">
-                      原因
-                    </span>
-                    <span className="font-semibold text-destructive">
-                      {formatDisableReason(reason).display}
-                    </span>
-                  </div>
-                  {channel.auto_disabled_model && (
-                    <div className="flex">
-                      <span className="w-16 flex-shrink-0 text-muted-foreground">
-                        模型
-                      </span>
-                      <span className="font-semibold">
-                        {channel.auto_disabled_model}
-                      </span>
-                    </div>
-                  )}
-                  {time && (
-                    <div className="flex">
-                      <span className="w-16 flex-shrink-0 text-muted-foreground">
-                        时间
-                      </span>
-                      <span className="font-semibold">
-                        {dayjs.unix(time).format('YYYY-MM-DD HH:mm:ss')}
-                      </span>
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <div className="mb-1 mt-2 font-sans font-medium text-foreground">
-                    原始错误
-                  </div>
-                  <pre className="whitespace-pre-wrap rounded-md bg-muted p-2 text-xs">
-                    <code>{formatDisableReason(reason).tooltip}</code>
-                  </pre>
-                </div>
-              </div>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      )}
-    </div>
-  );
+const formatNumber = (num: number): string => {
+  return num.toLocaleString('zh-CN');
 };
 
-// 辅助函数：解析并格式化禁用原因
+const safeApiCall = async (url: string, options: RequestInit = {}) => {
+  const response = await fetch(url, {
+    ...options,
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  }
+
+  return response.json();
+};
+
+// --- 辅助函数 ---
+
 const formatDisableReason = (reason: string) => {
   try {
     const parsed = JSON.parse(reason);
@@ -270,14 +69,18 @@ const formatDisableReason = (reason: string) => {
     } else if (parsed.message) {
       message = parsed.message;
     } else if (typeof parsed === 'object' && parsed !== null) {
-      // 尝试查找任何嵌套的message
-      const findMessage = (obj: any): string | null => {
+      // 安全的递归搜索，限制深度防止无限循环
+      const findMessage = (obj: any, depth: number = 0): string | null => {
+        if (depth > 5) return null; // 限制递归深度
+
         for (const key in obj) {
+          if (!obj.hasOwnProperty(key)) continue;
+
           if (key === 'message' && typeof obj[key] === 'string') {
             return obj[key];
           }
           if (typeof obj[key] === 'object' && obj[key] !== null) {
-            const nestedMessage = findMessage(obj[key]);
+            const nestedMessage = findMessage(obj[key], depth + 1);
             if (nestedMessage) return nestedMessage;
           }
         }
@@ -294,653 +97,695 @@ const formatDisableReason = (reason: string) => {
       tooltip: JSON.stringify(parsed, null, 2)
     };
   } catch (e) {
-    // 不是JSON格式
     return { display: reason, tooltip: reason };
   }
 };
 
-const renderResponseTime = (test_time: number, response_time: number) => {
-  let time: string | number = response_time / 1000;
-  time = time.toFixed(2) + ' ' + 's';
-  return (
-    <TooltipProvider disableHoverableContent>
-      <Tooltip delayDuration={100}>
-        <TooltipTrigger asChild>
-          <span>{response_time === 0 ? 'Not tested' : time}</span>
-        </TooltipTrigger>
-        <TooltipContent side="bottom">
-          {test_time
-            ? dayjs(test_time * 1000).format('YYYY-MM-DD HH:mm:ss')
-            : 'Not tested'}
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
-};
-
 const renderBalance = (type: number, balance: number) => {
+  // 数据验证
+  if (!isValidNumber(balance)) {
+    return <span className="text-gray-500">无效数据</span>;
+  }
+
+  // 处理负数余额
+  const isNegative = balance < 0;
+  const absBalance = Math.abs(balance);
+  const negativeClass = isNegative ? 'text-red-600' : '';
+
   switch (type) {
     case 1: // OpenAI
-      return <span>${balance.toFixed(2)}</span>;
+      return (
+        <span className={negativeClass}>
+          ${absBalance.toFixed(2)}
+          {isNegative ? ' (负数)' : ''}
+        </span>
+      );
     case 4: // CloseAI
-      return <span>¥{balance.toFixed(2)}</span>;
+      return (
+        <span className={negativeClass}>
+          ¥{absBalance.toFixed(2)}
+          {isNegative ? ' (负数)' : ''}
+        </span>
+      );
     case 8: // 自定义
-      return <span>${balance.toFixed(2)}</span>;
+      return (
+        <span className={negativeClass}>
+          ${absBalance.toFixed(2)}
+          {isNegative ? ' (负数)' : ''}
+        </span>
+      );
     case 5: // OpenAI-SB
-      return <span>¥{(balance / 10000).toFixed(2)}</span>;
+      return (
+        <span className={negativeClass}>
+          ¥{(absBalance / 10000).toFixed(2)}
+          {isNegative ? ' (负数)' : ''}
+        </span>
+      );
     case 10: // AI Proxy
-      return <span>{renderNumber(balance)}</span>;
+      return (
+        <span className={negativeClass}>
+          {renderNumber(absBalance)}
+          {isNegative ? ' (负数)' : ''}
+        </span>
+      );
     case 12: // API2GPT
-      return <span>¥{balance.toFixed(2)}</span>;
+      return (
+        <span className={negativeClass}>
+          ¥{absBalance.toFixed(2)}
+          {isNegative ? ' (负数)' : ''}
+        </span>
+      );
     case 13: // AIGC2D
-      return <span>{renderNumber(balance)}</span>;
+      return (
+        <span className={negativeClass}>
+          {renderNumber(absBalance)}
+          {isNegative ? ' (负数)' : ''}
+        </span>
+      );
     default:
-      return <span>Not supported</span>;
+      return <span className="text-yellow-600">不支持的类型 ({type})</span>;
   }
 };
 
-// 颜色映射函数
-const getColorStyle = (colorName: string) => {
-  const colorMap: { [key: string]: string } = {
-    green: '#10b981',
-    blue: '#3b82f6',
-    orange: '#f97316',
-    black: '#1f2937',
-    olive: '#84cc16',
-    brown: '#a3a3a3',
-    violet: '#8b5cf6',
-    purple: '#a855f7',
-    teal: '#14b8a6',
-    red: '#ef4444',
-    pink: '#ec4899',
-    yellow: '#eab308'
-  };
-  return colorMap[colorName] || '#6b7280';
+// --- 单元格组件 ---
+
+// 常量化颜色映射，避免每次渲染重新创建
+const COLOR_CLASS_MAP: { [key: string]: string } = {
+  green: 'bg-green-500 text-white',
+  blue: 'bg-blue-500 text-white',
+  orange: 'bg-orange-500 text-white',
+  black: 'bg-gray-800 text-white',
+  olive: 'bg-lime-600 text-white',
+  brown: 'bg-amber-700 text-white',
+  violet: 'bg-violet-500 text-white',
+  purple: 'bg-purple-500 text-white',
+  teal: 'bg-teal-500 text-white',
+  red: 'bg-red-500 text-white',
+  pink: 'bg-pink-500 text-white',
+  yellow: 'bg-yellow-500 text-black',
+  gray: 'bg-gray-400 text-white'
 };
 
-// 创建 Context
-const ChannelTypesContext = React.createContext<ChannelType[]>([]);
+const TypeCell = memo(
+  ({
+    row,
+    channelTypes
+  }: {
+    row: Row<Channel>;
+    channelTypes: ChannelType[];
+  }) => {
+    const typeValue = row.getValue('type') as number;
 
-// 创建 Provider 组件
-export function ChannelTypesProvider({
-  children
-}: {
-  children: React.ReactNode;
-}) {
-  const types = useChannelTypes();
-  return (
-    <ChannelTypesContext.Provider value={types}>
-      {children}
-    </ChannelTypesContext.Provider>
-  );
-}
-
-// 创建自定义 hook 来使用 context
-const useChannelTypesContext = () => {
-  return useContext(ChannelTypesContext);
-};
-
-// Priority Cell Component
-const PriorityCell = ({
-  row,
-  onDataChange
-}: {
-  row: any;
-  onDataChange?: () => Promise<void>;
-}) => {
-  const [value, setValue] = useState(row.getValue('priority') as number);
-  const router = useRouter();
-
-  const handleBlur = async () => {
-    try {
-      const params = {
-        id: row.original.id,
-        priority: parseInt(String(value))
-      };
-      const res = await fetch(`/api/channel`, {
-        method: 'PUT',
-        body: JSON.stringify(params),
-        credentials: 'include'
-      });
-      if (!res.ok) throw new Error('Failed to update priority');
-
-      // 清除缓存以确保获取最新数据
-      invalidateCache('channels');
-
-      if (onDataChange) {
-        await onDataChange();
-      } else {
-        router.refresh();
+    const channelTypeInfo = useMemo(() => {
+      // 数据验证
+      if (typeof typeValue !== 'number' || isNaN(typeValue)) {
+        return { text: '无效类型', color: 'gray' };
       }
-    } catch (error) {
-      setValue(row.getValue('priority'));
-    }
-  };
 
-  return (
-    <div className="text-center">
-      <input
-        type="number"
-        value={value}
-        onChange={(e) => setValue(Number(e.target.value))}
-        onBlur={handleBlur}
-        className="w-16 rounded border text-center"
-      />
-    </div>
-  );
-};
+      // 直接查找对应的类型
+      const channelType = channelTypes.find((t) => t.value === typeValue);
 
-// Weight Cell Component
-const WeightCell = ({
-  row,
-  onDataChange
-}: {
-  row: any;
-  onDataChange?: () => Promise<void>;
-}) => {
-  const [value, setValue] = useState(row.getValue('weight') as number);
-  const router = useRouter();
-
-  const handleBlur = async () => {
-    try {
-      const params = {
-        id: row.original.id,
-        weight: parseInt(String(value))
-      };
-      const res = await fetch(`/api/channel`, {
-        method: 'PUT',
-        body: JSON.stringify(params),
-        credentials: 'include'
-      });
-      if (!res.ok) throw new Error('Failed to update weight');
-
-      // 清除缓存以确保获取最新数据
-      invalidateCache('channels');
-
-      if (onDataChange) {
-        await onDataChange();
-      } else {
-        router.refresh();
+      if (channelType) {
+        return {
+          text: channelType.text,
+          color: channelType.color
+        };
       }
-    } catch (error) {
-      setValue(row.getValue('weight'));
-    }
-  };
 
-  return (
-    <div className="text-center">
-      <input
-        type="number"
-        value={value}
-        onChange={(e) => setValue(Number(e.target.value))}
-        onBlur={handleBlur}
-        className="w-16 rounded border text-center"
-      />
-    </div>
-  );
-};
+      // 没找到就显示未知类型
+      return { text: `未知类型 (${typeValue})`, color: 'gray' };
+    }, [channelTypes, typeValue]);
 
-// Channel Ratio Cell Component
-const ChannelRatioCell = ({
-  row,
-  onDataChange
-}: {
-  row: any;
-  onDataChange?: () => Promise<void>;
-}) => {
-  const [value, setValue] = useState(row.getValue('channel_ratio') as number);
-  const router = useRouter();
+    const colorClasses =
+      COLOR_CLASS_MAP[channelTypeInfo.color] || COLOR_CLASS_MAP.gray;
 
-  const handleBlur = async () => {
-    try {
-      const params = {
-        id: row.original.id,
-        channel_ratio: parseFloat(String(value))
-      };
-      const res = await fetch(`/api/channel`, {
-        method: 'PUT',
-        body: JSON.stringify(params),
-        credentials: 'include'
-      });
-      if (!res.ok) throw new Error('Failed to update channel ratio');
-
-      // 清除缓存以确保获取最新数据
-      invalidateCache('channels');
-
-      if (onDataChange) {
-        await onDataChange();
-      } else {
-        router.refresh();
-      }
-    } catch (error) {
-      setValue(row.getValue('channel_ratio'));
-    }
-  };
-
-  return (
-    <div className="text-center">
-      <input
-        type="number"
-        step="0.1"
-        min="0.1"
-        value={value}
-        onChange={(e) => setValue(Number(e.target.value))}
-        onBlur={handleBlur}
-        className="w-20 rounded border text-center"
-      />
-    </div>
-  );
-};
-
-// Type Cell Component with Color
-const TypeCell = ({ row }: { row: any }) => {
-  const types = useChannelTypesContext();
-  const typeValue = row.getValue('type') as number;
-  const typeInfo = types.find((item) => item.key === typeValue);
-  const typeText = typeInfo?.text || '';
-  const typeColor = typeInfo?.color || 'gray';
-
-  return (
-    <div className="flex items-center justify-center">
-      <div
-        className="rounded border px-2 py-1 text-sm font-medium text-white"
-        style={{
-          backgroundColor: getColorStyle(typeColor),
-          borderColor: getColorStyle(typeColor)
-        }}
-        title={typeText}
-      >
-        {typeText}
+    return (
+      <div className="text-center">
+        <Badge
+          className={`whitespace-nowrap ${colorClasses}`}
+          aria-label={`渠道类型: ${channelTypeInfo.text}`}
+        >
+          {channelTypeInfo.text}
+        </Badge>
       </div>
-    </div>
-  );
-};
+    );
+  }
+);
+TypeCell.displayName = 'TypeCell';
 
-// Actions Cell Component
-const ActionsCell = ({
-  row,
-  onManageKeys
-}: {
-  row: any;
-  onManageKeys: (channel: Channel) => void;
-}) => {
-  return (
-    <div className="text-center">
-      <CellAction data={row.original} onManageKeys={onManageKeys} />
-    </div>
-  );
-};
+const StatusCell = memo(
+  ({ row, onDataChange }: { row: Row<Channel>; onDataChange?: () => void }) => {
+    const channel = row.original;
+    const [isUpdating, setIsUpdating] = React.useState(false);
 
-// Used Quota Cell Component - 完全重构版本
-const UsedQuotaCell = ({ row }: { row: any }) => {
-  const rawUsedQuota = row.getValue('used_quota') as number;
-  const router = useRouter();
-  const [isClearing, setIsClearing] = useState(false);
-  const [justCleared, setJustCleared] = useState(false);
+    const handleStatusChange = async (newStatus: number) => {
+      if (isUpdating) return; // 防止重复点击
 
-  // 计算实际配额值
-  const actualQuota = rawUsedQuota ? rawUsedQuota / 500000 : 0;
+      const oldStatus = channel.status ?? 3; // 默认为手动禁用状态
+      const getStatusText = (status: number) => {
+        const statusMap = {
+          1: '已启用',
+          2: '自动禁用',
+          3: '手动禁用'
+        };
+        return statusMap[status as keyof typeof statusMap] || '未知状态';
+      };
 
-  // 格式化配额显示
-  const formatDisplayValue = (value: number) => {
-    if (value === 0) return '0';
-    if (value >= 1000000000) return `${(value / 1000000000).toFixed(2)}B`;
-    if (value >= 1000000) return `${(value / 1000000).toFixed(2)}M`;
-    if (value >= 1000) return `${(value / 1000).toFixed(2)}K`;
-    return value.toFixed(2);
-  };
+      setIsUpdating(true);
+      try {
+        const result = await safeApiCall(`/api/channel/`, {
+          method: 'PUT',
+          body: JSON.stringify({ id: channel.id, status: newStatus })
+        });
 
-  // 清空配额函数
-  const handleClearQuota = async () => {
-    const displayValue = formatDisplayValue(actualQuota);
-    if (
-      !confirm(
-        `确认清空渠道 "${row.original.name}" 的配额？\n当前值: ${displayValue}`
-      )
-    ) {
-      return;
-    }
-
-    setIsClearing(true);
-    try {
-      const response = await fetch(
-        `/api/channel/clear_quota/${row.original.id}`,
-        {
-          method: 'GET',
-          credentials: 'include'
+        if (result.success) {
+          toast.success(
+            `渠道状态已从「${getStatusText(oldStatus)}」变更为「${getStatusText(
+              newStatus
+            )}」`
+          );
+          onDataChange?.(); // refetch 函数已经会处理缓存失效
+        } else {
+          throw new Error(result.message || '状态更新失败');
         }
-      );
-
-      if (!response.ok) {
-        throw new Error(`请求失败: ${response.status}`);
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : '状态更新失败';
+        toast.error(`状态更新失败: ${errorMessage}`);
+      } finally {
+        setIsUpdating(false);
       }
+    };
 
-      const result = await response.json();
-      if (!result.success) {
-        throw new Error(result.message || '清空失败');
+    const statusMap = {
+      1: {
+        text: '已启用',
+        color: 'bg-green-100 text-green-800',
+        switchColor: 'bg-green-500'
+      },
+      2: {
+        text: '自动禁用',
+        color: 'bg-orange-100 text-orange-800',
+        switchColor: 'bg-orange-500'
+      },
+      3: {
+        text: '手动禁用',
+        color: 'bg-gray-100 text-gray-800',
+        switchColor: 'bg-gray-400'
       }
+    };
+    const currentStatus =
+      statusMap[channel.status as keyof typeof statusMap] || statusMap[3];
+    const isEnabled = channel.status === 1;
 
-      setJustCleared(true);
-      toast.success(`配额已清空: ${row.original.name}`);
-      setTimeout(() => {
-        // 清除缓存以确保获取最新数据
-        invalidateCache('channels');
-        router.refresh();
-        setJustCleared(false);
-      }, 1500);
-    } catch (error) {
-      toast.error(
-        `清空失败: ${error instanceof Error ? error.message : '未知错误'}`
-      );
-    } finally {
-      setIsClearing(false);
-    }
-  };
+    return (
+      <div className="flex items-center justify-center gap-2">
+        <Switch
+          checked={isEnabled}
+          disabled={isUpdating}
+          onCheckedChange={() => handleStatusChange(isEnabled ? 3 : 1)}
+          className={`relative h-4 w-8 cursor-pointer rounded-full p-1 transition-colors ${
+            isEnabled ? currentStatus.switchColor : 'bg-gray-300'
+          } ${isUpdating ? 'cursor-not-allowed opacity-50' : ''}`}
+        />
+        <Badge
+          variant="outline"
+          className={`border-transparent ${currentStatus.color} ${
+            isUpdating ? 'opacity-50' : ''
+          }`}
+        >
+          {isUpdating ? '更新中...' : currentStatus.text}
+        </Badge>
 
-  // 渲染配额值
-  const displayValue = justCleared ? '0' : formatDisplayValue(actualQuota);
-  const hasValue = actualQuota > 0;
-
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        justifyContent: 'center'
-      }}
-    >
-      {/* 配额显示 */}
-      <div
-        style={{
-          padding: '6px 12px',
-          border: '1px solid #e5e7eb',
-          borderRadius: '6px',
-          backgroundColor: justCleared
-            ? '#dcfce7'
-            : hasValue
-            ? '#ffffff'
-            : '#f9fafb',
-          color: justCleared ? '#059669' : hasValue ? '#374151' : '#6b7280',
-          fontSize: '14px',
-          fontWeight: '500',
-          minWidth: '60px',
-          textAlign: 'center' as const,
-          position: 'relative' as const
-        }}
-      >
-        {displayValue}
-        {justCleared && (
-          <span style={{ marginLeft: '4px', color: '#10b981' }}>✓</span>
+        {/* 自动禁用信息 */}
+        {channel.status === 3 && channel.auto_disabled_reason && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="cursor-help">⚠️</span>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-md shadow-lg">
+                <div className="space-y-2 p-2 font-mono text-xs">
+                  <div className="font-sans text-sm font-bold text-foreground">
+                    自动禁用详情
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex">
+                      <span className="w-16 flex-shrink-0 text-muted-foreground">
+                        原因
+                      </span>
+                      <span className="font-semibold text-destructive">
+                        {
+                          formatDisableReason(channel.auto_disabled_reason)
+                            .display
+                        }
+                      </span>
+                    </div>
+                    {channel.auto_disabled_model && (
+                      <div className="flex">
+                        <span className="w-16 flex-shrink-0 text-muted-foreground">
+                          模型
+                        </span>
+                        <span className="font-semibold">
+                          {channel.auto_disabled_model}
+                        </span>
+                      </div>
+                    )}
+                    {channel.auto_disabled_time && (
+                      <div className="flex">
+                        <span className="w-16 flex-shrink-0 text-muted-foreground">
+                          时间
+                        </span>
+                        <span className="font-semibold">
+                          {dayjs
+                            .unix(channel.auto_disabled_time)
+                            .format('YYYY-MM-DD HH:mm:ss')}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <div className="mb-1 mt-2 font-sans font-medium text-foreground">
+                      原始错误
+                    </div>
+                    <pre className="whitespace-pre-wrap rounded-md bg-muted p-2 text-xs">
+                      <code>
+                        {
+                          formatDisableReason(channel.auto_disabled_reason)
+                            .tooltip
+                        }
+                      </code>
+                    </pre>
+                  </div>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
       </div>
+    );
+  }
+);
+StatusCell.displayName = 'StatusCell';
 
-      {/* 清空按钮 */}
-      {!justCleared && (
-        <button
-          onClick={handleClearQuota}
-          disabled={isClearing || !hasValue}
-          style={{
-            width: '28px',
-            height: '28px',
-            border: '1px solid',
-            borderRadius: '6px',
-            backgroundColor: !hasValue ? '#f9fafb' : '#fef2f2',
-            borderColor: !hasValue ? '#e5e7eb' : '#fecaca',
-            color: !hasValue ? '#9ca3af' : '#dc2626',
-            cursor: !hasValue ? 'not-allowed' : 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '14px'
-          }}
-          title={
-            !hasValue ? '无配额可清空' : isClearing ? '清空中...' : '清空配额'
-          }
-        >
-          {isClearing ? '⟳' : '🗑'}
-        </button>
-      )}
-    </div>
-  );
-};
+const ResponseTimeCell = memo(({ row }: { row: Row<Channel> }) => {
+  const testTime = row.original.test_time;
+  const responseTime = row.getValue('response_time') as number;
 
-// Balance Cell Component
-const BalanceCell = ({ row }: { row: any }) => {
-  const router = useRouter();
+  // 数据验证
+  if (!isValidNumber(responseTime)) {
+    return (
+      <div className="text-center">
+        <span className="text-gray-500">无效数据</span>
+      </div>
+    );
+  }
 
-  const updateBalance = async () => {
-    const params = {
-      id: row.original.id
-    };
-    const res = await fetch(`/api/channel/update_balance/${params.id}`, {
-      method: 'GET',
-      credentials: 'include'
-    });
-    const { success, message } = await res.json();
-    if (!success) {
-      toast.error(message);
-    } else {
-      // 只有在成功时才清除缓存
-      invalidateCache('channels');
+  // 格式化响应时间，添加性能指示器
+  const getTimeDisplay = () => {
+    if (responseTime === 0) {
+      return { text: '未测试', color: 'text-gray-500' };
     }
 
-    router.refresh();
+    const timeInSeconds = responseTime / 1000;
+    const formattedTime = timeInSeconds.toFixed(2) + ' s';
+
+    // 根据响应时间添加颜色指示
+    if (timeInSeconds < 1) {
+      return { text: formattedTime, color: 'text-green-600' }; // 优秀
+    } else if (timeInSeconds < 3) {
+      return { text: formattedTime, color: 'text-yellow-600' }; // 良好
+    } else if (timeInSeconds < 10) {
+      return { text: formattedTime, color: 'text-orange-600' }; // 一般
+    } else {
+      return { text: formattedTime, color: 'text-red-600' }; // 慢
+    }
   };
 
+  const timeDisplay = getTimeDisplay();
+  const testTimeFormatted = testTime
+    ? dayjs.unix(testTime).format('YYYY-MM-DD HH:mm:ss')
+    : '未测试';
+
   return (
-    <TooltipProvider disableHoverableContent>
-      <Tooltip delayDuration={100}>
-        <TooltipTrigger asChild>
-          <div className="cursor-pointer text-center" onClick={updateBalance}>
-            {renderBalance(row.getValue('type'), row.getValue('balance'))}
-          </div>
-        </TooltipTrigger>
-        <TooltipContent side="bottom">Update balance</TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
-};
-
-export const columns = ({
-  onManageKeys,
-  onDataChange
-}: ColumnsProps): ColumnDef<Channel>[] => {
-  // 移除这里的useRouter，将其移到需要的组件中
-
-  return [
-    {
-      id: 'select',
-      header: ({ table }) => (
-        <Checkbox
-          checked={table.getIsAllPageRowsSelected()}
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label="Select all"
-        />
-      ),
-      cell: ({ row }) => (
-        <Checkbox
-          checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label="Select row"
-        />
-      ),
-      enableSorting: false,
-      enableHiding: false
-    },
-    {
-      accessorKey: 'id',
-      header: () => <div className="text-center">ID</div>,
-      cell: ({ row }) => <div className="text-center">{row.getValue('id')}</div>
-    },
-    {
-      accessorKey: 'name',
-      header: () => <div className="text-center">Name</div>,
-      cell: ({ row }) => {
-        const channel = row.original;
-        const isMultiKey = channel.multi_key_info?.is_multi_key;
-        const keyCount = channel.multi_key_info?.key_count || 0;
-
-        // 计算启用的密钥数量 - 多重策略保证可靠性
-        let enabledCount = 0;
-        let calculationMethod = '';
-
-        // 方案1：优先使用后端直接计算的值（最可靠）
-        if (
-          channel.multi_key_info?.enabled_key_count !== undefined &&
-          channel.multi_key_info.enabled_key_count !== null
-        ) {
-          enabledCount = channel.multi_key_info.enabled_key_count;
-          calculationMethod = '后端计算';
-        }
-        // 方案2：前端动态计算（基于密钥状态列表）
-        else if (
-          channel.multi_key_info?.key_status_list &&
-          Object.keys(channel.multi_key_info.key_status_list).length > 0
-        ) {
-          enabledCount = Object.values(
-            channel.multi_key_info.key_status_list
-          ).filter((status) => status === 1).length;
-          calculationMethod = '前端计算';
-        }
-        // 方案3：智能推断 - 如果没有状态列表但有密钥数量，默认认为全部启用
-        // 这是因为 GetKeyStatus 的默认行为就是返回启用状态
-        else if (keyCount > 0) {
-          // 根据 GetKeyStatus 的逻辑，如果 KeyStatusList 为空，所有密钥默认为启用状态
-          enabledCount = keyCount;
-          calculationMethod = '智能推断(默认启用)';
-        } else {
-          calculationMethod = '无法计算';
-          console.error(`Channel ${channel.name}: 无法计算启用密钥数量`, {
-            keyCount,
-            multi_key_info: channel.multi_key_info
-          });
-        }
-
-        // 数据完整性检查（仅在异常情况下输出日志）
-        if (calculationMethod === '无法计算') {
-          console.error(`❌ Channel "${channel.name}": 无法获取密钥状态信息`);
-        }
-
-        return (
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-2">
-              <span>{row.getValue('name')}</span>
-              {isMultiKey && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <span
-                        className={`inline-flex items-center rounded-full border px-2 py-1 text-xs font-medium ${
-                          enabledCount === keyCount
-                            ? 'border-green-200 bg-green-100 text-green-800 dark:border-green-700 dark:bg-green-900 dark:text-green-200'
-                            : enabledCount === 0
-                            ? 'border-red-200 bg-red-100 text-red-800 dark:border-red-700 dark:bg-red-900 dark:text-red-200'
-                            : 'border-yellow-200 bg-yellow-100 text-yellow-800 dark:border-yellow-700 dark:bg-yellow-900 dark:text-yellow-200'
-                        }`}
-                      >
-                        🔗 聚合{' '}
-                        {keyCount > 0 ? `${enabledCount}/${keyCount}` : ''}
-                        {calculationMethod === '智能推断(默认启用)' && (
-                          <span className="ml-1" title="基于默认逻辑推断">
-                            ℹ️
-                          </span>
-                        )}
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <div className="space-y-1">
-                        <p className="font-medium">多密钥聚合渠道</p>
-                        <p>
-                          可用密钥:{' '}
-                          <span className="text-green-400">{enabledCount}</span>{' '}
-                          / 总密钥:{' '}
-                          <span className="text-blue-400">{keyCount}</span>
-                        </p>
-                        <p className="text-xs text-gray-400">
-                          选择模式:{' '}
-                          {channel.multi_key_info?.key_selection_mode === 0
-                            ? '轮询'
-                            : '随机'}
-                        </p>
-                        <p className="text-xs text-gray-400">
-                          编辑模式:{' '}
-                          {channel.multi_key_info?.batch_import_mode === 0
-                            ? '覆盖'
-                            : '追加'}
-                        </p>
-                        {calculationMethod === '智能推断(默认启用)' && (
-                          <p className="text-xs text-blue-400">
-                            ℹ️ 基于默认逻辑推断（密钥默认启用）
-                          </p>
-                        )}
-                      </div>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+    <div className="text-center">
+      <TooltipProvider disableHoverableContent>
+        <Tooltip delayDuration={100}>
+          <TooltipTrigger asChild>
+            <span
+              className={`font-mono ${timeDisplay.color}`}
+              aria-label={`响应时间: ${timeDisplay.text}, 最后测试: ${testTimeFormatted}`}
+            >
+              {timeDisplay.text}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <div className="text-sm">
+              <div>最后测试: {testTimeFormatted}</div>
+              {responseTime > 0 && (
+                <div className="mt-1 text-xs text-muted-foreground">
+                  {responseTime < 1000
+                    ? '优秀'
+                    : responseTime < 3000
+                    ? '良好'
+                    : responseTime < 10000
+                    ? '一般'
+                    : '需要优化'}
+                </div>
               )}
             </div>
-          </div>
-        );
-      }
-    },
-    {
-      accessorKey: 'group',
-      header: () => <div className="text-center">Group</div>,
-      cell: ({ row }) => (
-        <div className="text-center">{row.getValue('group')}</div>
-      )
-    },
-    {
-      accessorKey: 'type',
-      header: () => <div className="text-center">Type</div>,
-      cell: ({ row }) => <TypeCell row={row} />
-    },
-    {
-      accessorKey: 'priority',
-      header: () => <div className="text-center">Priority</div>,
-      cell: ({ row }) => <PriorityCell row={row} onDataChange={onDataChange} />
-    },
-    {
-      accessorKey: 'weight',
-      header: () => <div className="text-center">Weight</div>,
-      cell: ({ row }) => <WeightCell row={row} onDataChange={onDataChange} />
-    },
-    {
-      accessorKey: 'channel_ratio',
-      header: () => <div className="text-center">Channel Ratio</div>,
-      cell: ({ row }) => (
-        <ChannelRatioCell row={row} onDataChange={onDataChange} />
-      )
-    },
-    {
-      accessorKey: 'status',
-      header: () => <div className="text-center">Status</div>,
-      cell: ({ row }) => <StatusCell row={row} onDataChange={onDataChange} />
-    },
-    {
-      accessorKey: 'response_time',
-      header: () => <div className="text-center">Response Time</div>,
-      cell: ({ row }) =>
-        renderResponseTime(
-          row.getValue('test_time'),
-          row.getValue('response_time')
-        )
-    },
-    {
-      accessorKey: 'used_quota',
-      header: () => <div className="text-center">Used Quota</div>,
-      cell: ({ row }) => <UsedQuotaCell row={row} />
-    },
-    {
-      accessorKey: 'balance',
-      header: () => <div className="text-center">Balance</div>,
-      cell: ({ row }) => <BalanceCell row={row} />
-    },
-    {
-      accessorKey: 'actions',
-      header: () => <div className="text-center">Actions</div>,
-      cell: ({ row }) => <ActionsCell row={row} onManageKeys={onManageKeys} />
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    </div>
+  );
+});
+ResponseTimeCell.displayName = 'ResponseTimeCell';
+
+const UsedQuotaCell = memo(
+  ({ row, onDataChange }: { row: Row<Channel>; onDataChange?: () => void }) => {
+    const usedQuota = row.getValue('used_quota') as number;
+    const channel = row.original;
+    const [isClearing, setIsClearing] = React.useState(false);
+
+    // 数据验证
+    if (!isValidNumber(usedQuota)) {
+      return (
+        <div className="text-center">
+          <span className="font-mono text-sm text-gray-500">无效数据</span>
+        </div>
+      );
     }
-  ];
-};
+
+    const formattedQuota = (usedQuota / QUOTA_DIVISOR).toFixed(2);
+    const rawQuota = formatNumber(usedQuota); // 显示原始数值（带千分位）
+
+    // 清空配额函数
+    const clearQuota = async () => {
+      if (isClearing) return; // 防止重复点击
+
+      // 自定义确认对话框内容
+      const confirmMessage = [
+        `渠道: ${channel.name}`,
+        `当前配额: ${formattedQuota} (原始值: ${rawQuota})`,
+        '',
+        '确定要清空此渠道的使用配额吗？',
+        '此操作不可撤销！'
+      ].join('\n');
+
+      if (!window.confirm(confirmMessage)) {
+        return;
+      }
+
+      setIsClearing(true);
+      try {
+        const result = await safeApiCall(
+          `/api/channel/clear_quota/${channel.id}`,
+          {
+            method: 'GET'
+          }
+        );
+
+        if (result.success) {
+          toast.success(`已清空渠道「${channel.name}」的使用配额`);
+          onDataChange?.();
+        } else {
+          throw new Error(result.message || '清空配额失败');
+        }
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : '清空配额失败';
+        toast.error(`清空配额失败: ${errorMessage}`);
+      } finally {
+        setIsClearing(false);
+      }
+    };
+
+    return (
+      <div className="flex items-center justify-center gap-1">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span
+                className="cursor-help font-mono text-sm"
+                aria-label={`使用配额: ${formattedQuota}, 原始值: ${rawQuota}`}
+              >
+                {formattedQuota}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div className="text-sm">
+                <div>显示值: {formattedQuota}</div>
+                <div>原始值: {rawQuota}</div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  显示值 = 原始值 ÷ {QUOTA_DIVISOR.toLocaleString()}
+                </div>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
+        {usedQuota > 0 && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={`h-6 w-6 hover:bg-red-50 hover:text-red-600 ${
+                    isClearing ? 'cursor-not-allowed opacity-50' : ''
+                  }`}
+                  onClick={clearQuota}
+                  disabled={isClearing}
+                  aria-label={`清空渠道 ${channel.name} 的使用配额`}
+                >
+                  <RotateCcw
+                    className={`h-3 w-3 ${isClearing ? 'animate-spin' : ''}`}
+                  />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{isClearing ? '正在清空...' : '清空使用配额 (不可撤销)'}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+      </div>
+    );
+  }
+);
+UsedQuotaCell.displayName = 'UsedQuotaCell';
+
+const BalanceCell = memo(
+  ({ row, onDataChange }: { row: Row<Channel>; onDataChange?: () => void }) => {
+    const [isUpdating, setIsUpdating] = React.useState(false);
+    const channel = row.original;
+
+    const updateBalance = async () => {
+      if (isUpdating) return; // 防止重复点击
+
+      setIsUpdating(true);
+      try {
+        const { success, message } = await safeApiCall(
+          `/api/channel/update_balance/${channel.id}`,
+          {
+            method: 'GET'
+          }
+        );
+
+        if (!success) {
+          toast.error(message || '余额更新失败');
+        } else {
+          toast.success('余额更新成功');
+          onDataChange?.(); // 使用 refetch 函数刷新数据
+        }
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : '余额更新失败';
+        toast.error(`余额更新失败: ${errorMessage}`);
+      } finally {
+        setIsUpdating(false);
+      }
+    };
+
+    return (
+      <TooltipProvider disableHoverableContent>
+        <Tooltip delayDuration={100}>
+          <TooltipTrigger asChild>
+            <div
+              className={`cursor-pointer text-center ${
+                isUpdating ? 'cursor-not-allowed opacity-50' : ''
+              }`}
+              onClick={updateBalance}
+              aria-label={`更新渠道 ${channel.name} 的余额`}
+            >
+              {isUpdating
+                ? '更新中...'
+                : renderBalance(row.getValue('type'), row.getValue('balance'))}
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            {isUpdating ? '正在更新余额...' : '点击更新余额'}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+);
+BalanceCell.displayName = 'BalanceCell';
+
+const ActionsCell = memo(
+  ({
+    row,
+    onManageKeys
+  }: {
+    row: Row<Channel>;
+    onManageKeys: (channel: Channel) => void;
+  }) => {
+    return <CellAction data={row.original} onManageKeys={onManageKeys} />;
+  }
+);
+ActionsCell.displayName = 'ActionsCell';
+
+// --- 列定义 ---
+
+export const createColumns = ({
+  onManageKeys,
+  onDataChange,
+  channelTypes
+}: {
+  onManageKeys: (channel: Channel) => void;
+  onDataChange?: () => void;
+  channelTypes: ChannelType[];
+}): ColumnDef<Channel>[] => [
+  {
+    id: 'select',
+    size: 40,
+    header: ({ table }) => (
+      <Checkbox
+        checked={table.getIsAllPageRowsSelected()}
+        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        aria-label="Select all"
+      />
+    ),
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label="Select row"
+      />
+    ),
+    enableSorting: false,
+    enableHiding: false
+  },
+  {
+    accessorKey: 'id',
+    size: 60,
+    header: () => <div className="text-center">ID</div>,
+    cell: ({ row }) => <div className="text-center">{row.getValue('id')}</div>
+  },
+  {
+    accessorKey: 'name',
+    header: 'Name',
+    size: 200,
+    cell: ({ row }) => {
+      const channel = row.original;
+      const isMultiKey = channel.multi_key_info?.is_multi_key;
+      const keyCount = channel.multi_key_info?.key_count || 0;
+      const activeKeyCount = channel.multi_key_info?.active_key_count || 0;
+
+      return (
+        <div className="flex items-center gap-2">
+          <span>{row.getValue('name')}</span>
+          {isMultiKey && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge
+                    variant="outline"
+                    className={`cursor-pointer ${
+                      activeKeyCount > 0
+                        ? 'border-green-300 bg-green-50 text-green-700'
+                        : 'border-red-300 bg-red-50 text-red-700'
+                    }`}
+                    onClick={() => onManageKeys(channel)}
+                  >
+                    <Link className="mr-1 h-3 w-3" />
+                    聚合 {activeKeyCount}/{keyCount}
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>管理聚合密钥 ({activeKeyCount}个可用)</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
+      );
+    }
+  },
+  {
+    accessorKey: 'group',
+    header: 'Group',
+    size: 150
+  },
+  {
+    accessorKey: 'type',
+    header: () => <div className="text-center">Type</div>,
+    size: 150,
+    cell: ({ row }) => <TypeCell row={row} channelTypes={channelTypes} />
+  },
+  {
+    accessorKey: 'priority',
+    header: () => <div className="text-center">Priority</div>,
+    size: 100,
+    cell: ({ row }) => (
+      <div className="text-center">{row.getValue('priority')}</div>
+    )
+  },
+  {
+    accessorKey: 'weight',
+    header: () => <div className="text-center">Weight</div>,
+    size: 100,
+    cell: ({ row }) => (
+      <div className="text-center">{row.getValue('weight')}</div>
+    )
+  },
+  {
+    accessorKey: 'channel_ratio',
+    header: () => <div className="text-center">Channel Ratio</div>,
+    size: 120,
+    cell: ({ row }) => (
+      <div className="text-center">{row.getValue('channel_ratio')}</div>
+    )
+  },
+  {
+    accessorKey: 'status',
+    header: () => <div className="text-center">Status</div>,
+    size: 150,
+    cell: ({ row }) => <StatusCell row={row} onDataChange={onDataChange} />
+  },
+  {
+    accessorKey: 'response_time',
+    header: () => <div className="text-center">Response Time</div>,
+    size: 120,
+    cell: ({ row }) => <ResponseTimeCell row={row} />
+  },
+  {
+    accessorKey: 'used_quota',
+    header: () => <div className="text-center">Used Quota</div>,
+    size: 150,
+    cell: ({ row }) => <UsedQuotaCell row={row} onDataChange={onDataChange} />
+  },
+  {
+    accessorKey: 'balance',
+    header: 'Balance',
+    size: 120,
+    cell: ({ row }) => <BalanceCell row={row} onDataChange={onDataChange} />
+  },
+  {
+    id: 'actions',
+    size: 80,
+    cell: ({ row }) => <ActionsCell row={row} onManageKeys={onManageKeys} />
+  }
+];

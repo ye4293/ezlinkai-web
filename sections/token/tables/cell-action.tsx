@@ -8,7 +8,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { Token } from '@/lib/types';
+import { Token } from '@/lib/types/token';
 import { Edit, MoreHorizontal, Trash, Ban, CircleSlash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';

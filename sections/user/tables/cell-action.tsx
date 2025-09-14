@@ -8,7 +8,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { UserSelf } from '@/lib/types';
+import { UserSelf } from '@/lib/types/user';
 import {
   Edit,
   MoreHorizontal,

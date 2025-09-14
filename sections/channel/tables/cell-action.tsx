@@ -8,7 +8,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { Channel } from '@/lib/types';
+import { Channel } from '@/lib/types/channel';
 import {
   Edit,
   MoreHorizontal,
@@ -16,21 +16,22 @@ import {
   Ban,
   CircleSlash2,
   Lightbulb,
-  ListTree
+  ListTree,
+  KeyRound
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { ModelsModal } from './models-modal';
 
-interface CellActionProps {
+export interface CellActionProps {
   data: Channel;
-  onManageKeys: (channel: Channel) => void;
+  onManageKeys: (channel: Channel) => void; // 添加 onManageKeys
 }
 
 export const CellAction: React.FC<CellActionProps> = ({
   data,
-  onManageKeys
+  onManageKeys // 接收 onManageKeys
 }) => {
   const [loading, setLoading] = useState(false);
   const [testLoading, setTestLoading] = useState(false);
@@ -159,7 +160,16 @@ export const CellAction: React.FC<CellActionProps> = ({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-
+          {data.multi_key_info?.is_multi_key && (
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.preventDefault();
+                onManageKeys(data);
+              }}
+            >
+              <KeyRound className="mr-2 h-4 w-4" /> 多密钥管理
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem
             onClick={() => router.push(`/dashboard/channel/${data.id}`)}
           >
@@ -168,16 +178,6 @@ export const CellAction: React.FC<CellActionProps> = ({
           <DropdownMenuItem onClick={() => setOpen(true)}>
             <Trash className="mr-2 h-4 w-4" /> Delete
           </DropdownMenuItem>
-          {data.multi_key_info?.is_multi_key && (
-            <DropdownMenuItem
-              onClick={(e) => {
-                e.preventDefault();
-                onManageKeys(data);
-              }}
-            >
-              <ListTree className="mr-2 h-4 w-4" /> 多密钥管理
-            </DropdownMenuItem>
-          )}
           <DropdownMenuItem
             onClick={() =>
               manageChannel(

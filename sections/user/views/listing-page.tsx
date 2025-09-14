@@ -5,7 +5,7 @@ import UserTable from '../tables';
 import { buttonVariants } from '@/components/ui/button';
 import { Heading } from '@/components/ui/heading';
 import { Separator } from '@/components/ui/separator';
-import { UserSelf } from '@/lib/types';
+import { UserSelf } from '@/lib/types/user';
 // import { fakeUsers } from '@/constants/mock-api';
 import { searchParamsCache } from '@/lib/searchparams';
 import { cn } from '@/lib/utils';

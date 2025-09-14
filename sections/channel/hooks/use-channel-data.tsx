@@ -1,9 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Channel } from '@/lib/types';
+import { Channel } from '@/lib/types/channel';
 import request from '@/app/lib/clientFetch';
-import { fetchWithCache, generateCacheKey } from '@/lib/cache-utils';
+import {
+  fetchWithCache,
+  generateCacheKey,
+  invalidateCache
+} from '@/lib/cache-utils';
 
 interface ChannelListResponse {
   list: Channel[];
@@ -85,6 +89,8 @@ export const useChannelData = ({
   }, [page, pageSize, keyword, status]);
 
   const refetch = useCallback(async () => {
+    // 清除相关缓存，确保获取最新数据
+    invalidateCache('channels');
     await fetchChannels();
   }, [fetchChannels]);
 
