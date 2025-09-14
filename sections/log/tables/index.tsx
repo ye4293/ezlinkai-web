@@ -21,6 +21,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
+} from '@/components/ui/tooltip';
 
 export default function LogTable({
   data,
@@ -245,12 +251,24 @@ export default function LogTable({
           </div>
           <div className="flex-shrink-0">
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="gap-2 text-xs sm:text-sm">
-                  <Download className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden sm:inline">Export</span>
-                </Button>
-              </DropdownMenuTrigger>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="gap-2 text-xs sm:text-sm"
+                      >
+                        <Download className="h-3 w-3 sm:h-4 sm:w-4" />
+                        <span className="hidden sm:inline">Export</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>导出数据</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={exportCurrentPage}>
                   <div className="flex flex-col gap-1">

@@ -161,10 +161,10 @@ export function DataTable<TData, TValue>({
         }}
       >
         <Table
-          className="relative w-full min-w-[1500px]"
+          className="relative w-full min-w-[1900px]"
           style={{
             tableLayout: 'fixed',
-            width: '1500px'
+            width: '1900px'
           }}
         >
           <TableHeader className="sticky top-0 z-10 bg-background">
@@ -175,8 +175,7 @@ export function DataTable<TData, TValue>({
                     key={header.id}
                     className="whitespace-nowrap border-b border-border/40"
                     style={{
-                      minWidth: Math.max(header.getSize() || 120, 120),
-                      width: header.getSize() || 150
+                      width: header.getSize()
                     }}
                   >
                     {header.isPlaceholder
@@ -203,8 +202,7 @@ export function DataTable<TData, TValue>({
                       key={cell.id}
                       className="whitespace-nowrap px-2 py-2 sm:px-4"
                       style={{
-                        minWidth: Math.max(cell.column.getSize() || 120, 120),
-                        width: cell.column.getSize() || 150
+                        width: cell.column.getSize()
                       }}
                     >
                       {flexRender(

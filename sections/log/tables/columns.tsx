@@ -116,11 +116,11 @@ export const columns: ColumnDef<LogStat>[] = [
     accessorKey: 'channel',
     size: 100,
     minSize: 80,
-    header: () => <div className="text-left">Channel</div>,
+    header: () => <div className="text-center">Channel</div>,
     cell: ({ row }) => {
       const channel = row.getValue('channel') as number;
       return (
-        <div className="text-left">
+        <div className="text-center">
           <CopyableCell value={channel} label="渠道ID">
             {channel}
           </CopyableCell>
@@ -131,8 +131,8 @@ export const columns: ColumnDef<LogStat>[] = [
   },
   {
     accessorKey: 'username',
-    size: 120,
-    minSize: 100,
+    size: 150,
+    minSize: 120,
     header: () => <div className="text-left">User</div>,
     cell: ({ row }) => {
       const username = row.getValue('username') as string;
@@ -148,7 +148,7 @@ export const columns: ColumnDef<LogStat>[] = [
   },
   {
     accessorKey: 'token_name',
-    size: 140,
+    size: 150,
     minSize: 120,
     header: () => <div className="text-left">Token</div>,
     cell: ({ row }) => {
@@ -165,11 +165,11 @@ export const columns: ColumnDef<LogStat>[] = [
   },
   {
     accessorKey: 'type',
-    header: () => <div className="text-left">Type</div>,
+    header: () => <div className="text-center">Type</div>,
     cell: ({ row }) => {
       const type = row.getValue('type') as number;
       return (
-        <div className="text-left">
+        <div className="text-center">
           <CopyableCell value={type} label="类型">
             {renderType(type)}
           </CopyableCell>
@@ -180,16 +180,16 @@ export const columns: ColumnDef<LogStat>[] = [
   },
   {
     accessorKey: 'model_name',
-    size: 160,
-    minSize: 140,
-    header: () => <div className="text-left">Model</div>,
+    size: 320,
+    minSize: 280,
+    header: () => <div className="text-center">Model</div>,
     cell: ({ row }) => {
       const modelName = row.getValue('model_name') as string;
       const truncatedModelName =
-        modelName.length > 25 ? `${modelName.substring(0, 25)}...` : modelName;
+        modelName.length > 40 ? `${modelName.substring(0, 40)}...` : modelName;
 
       return (
-        <div className="text-left">
+        <div className="text-center">
           <CopyableCell value={modelName} label="模型名称">
             <TooltipProvider>
               <Tooltip>
@@ -209,11 +209,13 @@ export const columns: ColumnDef<LogStat>[] = [
   },
   {
     accessorKey: 'prompt_tokens',
-    header: () => <div className="text-left">Prompt</div>,
+    header: () => <div className="text-center">Prompt</div>,
+    size: 100,
+    minSize: 80,
     cell: ({ row }) => {
       const promptTokens = row.getValue('prompt_tokens') as number;
       return (
-        <div className="text-left">
+        <div className="text-center">
           <CopyableCell value={promptTokens} label="输入Token">
             {promptTokens}
           </CopyableCell>
@@ -224,11 +226,13 @@ export const columns: ColumnDef<LogStat>[] = [
   },
   {
     accessorKey: 'completion_tokens',
-    header: () => <div className="text-left">Completion</div>,
+    header: () => <div className="text-center">Completion</div>,
+    size: 110,
+    minSize: 90,
     cell: ({ row }) => {
       const completionTokens = row.getValue('completion_tokens') as number;
       return (
-        <div className="text-left">
+        <div className="text-center">
           <CopyableCell value={completionTokens} label="输出Token">
             {completionTokens}
           </CopyableCell>
@@ -282,12 +286,12 @@ export const columns: ColumnDef<LogStat>[] = [
   },
   {
     accessorKey: 'quota',
-    header: () => <div className="text-left">Quota</div>,
+    header: () => <div className="text-center">Quota</div>,
     cell: ({ row }) => {
       const quota = row.getValue('quota') as number;
       const processedQuota = processQuota(quota);
       return (
-        <div className="text-left">
+        <div className="text-center">
           <CopyableCell value={processedQuota} label="配额">
             {processedQuota}
           </CopyableCell>
@@ -298,7 +302,7 @@ export const columns: ColumnDef<LogStat>[] = [
   },
   {
     accessorKey: 'duration',
-    header: () => <div className="text-left">Duration/First Word</div>,
+    header: () => <div className="text-center">Duration/First Word</div>,
     cell: ({ row }) => {
       const duration = row.getValue('duration') as number;
       // 修复：处理数据库中的数字类型（1/0）转换为布尔值
@@ -323,7 +327,7 @@ export const columns: ColumnDef<LogStat>[] = [
       }
 
       return (
-        <div className="flex items-center gap-1.5 text-left">
+        <div className="flex items-center justify-center gap-1.5 text-center">
           <span>{duration}</span>
           {isStream && (
             <>
@@ -429,8 +433,8 @@ export const columns: ColumnDef<LogStat>[] = [
   {
     id: 'content',
     accessorKey: 'content',
-    size: 200,
-    minSize: 150,
+    size: 300,
+    minSize: 250,
     header: () => <div className="text-left">Details</div>,
     cell: ({ row }) => {
       const content = row.getValue('content') as string;
