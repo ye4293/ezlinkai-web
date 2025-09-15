@@ -123,8 +123,8 @@ const OptimizedChannelTable = memo(
       setBatchLoading(true);
       const ids = selectedChannels.map((channel) => channel.id);
       try {
-        const res = await fetch('/api/channel', {
-          method: 'DELETE',
+        const res = await fetch('/api/channel/batchdelete', {
+          method: 'POST',
           body: JSON.stringify({ ids }),
           headers: {
             'Content-Type': 'application/json'
@@ -303,46 +303,45 @@ const OptimizedChannelTable = memo(
               title="Status"
               filterKey="status"
             />
-          </div>
-          <DataTableResetFilter
-            isFilterActive={isAnyFilterActive}
-            onReset={resetFilters}
-          />
-        </div>
 
-        {/* 批量操作按钮区域 */}
-        <div className="mb-4">
-          {selectedChannels.length > 0 && (
+            {/* 批量操作按钮 - 直接跟在Status后面 */}
             <div className="flex items-center gap-2">
               <Button
                 variant="destructive"
                 size="sm"
                 onClick={() => setOpen(true)}
-                disabled={batchLoading}
+                disabled={batchLoading || selectedChannels.length === 0}
               >
                 <Trash className="mr-2 h-4 w-4" />
-                删除 ({selectedChannels.length})
+                删除
+                {selectedChannels.length > 0 && ` (${selectedChannels.length})`}
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleDisable}
-                disabled={batchLoading}
+                disabled={batchLoading || selectedChannels.length === 0}
               >
                 <Ban className="mr-2 h-4 w-4" />
-                禁用 ({selectedChannels.length})
+                禁用
+                {selectedChannels.length > 0 && ` (${selectedChannels.length})`}
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleEnable}
-                disabled={batchLoading}
+                disabled={batchLoading || selectedChannels.length === 0}
               >
                 <CircleSlash2 className="mr-2 h-4 w-4" />
-                启用 ({selectedChannels.length})
+                启用
+                {selectedChannels.length > 0 && ` (${selectedChannels.length})`}
               </Button>
             </div>
-          )}
+          </div>
+          <DataTableResetFilter
+            isFilterActive={isAnyFilterActive}
+            onReset={resetFilters}
+          />
         </div>
 
         {/* 超明显居中加载指示器 - 支持搜索和批量操作加载 */}

@@ -7,3 +7,4 @@ const handler = new ApiHandler({
 export const GET = handler.get;
 export const POST = handler.post;
 export const PUT = handler.put;
+export const DELETE = handler.delete;

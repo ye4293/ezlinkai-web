@@ -1,8 +1,7 @@
 import { ApiHandler } from '@/app/lib/api-handler';
 
 const handler = new ApiHandler({
-  endpoint: '/api/channel/disabled'
+  endpoint: '/api/channel/batchdelete'
 });
 
 export const POST = handler.post;
-export const DELETE = handler.delete;
