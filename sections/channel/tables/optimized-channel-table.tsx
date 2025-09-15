@@ -2,12 +2,20 @@
 
 import React, { memo, useMemo, useCallback, useState, useEffect } from 'react';
 import { DataTable } from '@/components/ui/table/data-table';
+import { DataTableFilterBox } from '@/components/ui/table/data-table-filter-box';
+import { DataTableResetFilter } from '@/components/ui/table/data-table-reset-filter';
+import { DataTableSearch } from '@/components/ui/table/data-table-search';
 import { createColumns, ChannelType } from './columns';
 import { Channel } from '@/lib/types/channel';
 import { useChannelData } from '../hooks/use-channel-data';
-import { useTableFilters } from './use-table-filters';
+import { useTableFilters, STATUS_OPTIONS } from './use-table-filters';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { Trash, Ban, CircleSlash2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { AlertModal } from '@/components/modal/alert-modal';
+import { useRouter } from 'next/navigation';
 import MultiKeyManagementModal from '../multi-key-modal';
 import { useSession } from 'next-auth/react';
 
@@ -25,13 +33,24 @@ const OptimizedChannelTable = memo(
       pageSize,
       setPage,
       setPageSize,
+      setSearchQuery,
+      setStatusFilter,
       resetFilters,
       isAnyFilterActive
     } = useTableFilters();
 
+    // 路由和session
+    const router = useRouter();
+    const { status } = useSession();
+
     // 渠道类型数据
     const [channelTypes, setChannelTypes] = useState<ChannelType[]>([]);
-    const { status } = useSession();
+
+    // 批量操作状态
+    const [selectedChannels, setSelectedChannels] = useState<Channel[]>([]);
+    const [resetSelection, setResetSelection] = useState(false);
+    const [open, setOpen] = useState(false);
+    const [batchLoading, setBatchLoading] = useState(false);
 
     // 多密钥管理Modal状态
     const [isMultiKeyModalOpen, setIsMultiKeyModalOpen] = useState(false);
@@ -99,6 +118,121 @@ const OptimizedChannelTable = memo(
       setIsMultiKeyModalOpen(true);
     }, []);
 
+    // 批量删除操作
+    const handleDelete = async () => {
+      setBatchLoading(true);
+      const ids = selectedChannels.map((channel) => channel.id);
+      try {
+        const res = await fetch('/api/channel', {
+          method: 'DELETE',
+          body: JSON.stringify({ ids }),
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (res.ok) {
+          toast.success('删除成功');
+          setResetSelection((prev) => !prev);
+          refetch(); // 使用 refetch 而不是 router.refresh
+        } else {
+          // 改进错误处理：检查响应是否为JSON格式
+          let errorMessage = '删除失败';
+          try {
+            const errorData = await res.json();
+            errorMessage = errorData.message || `删除失败 (HTTP ${res.status})`;
+          } catch (jsonError) {
+            // 如果响应不是JSON格式，使用HTTP状态码信息
+            errorMessage = `删除失败 (HTTP ${res.status}: ${res.statusText})`;
+          }
+          throw new Error(errorMessage);
+        }
+      } catch (error) {
+        console.error('批量删除错误:', error);
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        toast.error(errorMsg);
+      } finally {
+        setOpen(false);
+        setBatchLoading(false);
+      }
+    };
+
+    // 批量禁用操作
+    const handleDisable = async () => {
+      setBatchLoading(true);
+      const ids = selectedChannels.map((channel) => channel.id);
+      try {
+        const res = await fetch('/api/channel/disabled', {
+          method: 'POST',
+          body: JSON.stringify({ ids }),
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (res.ok) {
+          toast.success('禁用成功');
+          setResetSelection((prev) => !prev);
+          refetch(); // 使用 refetch 而不是 router.refresh
+        } else {
+          // 改进错误处理：检查响应是否为JSON格式
+          let errorMessage = '禁用失败';
+          try {
+            const errorData = await res.json();
+            errorMessage = errorData.message || `禁用失败 (HTTP ${res.status})`;
+          } catch (jsonError) {
+            // 如果响应不是JSON格式，使用HTTP状态码信息
+            errorMessage = `禁用失败 (HTTP ${res.status}: ${res.statusText})`;
+          }
+          throw new Error(errorMessage);
+        }
+      } catch (error) {
+        console.error('批量禁用错误:', error);
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        toast.error(errorMsg);
+      } finally {
+        setBatchLoading(false);
+      }
+    };
+
+    // 批量启用操作
+    const handleEnable = async () => {
+      setBatchLoading(true);
+      const ids = selectedChannels.map((channel) => channel.id);
+      try {
+        const res = await fetch('/api/channel/disabled', {
+          method: 'DELETE',
+          body: JSON.stringify({ ids }),
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (res.ok) {
+          toast.success('启用成功');
+          setResetSelection((prev) => !prev);
+          refetch(); // 使用 refetch 而不是 router.refresh
+        } else {
+          // 改进错误处理：检查响应是否为JSON格式
+          let errorMessage = '启用失败';
+          try {
+            const errorData = await res.json();
+            errorMessage = errorData.message || `启用失败 (HTTP ${res.status})`;
+          } catch (jsonError) {
+            // 如果响应不是JSON格式，使用HTTP状态码信息
+            errorMessage = `启用失败 (HTTP ${res.status}: ${res.statusText})`;
+          }
+          throw new Error(errorMessage);
+        }
+      } catch (error) {
+        console.error('批量启用错误:', error);
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        toast.error(errorMsg);
+      } finally {
+        setBatchLoading(false);
+      }
+    };
+
     // 生成列配置
     const tableColumns = useMemo(() => {
       return createColumns({
@@ -145,68 +279,84 @@ const OptimizedChannelTable = memo(
 
     return (
       <div className="space-y-4">
-        {/* 过滤器重置按钮 */}
-        {isAnyFilterActive && (
-          <div className="flex justify-end">
-            <button
-              onClick={resetFilters}
-              className="text-sm text-blue-600 hover:text-blue-800"
-            >
-              清除筛选条件
-            </button>
-          </div>
-        )}
+        {/* 添加AlertModal用于删除确认 */}
+        <AlertModal
+          isOpen={open}
+          onClose={() => setOpen(false)}
+          onConfirm={handleDelete}
+          loading={batchLoading}
+        />
 
-        {/* 超明显居中加载指示器 */}
-        {loading && displayData.length > 0 && (
-          <div
-            className="pointer-events-none fixed inset-0 flex items-center justify-center"
-            style={{
-              zIndex: 99999,
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0
-            }}
-          >
-            {/* 半透明背景 */}
-            <div
-              className="absolute inset-0 bg-black bg-opacity-30"
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0
-              }}
-            ></div>
-            {/* 加载提示 */}
-            <div
-              className="relative duration-300 animate-in zoom-in-50"
-              style={{
-                position: 'relative',
-                zIndex: 100000
-              }}
-            >
-              <div
-                className="inline-flex items-center rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-4 text-lg font-bold text-white shadow-2xl ring-4 ring-white ring-opacity-50"
-                style={{
-                  background: 'linear-gradient(to right, #2563eb, #9333ea)',
-                  color: 'white',
-                  fontSize: '18px',
-                  fontWeight: 'bold',
-                  padding: '16px 32px',
-                  borderRadius: '16px',
-                  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-                  border: '4px solid rgba(255, 255, 255, 0.5)'
-                }}
+        {/* 搜索和筛选区域 */}
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-1 items-center gap-4">
+            <DataTableSearch
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              setPage={setPage}
+              searchKey="ID,Name,Key"
+            />
+            <DataTableFilterBox
+              filterValue={statusFilter}
+              setFilterValue={setStatusFilter}
+              options={STATUS_OPTIONS}
+              title="Status"
+              filterKey="status"
+            />
+          </div>
+          <DataTableResetFilter
+            isFilterActive={isAnyFilterActive}
+            onReset={resetFilters}
+          />
+        </div>
+
+        {/* 批量操作按钮区域 */}
+        <div className="mb-4">
+          {selectedChannels.length > 0 && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setOpen(true)}
+                disabled={batchLoading}
               >
+                <Trash className="mr-2 h-4 w-4" />
+                删除 ({selectedChannels.length})
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDisable}
+                disabled={batchLoading}
+              >
+                <Ban className="mr-2 h-4 w-4" />
+                禁用 ({selectedChannels.length})
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleEnable}
+                disabled={batchLoading}
+              >
+                <CircleSlash2 className="mr-2 h-4 w-4" />
+                启用 ({selectedChannels.length})
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* 超明显居中加载指示器 - 支持搜索和批量操作加载 */}
+        {(loading || batchLoading) && (
+          <div className="pointer-events-none fixed inset-0 z-[9999] flex items-center justify-center">
+            {/* 半透明背景 */}
+            <div className="absolute inset-0 bg-black bg-opacity-20"></div>
+            {/* 加载提示 */}
+            <div className="relative duration-300 animate-in zoom-in-50">
+              <div className="inline-flex items-center rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-4 text-lg font-bold text-white shadow-2xl ring-4 ring-white ring-opacity-50">
                 <svg
                   className="-ml-1 mr-4 h-8 w-8 animate-spin"
                   fill="none"
                   viewBox="0 0 24 24"
-                  style={{ width: '32px', height: '32px', marginRight: '16px' }}
                 >
                   <circle
                     className="opacity-25"
@@ -222,41 +372,16 @@ const OptimizedChannelTable = memo(
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   />
                 </svg>
-                <span style={{ fontSize: '20px', fontWeight: 'bold' }}>
-                  正在更新数据...
-                </span>
-                <div
-                  className="ml-4 flex space-x-2"
-                  style={{ marginLeft: '16px' }}
-                >
+                <span className="text-xl">正在处理...</span>
+                <div className="ml-4 flex space-x-2">
+                  <div className="h-3 w-3 animate-bounce rounded-full bg-white"></div>
                   <div
                     className="h-3 w-3 animate-bounce rounded-full bg-white"
-                    style={{
-                      width: '12px',
-                      height: '12px',
-                      backgroundColor: 'white',
-                      borderRadius: '50%'
-                    }}
+                    style={{ animationDelay: '0.1s' }}
                   ></div>
                   <div
                     className="h-3 w-3 animate-bounce rounded-full bg-white"
-                    style={{
-                      width: '12px',
-                      height: '12px',
-                      backgroundColor: 'white',
-                      borderRadius: '50%',
-                      animationDelay: '0.1s'
-                    }}
-                  ></div>
-                  <div
-                    className="h-3 w-3 animate-bounce rounded-full bg-white"
-                    style={{
-                      width: '12px',
-                      height: '12px',
-                      backgroundColor: 'white',
-                      borderRadius: '50%',
-                      animationDelay: '0.2s'
-                    }}
+                    style={{ animationDelay: '0.2s' }}
                   ></div>
                 </div>
               </div>
@@ -269,11 +394,13 @@ const OptimizedChannelTable = memo(
           columns={tableColumns}
           data={displayData}
           totalItems={displayTotal}
+          onSelectionChange={setSelectedChannels}
+          resetSelection={resetSelection}
           currentPage={page}
           pageSize={pageSize}
           setCurrentPage={setPage}
           setPageSize={setPageSize}
-          pageSizeOptions={[10, 20, 50, 100]}
+          pageSizeOptions={[10, 50, 100, 500]}
         />
 
         {/* 多密钥管理Modal */}

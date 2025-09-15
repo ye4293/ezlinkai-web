@@ -13,7 +13,7 @@ export function useTableFilters() {
   const [searchQuery, setSearchQuery] = useQueryState(
     'q',
     searchParams.q
-      .withOptions({ shallow: false, throttleMs: 800 }) // 进一步优化防抖时间
+      .withOptions({ shallow: false }) // 移除防抖，现在使用手动搜索
       .withDefault('')
   );
 
