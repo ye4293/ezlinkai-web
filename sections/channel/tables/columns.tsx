@@ -692,7 +692,7 @@ export const createColumns = ({
       const channel = row.original;
       const isMultiKey = channel.multi_key_info?.is_multi_key;
       const keyCount = channel.multi_key_info?.key_count || 0;
-      const activeKeyCount = channel.multi_key_info?.active_key_count || 0;
+      const activeKeyCount = channel.multi_key_info?.enabled_key_count || 0;
 
       return (
         <div className="flex items-center gap-2">

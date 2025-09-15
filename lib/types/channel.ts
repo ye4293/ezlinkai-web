@@ -64,7 +64,6 @@ export interface Channel {
     key_status_list?: { [key: number]: number };
     key_metadata?: { [key: number]: any };
     enabled_key_count?: number;
-    active_key_count?: number;
     polling_index?: number;
     last_batch_import_time?: number;
   };
