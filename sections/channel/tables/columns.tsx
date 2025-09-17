@@ -19,6 +19,7 @@ import { CellAction } from './cell-action';
 import { renderNumber } from '@/utils/render';
 import { toast } from 'sonner';
 import React from 'react';
+import { Input } from '@/components/ui/input';
 
 // 直接使用后端返回的数据结构
 export type ChannelType = {
@@ -634,6 +635,159 @@ const BalanceCell = memo(
 );
 BalanceCell.displayName = 'BalanceCell';
 
+// 可编辑数字单元格组件
+const EditableNumberCell = memo(
+  ({
+    row,
+    field,
+    onDataChange,
+    placeholder = '点击编辑',
+    min = 0,
+    max = 999999,
+    step = 1,
+    decimalPlaces = 0
+  }: {
+    row: Row<Channel>;
+    field: keyof Channel;
+    onDataChange?: () => void;
+    placeholder?: string;
+    min?: number;
+    max?: number;
+    step?: number;
+    decimalPlaces?: number;
+  }) => {
+    const [isEditing, setIsEditing] = React.useState(false);
+    const [isUpdating, setIsUpdating] = React.useState(false);
+    const [value, setValue] = React.useState('');
+    const channel = row.original;
+    const currentValue = row.getValue(field) as number;
+
+    // 格式化显示值
+    const formatValue = (num: number) => {
+      if (decimalPlaces > 0) {
+        return num.toFixed(decimalPlaces);
+      }
+      return Math.round(num).toString();
+    };
+
+    // 进入编辑模式
+    const startEditing = () => {
+      setValue(formatValue(currentValue || 0));
+      setIsEditing(true);
+    };
+
+    // 取消编辑
+    const cancelEditing = () => {
+      setIsEditing(false);
+      setValue('');
+    };
+
+    // 保存更改
+    const saveChange = async () => {
+      if (isUpdating) return;
+
+      const numValue = parseFloat(value);
+
+      // 验证输入
+      if (isNaN(numValue) || numValue < min || numValue > max) {
+        toast.error(`请输入 ${min} 到 ${max} 之间的有效数字`);
+        return;
+      }
+
+      // 如果值没有变化，直接退出编辑
+      if (numValue === currentValue) {
+        setIsEditing(false);
+        return;
+      }
+
+      setIsUpdating(true);
+      try {
+        const updateData = {
+          id: channel.id,
+          [field]:
+            decimalPlaces > 0
+              ? Number(numValue.toFixed(decimalPlaces))
+              : Math.round(numValue)
+        };
+
+        const result = await safeApiCall('/api/channel/', {
+          method: 'PUT',
+          body: JSON.stringify(updateData)
+        });
+
+        if (result.success) {
+          const fieldNames = {
+            priority: '优先级',
+            weight: '权重',
+            channel_ratio: '渠道倍率'
+          };
+          const fieldName =
+            fieldNames[field as keyof typeof fieldNames] || field;
+
+          toast.success(`${fieldName}已更新为 ${formatValue(numValue)}`);
+          setIsEditing(false);
+          onDataChange?.();
+        } else {
+          throw new Error(result.message || '更新失败');
+        }
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : '更新失败';
+        toast.error(`更新失败: ${errorMessage}`);
+      } finally {
+        setIsUpdating(false);
+      }
+    };
+
+    // 处理按键事件
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        saveChange();
+      } else if (e.key === 'Escape') {
+        cancelEditing();
+      }
+    };
+
+    if (isEditing) {
+      return (
+        <div className="flex items-center justify-center gap-1">
+          <Input
+            type="number"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onBlur={saveChange}
+            className="h-8 w-20 text-center text-sm"
+            min={min}
+            max={max}
+            step={step}
+            disabled={isUpdating}
+            autoFocus
+          />
+          {isUpdating && (
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-500 border-t-transparent"></div>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <div
+        className="cursor-pointer rounded px-2 py-1 text-center transition-colors hover:bg-gray-50"
+        onClick={startEditing}
+        title={`点击编辑 ${placeholder}`}
+      >
+        <span className="font-mono text-sm">
+          {currentValue !== null && currentValue !== undefined
+            ? formatValue(currentValue)
+            : '-'}
+        </span>
+      </div>
+    );
+  }
+);
+EditableNumberCell.displayName = 'EditableNumberCell';
+
 const ActionsCell = memo(
   ({
     row,
@@ -740,7 +894,16 @@ export const createColumns = ({
     header: () => <div className="text-center">Priority</div>,
     size: 100,
     cell: ({ row }) => (
-      <div className="text-center">{row.getValue('priority')}</div>
+      <EditableNumberCell
+        row={row}
+        field="priority"
+        onDataChange={onDataChange}
+        placeholder="优先级"
+        min={0}
+        max={100}
+        step={1}
+        decimalPlaces={0}
+      />
     )
   },
   {
@@ -748,7 +911,16 @@ export const createColumns = ({
     header: () => <div className="text-center">Weight</div>,
     size: 100,
     cell: ({ row }) => (
-      <div className="text-center">{row.getValue('weight')}</div>
+      <EditableNumberCell
+        row={row}
+        field="weight"
+        onDataChange={onDataChange}
+        placeholder="权重"
+        min={0}
+        max={100}
+        step={1}
+        decimalPlaces={0}
+      />
     )
   },
   {
@@ -756,7 +928,16 @@ export const createColumns = ({
     header: () => <div className="text-center">Channel Ratio</div>,
     size: 120,
     cell: ({ row }) => (
-      <div className="text-center">{row.getValue('channel_ratio')}</div>
+      <EditableNumberCell
+        row={row}
+        field="channel_ratio"
+        onDataChange={onDataChange}
+        placeholder="渠道倍率"
+        min={0.1}
+        max={100}
+        step={0.1}
+        decimalPlaces={1}
+      />
     )
   },
   {
