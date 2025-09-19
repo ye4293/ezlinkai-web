@@ -11,6 +11,7 @@ import { Progress } from '@/components/ui/progress';
 import { MidjourneyStat } from '@/lib/types/midjourney';
 import { ColumnDef } from '@tanstack/react-table';
 import { CellAction } from './cell-action';
+import { CopyableCell } from '@/components/ui/copyable-cell';
 
 /** 类型 */
 const renderType = (status: number) => {
@@ -41,9 +42,14 @@ export const columns: ColumnDef<MidjourneyStat>[] = [
     header: () => <div className="text-center">Submission Time</div>,
     cell: ({ row }) => {
       const timestamp = row.getValue('submit_time');
+      const formattedTime = dayjs(Number(timestamp)).format(
+        'YYYY-MM-DD HH:mm:ss'
+      );
       return (
         <div className="text-center">
-          {dayjs(Number(timestamp)).format('YYYY-MM-DD HH:mm:ss')}
+          <CopyableCell value={formattedTime} label="提交时间">
+            {formattedTime}
+          </CopyableCell>
         </div>
       );
     }
@@ -52,28 +58,58 @@ export const columns: ColumnDef<MidjourneyStat>[] = [
   {
     accessorKey: 'action',
     header: () => <div className="text-center">Action</div>,
-    cell: ({ row }) => (
-      <div className="text-center">{row.getValue('action')}</div>
-    )
+    cell: ({ row }) => {
+      const action = row.getValue('action') as string;
+      return (
+        <div className="text-center">
+          <CopyableCell value={action} label="操作">
+            {action}
+          </CopyableCell>
+        </div>
+      );
+    }
   },
   {
     accessorKey: 'mj_id',
     header: () => <div className="text-center">Task Id</div>,
-    cell: ({ row }) => (
-      <div className="text-center">{row.getValue('mj_id')}</div>
-    )
+    cell: ({ row }) => {
+      const mjId = row.getValue('mj_id') as string;
+      return (
+        <div className="text-center">
+          <CopyableCell value={mjId} label="任务ID">
+            {mjId}
+          </CopyableCell>
+        </div>
+      );
+    }
   },
   {
     accessorKey: 'type',
     header: () => <div className="text-center">Type</div>,
-    cell: ({ row }) => <div className="text-center">{row.getValue('type')}</div>
+    cell: ({ row }) => {
+      const type = row.getValue('type') as string;
+      return (
+        <div className="text-center">
+          <CopyableCell value={type} label="类型">
+            {type}
+          </CopyableCell>
+        </div>
+      );
+    }
   },
   {
     accessorKey: 'status',
     header: () => <div className="text-center">Status</div>,
-    cell: ({ row }) => (
-      <div className="text-center">{row.getValue('status')}</div>
-    )
+    cell: ({ row }) => {
+      const status = row.getValue('status') as string;
+      return (
+        <div className="text-center">
+          <CopyableCell value={status} label="状态">
+            {status}
+          </CopyableCell>
+        </div>
+      );
+    }
   },
   {
     accessorKey: 'progress',
@@ -95,86 +131,117 @@ export const columns: ColumnDef<MidjourneyStat>[] = [
         finishTime === 0 || startTime === 0
           ? 0
           : (finishTime - startTime) / 1000;
-      return <div className="text-center">{duration}s</div>;
+      const durationText = `${duration}s`;
+      return (
+        <div className="text-center">
+          <CopyableCell value={durationText} label="持续时间">
+            {durationText}
+          </CopyableCell>
+        </div>
+      );
     }
   },
   {
     accessorKey: 'image_url',
     header: () => <div className="text-center">Image</div>,
-    cell: ({ row }) => (
-      <div className="flex justify-center gap-2">
-        <TooltipProvider>
-          <Tooltip delayDuration={100}>
-            <TooltipTrigger>
-              <a
-                href={row.getValue('image_url')}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <div className="line-clamp-3 max-w-[200px] text-center">
-                  {row.getValue('image_url')}
-                </div>
-              </a>
-            </TooltipTrigger>
-            <TooltipContent>
-              <div className="max-w-[300px] break-words text-center">
-                {row.getValue('image_url')}
-              </div>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </div>
-    )
+    cell: ({ row }) => {
+      const imageUrl = row.getValue('image_url') as string;
+      return (
+        <div className="flex justify-center gap-2">
+          <CopyableCell value={imageUrl || ''} label="图片链接">
+            <TooltipProvider>
+              <Tooltip delayDuration={100}>
+                <TooltipTrigger>
+                  <a
+                    href={imageUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-800"
+                  >
+                    <div className="line-clamp-3 max-w-[200px] text-center">
+                      {imageUrl || '无图片'}
+                    </div>
+                  </a>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <div className="max-w-[300px] break-words text-center">
+                    {imageUrl || '无图片链接'}
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </CopyableCell>
+        </div>
+      );
+    }
   },
   {
     accessorKey: 'prompt_en',
     header: () => <div className="text-center">Prompt</div>,
-    cell: ({ row }) => (
-      <div className="flex justify-center gap-2">
-        <TooltipProvider>
-          <Tooltip delayDuration={100}>
-            <TooltipTrigger>
-              <div className="line-clamp-3 max-w-[200px] text-center">
-                {row.getValue('prompt_en')}
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <div className="max-w-[300px] break-words text-center">
-                {row.getValue('prompt_en')}
-              </div>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </div>
-    )
+    cell: ({ row }) => {
+      const prompt = row.getValue('prompt_en') as string;
+      return (
+        <div className="flex justify-center gap-2">
+          <CopyableCell value={prompt || ''} label="提示词">
+            <TooltipProvider>
+              <Tooltip delayDuration={100}>
+                <TooltipTrigger>
+                  <div className="line-clamp-3 max-w-[200px] text-center">
+                    {prompt || '-'}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <div className="max-w-[300px] break-words text-center">
+                    {prompt || '无提示词'}
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </CopyableCell>
+        </div>
+      );
+    }
   },
   {
     accessorKey: 'fail_reason',
     header: () => <div className="text-center">Failure Reason</div>,
-    cell: ({ row }) => (
-      <div className="flex justify-center gap-2">
-        <TooltipProvider>
-          <Tooltip delayDuration={100}>
-            <TooltipTrigger>
-              <div className="line-clamp-3 max-w-[200px] text-center">
-                {row.getValue('fail_reason')}
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <div className="max-w-[300px] break-words text-center">
-                {row.getValue('fail_reason')}
-              </div>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </div>
-    )
+    cell: ({ row }) => {
+      const failReason = row.getValue('fail_reason') as string;
+      return (
+        <div className="flex justify-center gap-2">
+          <CopyableCell value={failReason || ''} label="失败原因">
+            <TooltipProvider>
+              <Tooltip delayDuration={100}>
+                <TooltipTrigger>
+                  <div className="line-clamp-3 max-w-[200px] text-center">
+                    {failReason || '-'}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <div className="max-w-[300px] break-words text-center">
+                    {failReason || '无失败原因'}
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </CopyableCell>
+        </div>
+      );
+    }
   },
   {
     accessorKey: 'quota',
     header: () => <div className="text-center">Price</div>,
-    cell: ({ row }) => (
-      <div className="text-center">{processQuota(row.getValue('quota'))}</div>
-    )
+    cell: ({ row }) => {
+      const quota = row.getValue('quota') as number;
+      const processedQuota = processQuota(quota);
+      return (
+        <div className="text-center">
+          <CopyableCell value={processedQuota} label="价格">
+            {processedQuota}
+          </CopyableCell>
+        </div>
+      );
+    }
   }
 ];

@@ -1477,50 +1477,86 @@ export default function ChannelForm() {
                     <span>🤖</span> 模型配置
                   </h3>
                   <div className="space-y-6">
+                    {/* 自定义模型名称 - 移到顶部 */}
+                    <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-700 dark:bg-blue-900/50">
+                      <FormField
+                        control={form.control}
+                        name="customModelName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="flex items-center gap-2 font-medium text-blue-800 dark:text-blue-200">
+                              <span>✨</span> 自定义模型名称
+                            </FormLabel>
+                            <FormControl>
+                              <div className="space-y-2">
+                                <Input
+                                  className="border-blue-300 bg-white focus:border-blue-500 focus:ring-blue-200 dark:border-blue-600 dark:bg-gray-800"
+                                  placeholder="输入自定义模型名称，多个模型用逗号分隔，例如：gpt-4o,claude-3.5-sonnet"
+                                  {...field}
+                                />
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-blue-300 text-blue-700 hover:bg-blue-100 dark:border-blue-600 dark:text-blue-300 dark:hover:bg-blue-800"
+                                  onClick={() => {
+                                    if (field.value && field.value.trim()) {
+                                      const customModels = field.value
+                                        .split(',')
+                                        .map((model) => model.trim())
+                                        .filter((model) => model.length > 0);
+
+                                      const currentModels =
+                                        form.getValues('models') || [];
+                                      const newModels = [...currentModels];
+
+                                      customModels.forEach((customModel) => {
+                                        if (!newModels.includes(customModel)) {
+                                          newModels.push(customModel);
+                                        }
+                                      });
+
+                                      form.setValue('models', newModels);
+                                      alert(
+                                        `已添加 ${customModels.length} 个自定义模型到选择列表中`
+                                      );
+                                    }
+                                  }}
+                                >
+                                  🔄 立即添加到下方模型列表
+                                </Button>
+                              </div>
+                            </FormControl>
+                            <div className="text-sm text-blue-700 dark:text-blue-300">
+                              💡
+                              点击"立即添加"按钮将自定义模型直接添加到下方的模型选择列表中，方便您直观查看
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
                     <FormField
                       control={form.control}
                       name="models"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="font-medium text-gray-700 dark:text-gray-300">
-                            支持的模型
+                          <FormLabel className="flex items-center justify-between font-medium text-gray-700 dark:text-gray-300">
+                            <span>支持的模型</span>
+                            <span className="text-sm font-normal text-gray-500">
+                              已选择 {field.value?.length || 0} 个模型
+                            </span>
                           </FormLabel>
                           <FormControl>
                             <div className="space-y-4">
-                              <div className="grid max-h-60 grid-cols-2 gap-3 overflow-y-auto rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 md:grid-cols-3 lg:grid-cols-4">
-                                {modelOptions.map((item) => (
-                                  <div
-                                    key={item.id}
-                                    className="flex items-center space-x-2 rounded p-2 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700"
-                                  >
-                                    <Checkbox
-                                      id={item.id}
-                                      checked={field.value?.includes(item.id)}
-                                      onCheckedChange={(checked) => {
-                                        const values = field.value ?? [];
-                                        const newValues = checked
-                                          ? [...values, item.id]
-                                          : values.filter((v) => v !== item.id);
-                                        field.onChange(newValues);
-                                      }}
-                                      className="data-[state=checked]:border-gray-500 data-[state=checked]:bg-gray-500"
-                                    />
-                                    <label
-                                      htmlFor={item.id}
-                                      className="cursor-pointer text-sm font-medium leading-none"
-                                      title={item.id}
-                                    >
-                                      {item.id}
-                                    </label>
-                                  </div>
-                                ))}
-                              </div>
-                              <div className="flex flex-wrap gap-2">
+                              {/* 操作按钮区域 */}
+                              <div className="flex flex-wrap gap-2 rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-600 dark:bg-gray-800">
                                 <Button
                                   type="button"
                                   size="sm"
                                   variant="outline"
-                                  className="border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                                  className="border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-600 dark:text-emerald-300 dark:hover:bg-emerald-900"
                                   onClick={() => {
                                     const currentType = form.watch('type');
                                     const allRelatedModelIds =
@@ -1534,13 +1570,13 @@ export default function ChannelForm() {
                                     field.onChange(relatedModelIds);
                                   }}
                                 >
-                                  填充相关模型
+                                  🎯 填充相关模型
                                 </Button>
                                 <Button
                                   type="button"
                                   size="sm"
                                   variant="outline"
-                                  className="border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                                  className="border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-600 dark:text-blue-300 dark:hover:bg-blue-900"
                                   onClick={() => {
                                     const allModelIds = modelOptions.map(
                                       (m) => m.id
@@ -1548,20 +1584,121 @@ export default function ChannelForm() {
                                     field.onChange(allModelIds);
                                   }}
                                 >
-                                  全选
+                                  ✅ 全选
                                 </Button>
                                 <Button
                                   type="button"
                                   size="sm"
                                   variant="outline"
-                                  className="border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                                  className="border-orange-300 text-orange-700 hover:bg-orange-50 dark:border-orange-600 dark:text-orange-300 dark:hover:bg-orange-900"
                                   onClick={() => field.onChange([])}
                                 >
-                                  清空
+                                  🗑️ 清空所有模型
                                 </Button>
                               </div>
-                              <div className="text-sm text-gray-600 dark:text-gray-400">
-                                已选择 {field.value?.length || 0} 个模型
+
+                              {/* 已选择的模型标签展示 */}
+                              {field.value && field.value.length > 0 && (
+                                <div className="rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-700 dark:bg-green-900/50">
+                                  <div className="mb-3 flex items-center gap-2">
+                                    <span className="font-medium text-green-800 dark:text-green-200">
+                                      ✅ 已选择的模型
+                                    </span>
+                                    <span className="text-sm text-green-600 dark:text-green-400">
+                                      ({field.value.length} 个)
+                                    </span>
+                                  </div>
+                                  <div className="flex flex-wrap gap-2">
+                                    {field.value.map((modelId: string) => (
+                                      <div
+                                        key={modelId}
+                                        className="flex items-center gap-1 rounded-md bg-green-100 px-3 py-1 text-sm font-medium text-green-800 dark:bg-green-800 dark:text-green-100"
+                                      >
+                                        <span>{modelId}</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const newValues =
+                                              field.value.filter(
+                                                (v: string) => v !== modelId
+                                              );
+                                            field.onChange(newValues);
+                                          }}
+                                          className="ml-1 rounded-full p-0.5 hover:bg-green-200 dark:hover:bg-green-700"
+                                          title="移除此模型"
+                                        >
+                                          <span className="text-xs">✕</span>
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* 可选择的模型列表 */}
+                              <div className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                                    可选模型列表
+                                  </span>
+                                  <span className="text-xs text-gray-500">
+                                    点击模型卡片进行选择/取消
+                                  </span>
+                                </div>
+                                <div className="grid max-h-80 grid-cols-2 gap-2 overflow-y-auto rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 md:grid-cols-3 lg:grid-cols-4">
+                                  {modelOptions.map((item) => {
+                                    const isSelected = field.value?.includes(
+                                      item.id
+                                    );
+                                    return (
+                                      <div
+                                        key={item.id}
+                                        className={`cursor-pointer rounded-lg border-2 p-3 text-center transition-all duration-200 hover:shadow-md ${
+                                          isSelected
+                                            ? 'border-blue-500 bg-blue-50 shadow-sm dark:border-blue-400 dark:bg-blue-900/50'
+                                            : 'border-gray-200 bg-white hover:border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:hover:border-gray-500'
+                                        }`}
+                                        onClick={() => {
+                                          const values = field.value ?? [];
+                                          const newValues = isSelected
+                                            ? values.filter(
+                                                (v: string) => v !== item.id
+                                              )
+                                            : [...values, item.id];
+                                          field.onChange(newValues);
+                                        }}
+                                        title={`点击${
+                                          isSelected ? '取消选择' : '选择'
+                                        }: ${item.id}`}
+                                      >
+                                        <div className="flex items-center justify-center gap-2">
+                                          <div
+                                            className={`flex h-4 w-4 items-center justify-center rounded-full border-2 ${
+                                              isSelected
+                                                ? 'border-blue-500 bg-blue-500'
+                                                : 'border-gray-300 dark:border-gray-500'
+                                            }`}
+                                          >
+                                            {isSelected && (
+                                              <span className="text-xs text-white">
+                                                ✓
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+                                        <div
+                                          className={`mt-2 text-xs font-medium ${
+                                            isSelected
+                                              ? 'text-blue-700 dark:text-blue-200'
+                                              : 'text-gray-700 dark:text-gray-300'
+                                          }`}
+                                        >
+                                          {item.id}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
                               </div>
                             </div>
                           </FormControl>
@@ -1591,29 +1728,6 @@ export default function ChannelForm() {
                           </FormControl>
                           <div className="text-sm text-gray-600 dark:text-gray-400">
                             💡 该配置可以将请求中的模型名称替换为实际的模型名称
-                          </div>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="customModelName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="font-medium text-gray-700 dark:text-gray-300">
-                            自定义模型名称
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              className="border-gray-300 focus:border-gray-500 focus:ring-gray-200"
-                              placeholder="请输入自定义模型名称，多个模型用逗号分隔，例如：gpt-4o,claude-3.5-sonnet"
-                              {...field}
-                            />
-                          </FormControl>
-                          <div className="text-sm text-gray-600 dark:text-gray-400">
-                            输入的自定义模型将自动添加到上面选择的模型列表中
                           </div>
                           <FormMessage />
                         </FormItem>
@@ -2243,26 +2357,6 @@ ${type2secretPrompt(form.watch('type'))}`}
                   />
                 </div>
               )}
-
-              <FormField
-                control={form.control}
-                name="customModelName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>CustomModelName</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="请输入自定义模型名称，多个模型用逗号分隔，例如：gpt-4o,claude-3.5-sonnet"
-                        {...field}
-                      />
-                    </FormControl>
-                    <div className="text-[0.8rem] text-muted-foreground">
-                      输入的自定义模型将自动添加到上面选择的模型列表中
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
 
               {/* 提交按钮区域 */}
               <div className="rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">

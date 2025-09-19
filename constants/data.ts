@@ -217,10 +217,25 @@ export const navItems: NavItem[] = [
   // },
   {
     title: 'Setting',
-    href: '/dashboard/setting',
     icon: 'setting',
     label: 'setting',
-    roles: [1, 10, 100]
+    roles: [1, 10, 100],
+    children: [
+      {
+        title: '系统设置',
+        href: '/dashboard/setting',
+        icon: 'setting',
+        label: 'system-setting',
+        roles: [100]
+      },
+      {
+        title: '价格设置',
+        href: '/dashboard/setting/pricing',
+        icon: 'billing',
+        label: 'pricing-setting',
+        roles: [100]
+      }
+    ]
   }
   // {
   //   title: 'Kanban',

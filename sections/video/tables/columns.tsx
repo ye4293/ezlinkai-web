@@ -11,6 +11,7 @@ import { Progress } from '@/components/ui/progress';
 import { VideoStat } from '@/lib/types/video';
 import { ColumnDef } from '@tanstack/react-table';
 import { CellAction } from './cell-action';
+import { CopyableCell } from '@/components/ui/copyable-cell';
 
 /** 类型 */
 const renderType = (status: number) => {
@@ -36,56 +37,139 @@ const processQuota = (quota: number) => {
 };
 
 export const columns: ColumnDef<VideoStat>[] = [
-  // 管理员
-  {
-    accessorKey: 'prompt',
-    header: () => <div className="text-center">Prompt</div>,
-    cell: ({ row }) => (
-      <div className="text-center">{row.getValue('prompt')}</div>
-    )
-  },
   {
     accessorKey: 'created_at',
     header: () => <div className="text-center">Created Time</div>,
     cell: ({ row }) => {
       const timestamp = row.getValue('created_at');
+      const formattedTime = dayjs(Number(timestamp) * 1000).format(
+        'YYYY-MM-DD HH:mm:ss'
+      );
       return (
         <div className="text-center">
-          {dayjs(Number(timestamp) * 1000).format('YYYY-MM-DD HH:mm:ss')}
+          <CopyableCell value={formattedTime} label="时间">
+            <div className="text-sm">{formattedTime}</div>
+          </CopyableCell>
         </div>
       );
-    }
+    },
+    size: 160,
+    minSize: 140,
+    maxSize: 180
+  },
+  {
+    id: 'channel_id',
+    accessorKey: 'channel_id',
+    header: () => <div className="text-center">Channel ID</div>,
+    cell: ({ row }) => {
+      const channelId = row.getValue('channel_id') as number;
+      return (
+        <div className="text-center">
+          <CopyableCell value={channelId} label="渠道ID">
+            <div className="text-sm font-medium">{channelId}</div>
+          </CopyableCell>
+        </div>
+      );
+    },
+    size: 100,
+    minSize: 80,
+    maxSize: 120
   },
   {
     accessorKey: 'task_id',
-    header: () => <div className="text-center">Task Id</div>,
-    cell: ({ row }) => (
-      <div className="text-center">{row.getValue('task_id')}</div>
-    )
+    header: () => <div className="text-center">Task ID</div>,
+    cell: ({ row }) => {
+      const taskId = row.getValue('task_id') as string;
+      return (
+        <div className="text-center">
+          <CopyableCell value={taskId} label="任务ID">
+            <TooltipProvider>
+              <Tooltip delayDuration={100}>
+                <TooltipTrigger>
+                  <div className="max-w-[180px] truncate px-2 text-sm">
+                    {taskId}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <div className="max-w-[400px] break-all">{taskId}</div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </CopyableCell>
+        </div>
+      );
+    },
+    size: 200,
+    minSize: 150,
+    maxSize: 250
   },
   {
     accessorKey: 'type',
     header: () => <div className="text-center">Type</div>,
-    cell: ({ row }) => <div className="text-center">{row.getValue('type')}</div>
+    cell: ({ row }) => {
+      const type = row.getValue('type') as string;
+      return (
+        <div className="text-center">
+          <CopyableCell value={type} label="类型">
+            <div className="text-sm">{type}</div>
+          </CopyableCell>
+        </div>
+      );
+    },
+    size: 120,
+    minSize: 100,
+    maxSize: 140
   },
   {
     accessorKey: 'provider',
     header: () => <div className="text-center">Provider</div>,
-    cell: ({ row }) => (
-      <div className="text-center">{row.getValue('provider')}</div>
-    )
+    cell: ({ row }) => {
+      const provider = row.getValue('provider') as string;
+      return (
+        <div className="text-center">
+          <CopyableCell value={provider} label="提供商">
+            <div className="text-sm">{provider}</div>
+          </CopyableCell>
+        </div>
+      );
+    },
+    size: 120,
+    minSize: 100,
+    maxSize: 140
   },
   {
     accessorKey: 'mode',
     header: () => <div className="text-center">Mode</div>,
-    cell: ({ row }) => <div className="text-center">{row.getValue('mode')}</div>
+    cell: ({ row }) => {
+      const mode = row.getValue('mode') as string;
+      return (
+        <div className="text-center">
+          <CopyableCell value={mode} label="模式">
+            <div className="text-sm">{mode}</div>
+          </CopyableCell>
+        </div>
+      );
+    },
+    size: 120,
+    minSize: 100,
+    maxSize: 140
   },
   {
     accessorKey: 'duration',
     header: () => <div className="text-center">Duration</div>,
-    cell: ({ row }) => (
-      <div className="text-center">{row.getValue('duration')}</div>
-    )
+    cell: ({ row }) => {
+      const duration = row.getValue('duration') as number;
+      return (
+        <div className="text-center">
+          <CopyableCell value={duration} label="时长">
+            <div className="text-sm font-medium">{duration}s</div>
+          </CopyableCell>
+        </div>
+      );
+    },
+    size: 100,
+    minSize: 80,
+    maxSize: 120
   },
   // {
   //   accessorKey: 'progress',
@@ -114,32 +198,84 @@ export const columns: ColumnDef<VideoStat>[] = [
     id: 'username',
     accessorKey: 'username',
     header: () => <div className="text-center">Username</div>,
-    cell: ({ row }) => (
-      <div className="text-center">{row.getValue('username')}</div>
-    )
-  },
-  {
-    id: 'channel_id',
-    accessorKey: 'channel_id',
-    header: () => <div className="text-center">Channel Id</div>,
-    cell: ({ row }) => (
-      <div className="text-center">{row.getValue('channel_id')}</div>
-    )
+    cell: ({ row }) => {
+      const username = row.getValue('username') as string;
+      return (
+        <div className="text-center">
+          <CopyableCell value={username} label="用户名">
+            <div className="text-sm">{username}</div>
+          </CopyableCell>
+        </div>
+      );
+    },
+    size: 120,
+    minSize: 100,
+    maxSize: 140
   },
   {
     id: 'user_id',
     accessorKey: 'user_id',
-    header: () => <div className="text-center">User Id</div>,
-    cell: ({ row }) => (
-      <div className="text-center">{row.getValue('user_id')}</div>
-    )
+    header: () => <div className="text-center">User ID</div>,
+    cell: ({ row }) => {
+      const userId = row.getValue('user_id') as number;
+      return (
+        <div className="text-center">
+          <CopyableCell value={userId} label="用户ID">
+            <div className="text-sm font-medium">{userId}</div>
+          </CopyableCell>
+        </div>
+      );
+    },
+    size: 100,
+    minSize: 80,
+    maxSize: 120
   },
   {
     accessorKey: 'model',
     header: () => <div className="text-center">Model</div>,
-    cell: ({ row }) => (
-      <div className="text-center">{row.getValue('model')}</div>
-    )
+    cell: ({ row }) => {
+      const model = row.getValue('model') as string;
+      return (
+        <div className="text-center">
+          <CopyableCell value={model} label="模型">
+            <div className="text-sm">{model}</div>
+          </CopyableCell>
+        </div>
+      );
+    },
+    size: 140,
+    minSize: 120,
+    maxSize: 160
+  },
+  {
+    accessorKey: 'prompt',
+    header: () => <div className="text-center">Prompt</div>,
+    cell: ({ row }) => {
+      const prompt = row.getValue('prompt') as string;
+      return (
+        <div className="text-center">
+          <CopyableCell value={prompt} label="提示词">
+            <TooltipProvider>
+              <Tooltip delayDuration={100}>
+                <TooltipTrigger>
+                  <div className="max-w-[200px] truncate px-2 text-sm">
+                    {prompt || '-'}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <div className="max-w-[400px] break-words">
+                    {prompt || '无提示词'}
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </CopyableCell>
+        </div>
+      );
+    },
+    size: 250,
+    minSize: 200,
+    maxSize: 300
   }
   // {
   //   accessorKey: 'image_url',

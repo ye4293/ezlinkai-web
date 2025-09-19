@@ -33,12 +33,14 @@ export default function ImageTable({
 
   // 根据角色权限过滤
   const filterColumns = columns.filter((item) => {
-    if (
-      (session?.user as any).role === 1 &&
-      ['username', 'channel_id', 'user_id'].includes(item.id as string)
-    )
-      return false;
-    return true;
+    // 只有管理员和超级管理员才能看到channel_id, username, user_id列
+    if (!['username', 'channel_id', 'user_id'].includes(item.id as string)) {
+      return true;
+    }
+
+    // 角色10和100是管理员和超级管理员
+    const userRole = (session?.user as any)?.role;
+    return [10, 100].includes(Number(userRole));
   });
 
   const {
