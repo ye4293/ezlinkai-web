@@ -39,19 +39,16 @@ export default function PricingPage() {
 
   // 默认的定价配置示例
   const defaultPerCallPricing = `{
-
+  "doubao-seedream-4-0-250828": 0.3
 }`;
 
   const defaultInputVolumePrice = `{
-
   "gpt-image-1": 0.0025,
-  "doubao-seedream-4-0-250828": 0.0025,
   "gemini-2.5-flash-image-preview": 0.15
 }`;
 
   const defaultOutputVolumePrice = `{
   "gpt-image-1": 8,
-  "doubao-seedream-4-0-250828": 8,
   "gemini-2.5-flash-image-preview": 100
 }`;
 

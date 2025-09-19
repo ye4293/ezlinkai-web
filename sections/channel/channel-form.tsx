@@ -145,6 +145,32 @@ export default function ChannelForm() {
   const [channelData, setChannelData] = useState<Object | null>(null);
   const [vertexAiFiles, setVertexAiFiles] = useState<File[]>([]);
 
+  // 复制到剪贴板的功能
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      // 显示复制成功提示
+      const notification = document.createElement('div');
+      notification.className =
+        'fixed top-4 right-4 z-50 rounded-lg bg-green-500 px-4 py-2 text-white shadow-lg transition-all duration-300 transform translate-x-0';
+      notification.textContent = `已复制: ${text}`;
+      document.body.appendChild(notification);
+
+      // 3秒后移除提示
+      setTimeout(() => {
+        notification.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+          if (document.body.contains(notification)) {
+            document.body.removeChild(notification);
+          }
+        }, 300);
+      }, 2000);
+    } catch (err) {
+      console.error('复制失败:', err);
+      alert(`复制失败: ${text}`);
+    }
+  };
+
   // 文件解析预览状态
   interface ParsedFileInfo {
     fileName: string;
@@ -1612,19 +1638,28 @@ export default function ChannelForm() {
                                     {field.value.map((modelId: string) => (
                                       <div
                                         key={modelId}
-                                        className="flex items-center gap-1 rounded-md bg-green-100 px-3 py-1 text-sm font-medium text-green-800 dark:bg-green-800 dark:text-green-100"
+                                        className="flex items-center gap-1 rounded-md bg-green-100 px-3 py-1 text-sm font-medium text-green-800 transition-all hover:bg-green-200 dark:bg-green-800 dark:text-green-100 dark:hover:bg-green-700"
                                       >
-                                        <span>{modelId}</span>
+                                        <span
+                                          className="cursor-pointer hover:underline"
+                                          onClick={() =>
+                                            copyToClipboard(modelId)
+                                          }
+                                          title={`点击复制: ${modelId}`}
+                                        >
+                                          {modelId}
+                                        </span>
                                         <button
                                           type="button"
-                                          onClick={() => {
+                                          onClick={(e) => {
+                                            e.stopPropagation();
                                             const newValues =
                                               field.value.filter(
                                                 (v: string) => v !== modelId
                                               );
                                             field.onChange(newValues);
                                           }}
-                                          className="ml-1 rounded-full p-0.5 hover:bg-green-200 dark:hover:bg-green-700"
+                                          className="ml-1 rounded-full p-0.5 hover:bg-green-300 dark:hover:bg-green-600"
                                           title="移除此模型"
                                         >
                                           <span className="text-xs">✕</span>
@@ -1642,7 +1677,7 @@ export default function ChannelForm() {
                                     可选模型列表
                                   </span>
                                   <span className="text-xs text-gray-500">
-                                    点击模型卡片进行选择/取消
+                                    单击选择/取消 | 右键或双击复制名称
                                   </span>
                                 </div>
                                 <div className="grid max-h-80 grid-cols-2 gap-2 overflow-y-auto rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 md:grid-cols-3 lg:grid-cols-4">
@@ -1667,9 +1702,17 @@ export default function ChannelForm() {
                                             : [...values, item.id];
                                           field.onChange(newValues);
                                         }}
-                                        title={`点击${
+                                        onDoubleClick={(e) => {
+                                          e.stopPropagation();
+                                          copyToClipboard(item.id);
+                                        }}
+                                        onContextMenu={(e) => {
+                                          e.preventDefault();
+                                          copyToClipboard(item.id);
+                                        }}
+                                        title={`单击${
                                           isSelected ? '取消选择' : '选择'
-                                        }: ${item.id}`}
+                                        } | 右键或双击复制: ${item.id}`}
                                       >
                                         <div className="flex items-center justify-center gap-2">
                                           <div
