@@ -218,37 +218,70 @@ export const columns: ColumnDef<ImageStat>[] = [
     header: () => <div className="text-center">Image</div>,
     cell: ({ row }) => {
       const storeUrl = row.getValue('store_url') as string;
+
+      if (!storeUrl) {
+        return (
+          <div className="flex justify-center">
+            <div className="px-2 text-sm text-gray-500">暂无图片</div>
+          </div>
+        );
+      }
+
+      // 尝试解析JSON格式的URL数组
+      let urls: string[] = [];
+      try {
+        const parsed = JSON.parse(storeUrl);
+        if (Array.isArray(parsed)) {
+          urls = parsed.filter((url) => url && typeof url === 'string');
+        } else {
+          urls = [storeUrl]; // 如果不是数组，当作单个URL处理
+        }
+      } catch {
+        // JSON解析失败，当作单个URL处理
+        urls = [storeUrl];
+      }
+
+      if (urls.length === 0) {
+        return (
+          <div className="flex justify-center">
+            <div className="px-2 text-sm text-gray-500">暂无图片</div>
+          </div>
+        );
+      }
+
       return (
-        <div className="flex justify-center gap-2">
-          <CopyableCell value={storeUrl || ''} label="图片链接">
-            <TooltipProvider>
-              <Tooltip delayDuration={100}>
-                <TooltipTrigger>
-                  <a
-                    href={storeUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-800"
-                  >
-                    <div className="px-2 text-sm">
-                      {storeUrl ? '查看图片' : '暂无图片'}
-                    </div>
-                  </a>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <div className="max-w-[300px] break-words">
-                    {storeUrl || '无图片链接'}
-                  </div>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </CopyableCell>
+        <div className="flex flex-wrap justify-center gap-1">
+          {urls.map((url, index) => (
+            <CopyableCell
+              key={index}
+              value={url}
+              label={`图片链接${index + 1}`}
+            >
+              <TooltipProvider>
+                <Tooltip delayDuration={100}>
+                  <TooltipTrigger>
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded border border-blue-200 px-1.5 py-0.5 text-xs text-blue-600 hover:bg-blue-50 hover:text-blue-800"
+                    >
+                      图片{index + 1}
+                    </a>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <div className="max-w-[300px] break-words">{url}</div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </CopyableCell>
+          ))}
         </div>
       );
     },
-    size: 120,
-    minSize: 100,
-    maxSize: 140
+    size: 140,
+    minSize: 120,
+    maxSize: 180
   },
   {
     accessorKey: 'fail_reason',

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -145,6 +145,13 @@ export default function ChannelForm() {
   const [channelData, setChannelData] = useState<Object | null>(null);
   const [vertexAiFiles, setVertexAiFiles] = useState<File[]>([]);
 
+  // 模型搜索相关状态
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<ModelOption[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // 复制到剪贴板的功能
   const copyToClipboard = async (text: string) => {
     try {
@@ -169,6 +176,52 @@ export default function ChannelForm() {
       console.error('复制失败:', err);
       alert(`复制失败: ${text}`);
     }
+  };
+
+  // 模型搜索功能
+  const searchModels = async (query: string) => {
+    if (!query.trim()) {
+      setSearchResults([]);
+      setShowSearchResults(false);
+      return;
+    }
+
+    setIsSearching(true);
+    setShowSearchResults(true);
+
+    try {
+      // 首先从本地已有的模型选项中搜索
+      const localResults = modelOptions.filter((model) =>
+        model.id.toLowerCase().includes(query.toLowerCase())
+      );
+
+      // 模拟API搜索（可以根据需要实现真正的API调用）
+      // 这里您可以调用实际的搜索API
+      setSearchResults(localResults);
+
+      // 如果需要从服务器搜索更多模型，可以在这里添加API调用
+      // const apiResults = await fetch(`/api/models/search?q=${encodeURIComponent(query)}`);
+      // const moreResults = await apiResults.json();
+      // setSearchResults([...localResults, ...moreResults.data]);
+    } catch (error) {
+      console.error('搜索模型失败:', error);
+      // 搜索失败时至少显示本地结果
+      const localResults = modelOptions.filter((model) =>
+        model.id.toLowerCase().includes(query.toLowerCase())
+      );
+      setSearchResults(localResults);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // 添加搜索结果中的模型到已选择列表
+  const addModelFromSearch = (modelId: string, currentModels: string[]) => {
+    if (!currentModels.includes(modelId)) {
+      const newModels = [...currentModels, modelId];
+      return newModels;
+    }
+    return currentModels;
   };
 
   // 文件解析预览状态
@@ -1543,9 +1596,6 @@ export default function ChannelForm() {
                                       });
 
                                       form.setValue('models', newModels);
-                                      alert(
-                                        `已添加 ${customModels.length} 个自定义模型到选择列表中`
-                                      );
                                     }
                                   }}
                                 >
@@ -1576,6 +1626,163 @@ export default function ChannelForm() {
                           </FormLabel>
                           <FormControl>
                             <div className="space-y-4">
+                              {/* 模型搜索区域 */}
+                              <div className="relative rounded-lg border border-purple-200 bg-purple-50 p-4 dark:border-purple-700 dark:bg-purple-900/50">
+                                <div className="mb-3 flex items-center gap-2">
+                                  <span className="font-medium text-purple-800 dark:text-purple-200">
+                                    🔍 模型搜索
+                                  </span>
+                                  <span className="text-sm text-purple-600 dark:text-purple-400">
+                                    快速找到并添加模型
+                                  </span>
+                                </div>
+                                <div className="relative">
+                                  <Input
+                                    placeholder="输入模型名称进行搜索，例如：gpt-4、claude、gemini..."
+                                    value={searchQuery}
+                                    onChange={(e) => {
+                                      const query = e.target.value;
+                                      setSearchQuery(query);
+                                      // 防抖搜索
+                                      if (searchTimeoutRef.current) {
+                                        clearTimeout(searchTimeoutRef.current);
+                                      }
+                                      searchTimeoutRef.current = setTimeout(
+                                        () => {
+                                          searchModels(query);
+                                        },
+                                        300
+                                      );
+                                    }}
+                                    className="border-purple-300 bg-white pr-20 focus:border-purple-500 focus:ring-purple-200 dark:border-purple-600 dark:bg-gray-800"
+                                  />
+                                  <div className="absolute right-2 top-1/2 flex -translate-y-1/2 gap-1">
+                                    {isSearching && (
+                                      <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-purple-600"></div>
+                                    )}
+                                    {searchQuery && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setSearchQuery('');
+                                          setSearchResults([]);
+                                          setShowSearchResults(false);
+                                        }}
+                                        className="rounded p-1 hover:bg-purple-100 dark:hover:bg-purple-800"
+                                        title="清空搜索"
+                                      >
+                                        <span className="text-xs text-purple-600">
+                                          ✕
+                                        </span>
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* 搜索结果显示 */}
+                                {showSearchResults && (
+                                  <div className="mt-3 rounded-lg border border-purple-200 bg-white p-3 dark:border-purple-600 dark:bg-gray-800">
+                                    <div className="mb-2 flex items-center justify-between">
+                                      <span className="text-sm font-medium text-purple-700 dark:text-purple-300">
+                                        搜索结果 ({searchResults.length})
+                                      </span>
+                                      {searchResults.length > 0 && (
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const currentModels =
+                                              field.value || [];
+                                            const allSearchResultIds =
+                                              searchResults.map(
+                                                (model) => model.id
+                                              );
+                                            const newModels = [
+                                              ...currentModels
+                                            ];
+
+                                            allSearchResultIds.forEach(
+                                              (modelId) => {
+                                                if (
+                                                  !newModels.includes(modelId)
+                                                ) {
+                                                  newModels.push(modelId);
+                                                }
+                                              }
+                                            );
+
+                                            field.onChange(newModels);
+                                            setShowSearchResults(false);
+                                            setSearchQuery('');
+                                          }}
+                                          className="text-xs text-purple-600 hover:text-purple-800 hover:underline dark:text-purple-400 dark:hover:text-purple-200"
+                                        >
+                                          全部添加
+                                        </button>
+                                      )}
+                                    </div>
+
+                                    {searchResults.length === 0 ? (
+                                      <div className="text-center text-sm text-gray-500 dark:text-gray-400">
+                                        {isSearching
+                                          ? '搜索中...'
+                                          : '未找到匹配的模型'}
+                                      </div>
+                                    ) : (
+                                      <div className="grid max-h-40 grid-cols-1 gap-2 overflow-y-auto md:grid-cols-2">
+                                        {searchResults.map((model) => {
+                                          const isAlreadySelected =
+                                            field.value?.includes(model.id);
+                                          return (
+                                            <div
+                                              key={model.id}
+                                              className={`flex items-center justify-between rounded-md border p-2 transition-colors ${
+                                                isAlreadySelected
+                                                  ? 'border-green-300 bg-green-50 dark:border-green-600 dark:bg-green-900/50'
+                                                  : 'border-gray-200 bg-gray-50 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:hover:bg-gray-600'
+                                              }`}
+                                            >
+                                              <div className="flex items-center gap-2">
+                                                <span
+                                                  className="cursor-pointer text-sm font-medium hover:underline"
+                                                  onClick={() =>
+                                                    copyToClipboard(model.id)
+                                                  }
+                                                  title={`点击复制: ${model.id}`}
+                                                >
+                                                  {model.id}
+                                                </span>
+                                                {isAlreadySelected && (
+                                                  <span className="text-xs text-green-600 dark:text-green-400">
+                                                    ✓ 已选择
+                                                  </span>
+                                                )}
+                                              </div>
+                                              {!isAlreadySelected && (
+                                                <button
+                                                  type="button"
+                                                  onClick={() => {
+                                                    const newModels =
+                                                      addModelFromSearch(
+                                                        model.id,
+                                                        field.value || []
+                                                      );
+                                                    field.onChange(newModels);
+                                                  }}
+                                                  className="rounded bg-purple-500 px-2 py-1 text-xs text-white hover:bg-purple-600"
+                                                  title="添加此模型"
+                                                >
+                                                  添加
+                                                </button>
+                                              )}
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+
                               {/* 操作按钮区域 */}
                               <div className="flex flex-wrap gap-2 rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-600 dark:bg-gray-800">
                                 <Button
