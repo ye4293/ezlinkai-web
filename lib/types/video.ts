@@ -1,5 +1,4 @@
 export interface VideoStat {
-  prompt: string;
   created_at: number;
   task_id: string;
   type: string;
@@ -10,4 +9,9 @@ export interface VideoStat {
   channel_id: number;
   user_id: number;
   model: string;
+  status: string;
+  fail_reason: string;
+  store_url: string;
+  quota: number;
+  n: number;
 }

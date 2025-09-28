@@ -238,7 +238,18 @@ export const columns: ColumnDef<VideoStat>[] = [
       return (
         <div className="text-center">
           <CopyableCell value={model} label="模型">
-            <div className="text-sm">{model}</div>
+            <TooltipProvider>
+              <Tooltip delayDuration={100}>
+                <TooltipTrigger>
+                  <div className="max-w-[130px] overflow-hidden truncate whitespace-nowrap px-2 text-sm">
+                    {model}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <div className="max-w-[300px] break-words">{model}</div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </CopyableCell>
         </div>
       );
@@ -248,23 +259,52 @@ export const columns: ColumnDef<VideoStat>[] = [
     maxSize: 160
   },
   {
-    accessorKey: 'prompt',
-    header: () => <div className="text-center">Prompt</div>,
+    accessorKey: 'status',
+    header: () => <div className="text-center">Status</div>,
     cell: ({ row }) => {
-      const prompt = row.getValue('prompt') as string;
+      const status = row.getValue('status') as string;
       return (
         <div className="text-center">
-          <CopyableCell value={prompt} label="提示词">
+          <CopyableCell value={status} label="状态">
+            <div
+              className={`text-sm font-medium ${
+                status === 'success'
+                  ? 'text-green-600'
+                  : status === 'failed'
+                  ? 'text-red-600'
+                  : status === 'running'
+                  ? 'text-blue-600'
+                  : 'text-gray-600'
+              }`}
+            >
+              {status || '-'}
+            </div>
+          </CopyableCell>
+        </div>
+      );
+    },
+    size: 100,
+    minSize: 80,
+    maxSize: 120
+  },
+  {
+    accessorKey: 'fail_reason',
+    header: () => <div className="text-center">Fail Reason</div>,
+    cell: ({ row }) => {
+      const failReason = row.getValue('fail_reason') as string;
+      return (
+        <div className="text-center">
+          <CopyableCell value={failReason} label="失败原因">
             <TooltipProvider>
               <Tooltip delayDuration={100}>
                 <TooltipTrigger>
-                  <div className="max-w-[200px] truncate px-2 text-sm">
-                    {prompt || '-'}
+                  <div className="max-w-[150px] overflow-hidden truncate whitespace-nowrap px-2 text-sm">
+                    {failReason || '-'}
                   </div>
                 </TooltipTrigger>
                 <TooltipContent>
                   <div className="max-w-[400px] break-words">
-                    {prompt || '无提示词'}
+                    {failReason || '无失败原因'}
                   </div>
                 </TooltipContent>
               </Tooltip>
@@ -273,9 +313,84 @@ export const columns: ColumnDef<VideoStat>[] = [
         </div>
       );
     },
-    size: 250,
-    minSize: 200,
-    maxSize: 300
+    size: 180,
+    minSize: 120,
+    maxSize: 200
+  },
+  {
+    accessorKey: 'store_url',
+    header: () => <div className="text-center">Store URL</div>,
+    cell: ({ row }) => {
+      const storeUrl = row.getValue('store_url') as string;
+      return (
+        <div className="text-center">
+          <CopyableCell value={storeUrl} label="存储URL">
+            <TooltipProvider>
+              <Tooltip delayDuration={100}>
+                <TooltipTrigger>
+                  <div className="max-w-[100px] overflow-hidden truncate whitespace-nowrap px-2 text-sm">
+                    {storeUrl ? (
+                      <a
+                        href={storeUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block truncate text-blue-600 underline hover:text-blue-800"
+                      >
+                        查看链接
+                      </a>
+                    ) : (
+                      '-'
+                    )}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <div className="max-w-[400px] break-all">
+                    {storeUrl || '无存储URL'}
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </CopyableCell>
+        </div>
+      );
+    },
+    size: 110,
+    minSize: 90,
+    maxSize: 130
+  },
+  {
+    accessorKey: 'quota',
+    header: () => <div className="text-center">Quota</div>,
+    cell: ({ row }) => {
+      const quota = row.getValue('quota') as number;
+      return (
+        <div className="text-center">
+          <CopyableCell value={quota} label="配额">
+            <div className="text-sm font-medium">{processQuota(quota)}</div>
+          </CopyableCell>
+        </div>
+      );
+    },
+    size: 100,
+    minSize: 80,
+    maxSize: 120
+  },
+  {
+    accessorKey: 'n',
+    header: () => <div className="text-center">N</div>,
+    cell: ({ row }) => {
+      const n = row.getValue('n') as number;
+      return (
+        <div className="text-center">
+          <CopyableCell value={n} label="数量">
+            <div className="text-sm font-medium">{n || 1}</div>
+          </CopyableCell>
+        </div>
+      );
+    },
+    size: 80,
+    minSize: 60,
+    maxSize: 100
   }
   // {
   //   accessorKey: 'image_url',

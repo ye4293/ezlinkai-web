@@ -75,7 +75,11 @@ export default function VideoTable({
         'Duration',
         'User',
         'Channel ID',
-        'Prompt'
+        'Status',
+        'Fail Reason',
+        'Store URL',
+        'Quota',
+        'N'
       ];
 
       const csvContent = [
@@ -91,7 +95,11 @@ export default function VideoTable({
             row.duration || '',
             row.username || '',
             row.channel_id || '',
-            `"${(row.prompt || '').replace(/"/g, '""')}"`
+            row.status || '',
+            `"${(row.fail_reason || '').replace(/"/g, '""')}"`,
+            row.store_url || '',
+            ((row.quota || 0) / 500000).toFixed(6),
+            row.n || ''
           ].join(',')
         )
       ].join('\n');
