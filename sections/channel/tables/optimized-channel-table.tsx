@@ -2,7 +2,7 @@
 
 import React, { memo, useMemo, useCallback, useState, useEffect } from 'react';
 import { DataTable } from '@/components/ui/table/data-table';
-import { DataTableFilterBox } from '@/components/ui/table/data-table-filter-box';
+import { DataTableSingleSelectFilter } from '@/components/ui/table/data-table-single-select-filter';
 import { DataTableResetFilter } from '@/components/ui/table/data-table-reset-filter';
 import { DataTableSearch } from '@/components/ui/table/data-table-search';
 import { createColumns, ChannelType } from './columns';
@@ -296,7 +296,7 @@ const OptimizedChannelTable = memo(
               setPage={setPage}
               searchKey="ID,Name,Key"
             />
-            <DataTableFilterBox
+            <DataTableSingleSelectFilter
               filterValue={statusFilter}
               setFilterValue={setStatusFilter}
               options={STATUS_OPTIONS}

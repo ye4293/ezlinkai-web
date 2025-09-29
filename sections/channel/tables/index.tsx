@@ -1,7 +1,7 @@
 'use client';
 
 import { DataTable } from '@/components/ui/table/data-table';
-import { DataTableFilterBox } from '@/components/ui/table/data-table-filter-box';
+import { DataTableSingleSelectFilter } from '@/components/ui/table/data-table-single-select-filter';
 import { DataTableResetFilter } from '@/components/ui/table/data-table-reset-filter';
 import { DataTableSearch } from '@/components/ui/table/data-table-search';
 import { Channel } from '@/lib/types/channel';
@@ -228,9 +228,9 @@ export default function ChannelTable({
             setPage={setPage}
             searchKey="ID,Name,Key"
           />
-          <DataTableFilterBox
-            filterValue={statusFilter} // 修复: value -> filterValue
-            setFilterValue={setStatusFilter} // 修复: onChange -> setFilterValue
+          <DataTableSingleSelectFilter
+            filterValue={statusFilter}
+            setFilterValue={setStatusFilter}
             options={STATUS_OPTIONS}
             title="Status"
             filterKey="status"

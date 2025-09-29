@@ -242,12 +242,12 @@ const StatusCell = memo(
     const handleStatusChange = async (newStatus: number) => {
       if (isUpdating) return; // 防止重复点击
 
-      const oldStatus = channel.status ?? 3; // 默认为手动禁用状态
+      const oldStatus = channel.status ?? 2; // 默认为手动禁用状态
       const getStatusText = (status: number) => {
         const statusMap = {
           1: '已启用',
-          2: '自动禁用',
-          3: '手动禁用'
+          2: '手动禁用',
+          3: '自动禁用'
         };
         return statusMap[status as keyof typeof statusMap] || '未知状态';
       };
@@ -285,18 +285,18 @@ const StatusCell = memo(
         switchColor: 'bg-green-500'
       },
       2: {
-        text: '自动禁用',
-        color: 'bg-orange-100 text-orange-800',
-        switchColor: 'bg-orange-500'
-      },
-      3: {
         text: '手动禁用',
         color: 'bg-gray-100 text-gray-800',
         switchColor: 'bg-gray-400'
+      },
+      3: {
+        text: '自动禁用',
+        color: 'bg-orange-100 text-orange-800',
+        switchColor: 'bg-orange-500'
       }
     };
     const currentStatus =
-      statusMap[channel.status as keyof typeof statusMap] || statusMap[3];
+      statusMap[channel.status as keyof typeof statusMap] || statusMap[2];
     const isEnabled = channel.status === 1;
 
     return (
@@ -304,7 +304,7 @@ const StatusCell = memo(
         <Switch
           checked={isEnabled}
           disabled={isUpdating}
-          onCheckedChange={() => handleStatusChange(isEnabled ? 3 : 1)}
+          onCheckedChange={() => handleStatusChange(isEnabled ? 2 : 1)}
           className={`relative h-4 w-8 cursor-pointer rounded-full p-1 transition-colors ${
             isEnabled ? currentStatus.switchColor : 'bg-gray-300'
           } ${isUpdating ? 'cursor-not-allowed opacity-50' : ''}`}

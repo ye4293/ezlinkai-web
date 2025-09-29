@@ -5,8 +5,9 @@ import { useQueryState } from 'nuqs';
 import { useCallback, useMemo } from 'react';
 
 export const STATUS_OPTIONS = [
-  { value: '1', label: 'Enabled' },
-  { value: '2', label: 'Disabled' }
+  { value: '1', label: '已启用' },
+  { value: '2', label: '手动禁用' },
+  { value: '3', label: '自动禁用' }
 ];
 
 export function useTableFilters() {
