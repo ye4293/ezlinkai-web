@@ -127,56 +127,127 @@ export default function LogTable({
     exportToCSV(data, `logs-page-${page}-${timestamp}.csv`);
   }, [data, page, exportToCSV]);
 
-  // 导出全部数据
+  // 导出全部数据 - 高性能并行分批请求，支持百万级数据
   const exportAllData = React.useCallback(async () => {
     try {
-      // 构建API参数
-      const params = new URLSearchParams();
-      params.set('page', '1');
-      params.set('pagesize', '9999'); // 获取大量数据
-
-      if (tokenName) params.set('token_name', tokenName);
-      if (modelName) params.set('model_name', modelName);
-      if (channelId) params.set('channel', channelId);
-      if (userName) params.set('username', userName);
-      if (xRequestId) params.set('x_request_id', xRequestId);
-      if (xResponseId) params.set('x_response_id', xResponseId);
-      if (typeFilter) params.set('type', typeFilter);
-      if (dateTimeRange?.from)
-        params.set(
-          'start_timestamp',
-          String(Math.floor(dateTimeRange.from.getTime() / 1000))
-        );
-      if (dateTimeRange?.to)
-        params.set(
-          'end_timestamp',
-          String(Math.floor(dateTimeRange.to.getTime() / 1000))
-        );
+      const allLogData: LogStat[] = [];
+      const pageSizePerRequest = 10000; // 每次请求1万条
+      const concurrentRequests = 10; // 10个并发请求
 
       const userApi = [10, 100].includes((session?.user as any).role)
         ? `/api/log/`
         : `/api/log/self`;
 
-      const baseUrl =
-        process.env.NEXT_PUBLIC_API_BASE_URL + `${userApi}?${params}`;
+      // 构建通用参数
+      const buildParams = (page: number) => {
+        const params = new URLSearchParams();
+        params.set('page', String(page));
+        params.set('pagesize', String(pageSizePerRequest));
 
-      const res = await fetch(baseUrl, {
+        if (tokenName) params.set('token_name', tokenName);
+        if (modelName) params.set('model_name', modelName);
+        if (channelId) params.set('channel', channelId);
+        if (userName) params.set('username', userName);
+        if (xRequestId) params.set('x_request_id', xRequestId);
+        if (xResponseId) params.set('x_response_id', xResponseId);
+        if (typeFilter) params.set('type', typeFilter);
+        if (dateTimeRange?.from)
+          params.set(
+            'start_timestamp',
+            String(Math.floor(dateTimeRange.from.getTime() / 1000))
+          );
+        if (dateTimeRange?.to)
+          params.set(
+            'end_timestamp',
+            String(Math.floor(dateTimeRange.to.getTime() / 1000))
+          );
+
+        return params;
+      };
+
+      // 请求单个页面的数据
+      const fetchPage = async (page: number): Promise<LogStat[]> => {
+        const params = buildParams(page);
+        const url =
+          process.env.NEXT_PUBLIC_API_BASE_URL + `${userApi}?${params}`;
+
+        const res = await fetch(url, {
+          credentials: 'include',
+          headers: {
+            Authorization: `Bearer ${session?.user?.accessToken}`
+          }
+        });
+
+        const { data: responseData } = await res.json();
+        return (responseData && responseData.list) || [];
+      };
+
+      console.log('🚀 开始导出数据...');
+
+      // 第一次请求获取 total
+      const firstList = await fetchPage(0);
+      const firstParams = buildParams(0);
+      const firstUrl =
+        process.env.NEXT_PUBLIC_API_BASE_URL + `${userApi}?${firstParams}`;
+
+      const firstRes = await fetch(firstUrl, {
         credentials: 'include',
         headers: {
           Authorization: `Bearer ${session?.user?.accessToken}`
         }
       });
 
-      const { data: allData } = await res.json();
-      const logData: LogStat[] = (allData && allData.list) || [];
+      const { data: firstData } = await firstRes.json();
+      const total = firstData?.total || 0;
+
+      if (firstList.length > 0) {
+        allLogData.push(...firstList);
+      }
+
+      console.log(`📊 总共 ${total} 条记录需要导出`);
+
+      // 计算总页数
+      const totalPages = Math.ceil(total / pageSizePerRequest);
+
+      // 并行分批请求剩余数据
+      for (let i = 1; i < totalPages; i += concurrentRequests) {
+        const pagePromises: Promise<LogStat[]>[] = [];
+
+        // 创建并发请求
+        for (let j = 0; j < concurrentRequests && i + j < totalPages; j++) {
+          pagePromises.push(fetchPage(i + j));
+        }
+
+        // 等待当前批次完成
+        const results = await Promise.all(pagePromises);
+
+        // 合并数据
+        results.forEach((pageData) => {
+          if (pageData.length > 0) {
+            allLogData.push(...pageData);
+          }
+        });
+
+        // 显示进度
+        const progress = Math.min(100, Math.round((i / totalPages) * 100));
+        console.log(
+          `⏳ 导出进度: ${progress}% (${allLogData.length}/${total})`
+        );
+      }
 
       const timestamp = new Date()
         .toISOString()
         .slice(0, 19)
         .replace(/:/g, '-');
-      exportToCSV(logData, `logs-all-${timestamp}.csv`);
+      exportToCSV(allLogData, `logs-all-${timestamp}.csv`);
+
+      console.log(
+        `✅ 成功导出 ${allLogData.length} 条日志记录（总计 ${total} 条）`
+      );
+      alert(`✅ 导出完成！共导出 ${allLogData.length} 条记录`);
     } catch (error) {
-      console.error('Export failed:', error);
+      console.error('❌ 导出失败:', error);
+      alert('导出失败，请查看控制台错误信息');
     }
   }, [
     tokenName,

@@ -120,54 +120,125 @@ export default function VideoTable({
     exportToCSV(data, `video-logs-page-${timestamp}.csv`);
   }, [data, exportToCSV]);
 
-  // 导出全部数据
+  // 导出全部数据 - 高性能并行分批请求，支持百万级数据
   const exportAllData = React.useCallback(async () => {
     try {
-      // 构建API参数
-      const params = new URLSearchParams();
-      params.set('page', '1');
-      params.set('pagesize', '9999'); // 获取大量数据
-
-      if (taskId) params.set('taskid', taskId);
-      if (provider) params.set('provider', provider);
-      if (modelName) params.set('model_name', modelName);
-      if (channelId) params.set('channel_id', channelId);
-      if (userName) params.set('username', userName);
-      if (dateTimeRange?.from)
-        params.set(
-          'start_timestamp',
-          String(Math.floor(dateTimeRange.from.getTime() / 1000))
-        );
-      if (dateTimeRange?.to)
-        params.set(
-          'end_timestamp',
-          String(Math.floor(dateTimeRange.to.getTime() / 1000))
-        );
+      const allVideoData: VideoStat[] = [];
+      const pageSizePerRequest = 10000; // 每次请求1万条
+      const concurrentRequests = 10; // 10个并发请求
 
       const userApi = [10, 100].includes((session?.user as any).role)
         ? `/api/video`
         : `/api/video/self`;
 
-      const baseUrl =
-        process.env.NEXT_PUBLIC_API_BASE_URL + `${userApi}?${params}`;
+      // 构建通用参数
+      const buildParams = (page: number) => {
+        const params = new URLSearchParams();
+        params.set('page', String(page));
+        params.set('pagesize', String(pageSizePerRequest));
 
-      const res = await fetch(baseUrl, {
+        if (taskId) params.set('taskid', taskId);
+        if (provider) params.set('provider', provider);
+        if (modelName) params.set('model_name', modelName);
+        if (channelId) params.set('channel_id', channelId);
+        if (userName) params.set('username', userName);
+        if (dateTimeRange?.from)
+          params.set(
+            'start_timestamp',
+            String(Math.floor(dateTimeRange.from.getTime() / 1000))
+          );
+        if (dateTimeRange?.to)
+          params.set(
+            'end_timestamp',
+            String(Math.floor(dateTimeRange.to.getTime() / 1000))
+          );
+
+        return params;
+      };
+
+      // 请求单个页面的数据
+      const fetchPage = async (page: number): Promise<VideoStat[]> => {
+        const params = buildParams(page);
+        const url =
+          process.env.NEXT_PUBLIC_API_BASE_URL + `${userApi}?${params}`;
+
+        const res = await fetch(url, {
+          credentials: 'include',
+          headers: {
+            Authorization: `Bearer ${session?.user?.accessToken}`
+          }
+        });
+
+        const { data: responseData } = await res.json();
+        return (responseData && responseData.list) || [];
+      };
+
+      console.log('🚀 开始导出视频数据...');
+
+      // 第一次请求获取 total
+      const firstList = await fetchPage(0);
+      const firstParams = buildParams(0);
+      const firstUrl =
+        process.env.NEXT_PUBLIC_API_BASE_URL + `${userApi}?${firstParams}`;
+
+      const firstRes = await fetch(firstUrl, {
         credentials: 'include',
         headers: {
           Authorization: `Bearer ${session?.user?.accessToken}`
         }
       });
 
-      const { data: allData } = await res.json();
-      const videoData: VideoStat[] = (allData && allData.list) || [];
+      const { data: firstData } = await firstRes.json();
+      const total = firstData?.total || 0;
+
+      if (firstList.length > 0) {
+        allVideoData.push(...firstList);
+      }
+
+      console.log(`📊 总共 ${total} 条视频记录需要导出`);
+
+      // 计算总页数
+      const totalPages = Math.ceil(total / pageSizePerRequest);
+
+      // 并行分批请求剩余数据
+      for (let i = 1; i < totalPages; i += concurrentRequests) {
+        const pagePromises: Promise<VideoStat[]>[] = [];
+
+        // 创建并发请求
+        for (let j = 0; j < concurrentRequests && i + j < totalPages; j++) {
+          pagePromises.push(fetchPage(i + j));
+        }
+
+        // 等待当前批次完成
+        const results = await Promise.all(pagePromises);
+
+        // 合并数据
+        results.forEach((pageData) => {
+          if (pageData.length > 0) {
+            allVideoData.push(...pageData);
+          }
+        });
+
+        // 显示进度
+        const progress = Math.min(100, Math.round((i / totalPages) * 100));
+        console.log(
+          `⏳ 导出进度: ${progress}% (${allVideoData.length}/${total})`
+        );
+      }
 
       const timestamp = new Date()
         .toISOString()
         .slice(0, 19)
         .replace(/:/g, '-');
-      exportToCSV(videoData, `video-logs-all-${timestamp}.csv`);
+      exportToCSV(allVideoData, `video-logs-all-${timestamp}.csv`);
+
+      console.log(
+        `✅ 成功导出 ${allVideoData.length} 条视频记录（总计 ${total} 条）`
+      );
+      alert(`✅ 导出完成！共导出 ${allVideoData.length} 条视频记录`);
     } catch (error) {
-      console.error('Export failed:', error);
+      console.error('❌ 导出失败:', error);
+      alert('导出失败，请查看控制台错误信息');
     }
   }, [
     taskId,
