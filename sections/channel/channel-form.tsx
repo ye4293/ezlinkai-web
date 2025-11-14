@@ -66,6 +66,7 @@ const formSchema = z.object({
   sk: z.string().optional(),
   vertex_ai_project_id: z.string().optional(),
   vertex_ai_adc: z.string().optional(),
+  google_storage: z.string().optional(),
   user_id: z.string().optional(),
   model_mapping: z.string().optional(),
   models: z.array(z.string(), {
@@ -382,6 +383,7 @@ export default function ChannelForm() {
             sk: config.sk || '',
             vertex_ai_project_id: config.vertex_ai_project_id || '',
             vertex_ai_adc: config.vertex_ai_adc || '',
+            google_storage: config.google_storage || '',
             user_id: config.user_id || '',
             model_mapping: channelData.model_mapping || '',
             models: channelData.models?.split(',') || [],
@@ -424,6 +426,7 @@ export default function ChannelForm() {
       sk: undefined,
       vertex_ai_project_id: undefined,
       vertex_ai_adc: undefined,
+      google_storage: undefined,
       user_id: undefined,
       model_mapping: undefined,
       models: undefined,
@@ -885,6 +888,8 @@ export default function ChannelForm() {
         if (values.vertex_ai_project_id)
           config.vertex_ai_project_id = values.vertex_ai_project_id;
         if (values.vertex_ai_adc) config.vertex_ai_adc = values.vertex_ai_adc;
+        if (values.google_storage)
+          config.google_storage = values.google_storage;
         return Object.keys(config).length > 0 ? JSON.stringify(config) : '';
       };
 
@@ -2065,6 +2070,27 @@ export default function ChannelForm() {
                         <div className="text-[0.8rem] text-muted-foreground">
                           粘贴JSON后会自动提取project_id填充到上方的Project
                           ID字段，并设置region为global
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="google_storage"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Google Storage 存储桶 (可选)</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="例如: gs://ezlinkai-veo322"
+                            {...field}
+                          />
+                        </FormControl>
+                        <div className="text-[0.8rem] text-muted-foreground">
+                          用于 Veo3 视频生成的存储桶地址，格式为
+                          gs://bucket-name，不填则使用默认配置
                         </div>
                         <FormMessage />
                       </FormItem>
