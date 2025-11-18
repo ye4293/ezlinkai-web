@@ -3,7 +3,7 @@
 import { DataTable } from '@/components/ui/table/data-table';
 import { DataTableSingleFilterBox } from '@/components/ui/table/data-table-single-filter-box';
 import { DataTableResetFilter } from '@/components/ui/table/data-table-reset-filter';
-import { DataTableSearch } from '@/components/ui/table/data-table-search';
+// import { DataTableSearch } from '@/components/ui/table/data-table-search';
 import { DateTimeRangePicker } from '@/components/datetime-range-picker';
 import { LogStat } from '@/lib/types/log';
 import { LOG_OPTIONS } from '@/constants';
@@ -11,10 +11,11 @@ import { columns } from './columns';
 import { useTableFilters } from './use-table-filters';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useScreenSize } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
-import { Download } from 'lucide-react';
+import { Download, Search, X } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -73,6 +74,52 @@ export default function LogTable({
     dateTimeRange,
     setDateTimeRange
   } = useTableFilters();
+
+  // 本地状态用于输入框
+  const [localTokenName, setLocalTokenName] = useState(tokenName || '');
+  const [localModelName, setLocalModelName] = useState(modelName || '');
+  const [localChannelId, setLocalChannelId] = useState(channelId || '');
+  const [localUserName, setLocalUserName] = useState(userName || '');
+  const [localXRequestId, setLocalXRequestId] = useState(xRequestId || '');
+  const [localXResponseId, setLocalXResponseId] = useState(xResponseId || '');
+
+  // 同步 URL 参数到本地状态
+  useEffect(() => {
+    setLocalTokenName(tokenName || '');
+  }, [tokenName]);
+  useEffect(() => {
+    setLocalModelName(modelName || '');
+  }, [modelName]);
+  useEffect(() => {
+    setLocalChannelId(channelId || '');
+  }, [channelId]);
+  useEffect(() => {
+    setLocalUserName(userName || '');
+  }, [userName]);
+  useEffect(() => {
+    setLocalXRequestId(xRequestId || '');
+  }, [xRequestId]);
+  useEffect(() => {
+    setLocalXResponseId(xResponseId || '');
+  }, [xResponseId]);
+
+  // 统一搜索处理函数
+  const handleSearch = () => {
+    setPage(1);
+    setTokenName(localTokenName || null);
+    setModelName(localModelName || null);
+    setChannelId(localChannelId || null);
+    setUserName(localUserName || null);
+    setXRequestId(localXRequestId || null);
+    setXResponseId(localXResponseId || null);
+  };
+
+  // 处理回车键
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
 
   // 导出CSV功能
   const exportToCSV = React.useCallback((data: LogStat[], filename: string) => {
@@ -304,22 +351,53 @@ export default function LogTable({
       <div className="space-y-4">
         {/* 第一行：主要搜索和导出 */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-          <div className="min-w-0 flex-1 sm:min-w-[200px] sm:flex-none">
-            <DataTableSearch
-              searchKey="Token Name"
-              searchQuery={tokenName}
-              setSearchQuery={setTokenName}
-              setPage={setPage}
+          <div className="relative min-w-0 flex-1 sm:min-w-[200px] sm:flex-none">
+            <Input
+              placeholder="Search Token Name..."
+              value={localTokenName}
+              onChange={(e) => setLocalTokenName(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="pr-8"
             />
+            {localTokenName && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setLocalTokenName('')}
+                className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2 p-0 hover:bg-gray-100"
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            )}
           </div>
-          <div className="min-w-0 flex-1 sm:min-w-[200px] sm:flex-none">
-            <DataTableSearch
-              searchKey="Model Name"
-              searchQuery={modelName}
-              setSearchQuery={setModelName}
-              setPage={setPage}
+          <div className="relative min-w-0 flex-1 sm:min-w-[200px] sm:flex-none">
+            <Input
+              placeholder="Search Model Name..."
+              value={localModelName}
+              onChange={(e) => setLocalModelName(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="pr-8"
             />
+            {localModelName && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setLocalModelName('')}
+                className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2 p-0 hover:bg-gray-100"
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            )}
           </div>
+
+          {/* 统一查询按钮 */}
+          <div className="flex-shrink-0">
+            <Button onClick={handleSearch} className="gap-2">
+              <Search className="h-4 w-4" />
+              <span className="hidden sm:inline">Search</span>
+            </Button>
+          </div>
+
           <div className="flex-shrink-0">
             <DropdownMenu>
               <TooltipProvider>
@@ -364,39 +442,83 @@ export default function LogTable({
 
         {/* 第二行：高级搜索（可折叠） */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-          <div className="min-w-0 flex-1 sm:min-w-[180px] sm:flex-none">
-            <DataTableSearch
-              searchKey="X-Request-ID"
-              searchQuery={xRequestId || ''}
-              setSearchQuery={setXRequestId}
-              setPage={setPage}
+          <div className="relative min-w-0 flex-1 sm:min-w-[180px] sm:flex-none">
+            <Input
+              placeholder="Search X-Request-ID..."
+              value={localXRequestId}
+              onChange={(e) => setLocalXRequestId(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="pr-8"
             />
+            {localXRequestId && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setLocalXRequestId('')}
+                className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2 p-0 hover:bg-gray-100"
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            )}
           </div>
-          <div className="min-w-0 flex-1 sm:min-w-[180px] sm:flex-none">
-            <DataTableSearch
-              searchKey="X-Response-ID"
-              searchQuery={xResponseId || ''}
-              setSearchQuery={setXResponseId}
-              setPage={setPage}
+          <div className="relative min-w-0 flex-1 sm:min-w-[180px] sm:flex-none">
+            <Input
+              placeholder="Search X-Response-ID..."
+              value={localXResponseId}
+              onChange={(e) => setLocalXResponseId(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="pr-8"
             />
+            {localXResponseId && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setLocalXResponseId('')}
+                className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2 p-0 hover:bg-gray-100"
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            )}
           </div>
           {[10, 100].includes((session?.user as any).role) && (
             <>
-              <div className="min-w-0 flex-1 sm:min-w-[180px] sm:flex-none">
-                <DataTableSearch
-                  searchKey="Channel ID"
-                  searchQuery={channelId}
-                  setSearchQuery={setChannelId}
-                  setPage={setPage}
+              <div className="relative min-w-0 flex-1 sm:min-w-[180px] sm:flex-none">
+                <Input
+                  placeholder="Search Channel ID..."
+                  value={localChannelId}
+                  onChange={(e) => setLocalChannelId(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  className="pr-8"
                 />
+                {localChannelId && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setLocalChannelId('')}
+                    className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2 p-0 hover:bg-gray-100"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
               </div>
-              <div className="min-w-0 flex-1 sm:min-w-[180px] sm:flex-none">
-                <DataTableSearch
-                  searchKey="User Name"
-                  searchQuery={userName}
-                  setSearchQuery={setUserName}
-                  setPage={setPage}
+              <div className="relative min-w-0 flex-1 sm:min-w-[180px] sm:flex-none">
+                <Input
+                  placeholder="Search User Name..."
+                  value={localUserName}
+                  onChange={(e) => setLocalUserName(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  className="pr-8"
                 />
+                {localUserName && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setLocalUserName('')}
+                    className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2 p-0 hover:bg-gray-100"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
               </div>
             </>
           )}
@@ -428,6 +550,7 @@ export default function LogTable({
               onReset={() => {
                 resetFilters();
                 setPage(1);
+                // 本地状态也会因为 useEffect 自动重置，因为 resetFilters 会重置 URL 参数
               }}
             />
           </div>

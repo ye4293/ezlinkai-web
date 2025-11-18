@@ -33,28 +33,17 @@ export default async function MidjourneyListingPage({}: TMidjourneyListingPage) 
   const startTime = searchParamsCache.get('start_timestamp');
   const endTime = searchParamsCache.get('end_timestamp');
 
-  // const filters = {
-  //   page,
-  //   limit: pageLimit,
-  //   ...(search && { search }),
-  //   ...(mjId && { mj_id: mjId }),
-  //   ...(channel && { channel }),
-  //   ...(username && { username }),
-  //   ...(startTime && { start_timestamp: startTime }),
-  //   ...(endTime && { end_timestamp: endTime })
-  // };
-
   const params = new URLSearchParams({
     page: String(page),
     pagesize: String(pageLimit),
     ...(search && { keyword: search }),
     ...(mjId && { mj_id: mjId }),
-    ...(channel && { channel: String(channel) }),
+    ...(channel && { channel_id: String(channel) }),
     ...(username && { username }),
     ...(type && { type }),
     ...(status && { status }),
-    ...(startTime && { start_timestamp: String(Number(startTime) * 1000) }), // 用毫秒
-    ...(endTime && { end_timestamp: String(Number(endTime) * 1000) })
+    ...(startTime && { start_timestamp: String(startTime) }),
+    ...(endTime && { end_timestamp: String(endTime) })
   });
   // console.log('Midjourney params', params);
   const session = await auth();

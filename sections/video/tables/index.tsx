@@ -3,7 +3,7 @@
 import { DataTable } from '@/components/ui/table/data-table';
 import { DataTableFilterBox } from '@/components/ui/table/data-table-filter-box';
 import { DataTableResetFilter } from '@/components/ui/table/data-table-reset-filter';
-import { DataTableSearch } from '@/components/ui/table/data-table-search';
+// import { DataTableSearch } from '@/components/ui/table/data-table-search';
 import { DateTimeRangePicker } from '@/components/datetime-range-picker';
 import { VideoStat } from '@/lib/types/video';
 import { LOG_OPTIONS } from '@/constants';
@@ -11,9 +11,10 @@ import { columns } from './columns';
 import { STATUS_OPTIONS, useTableFilters } from './use-table-filters';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Download } from 'lucide-react';
+import { Download, Search, X } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -61,6 +62,44 @@ export default function VideoTable({
     dateTimeRange,
     setDateTimeRange
   } = useTableFilters();
+
+  // 本地状态
+  const [localTaskId, setLocalTaskId] = useState(taskId || '');
+  const [localProvider, setLocalProvider] = useState(provider || '');
+  const [localModelName, setLocalModelName] = useState(modelName || '');
+  const [localChannelId, setLocalChannelId] = useState(channelId || '');
+  const [localUserName, setLocalUserName] = useState(userName || '');
+
+  useEffect(() => {
+    setLocalTaskId(taskId || '');
+  }, [taskId]);
+  useEffect(() => {
+    setLocalProvider(provider || '');
+  }, [provider]);
+  useEffect(() => {
+    setLocalModelName(modelName || '');
+  }, [modelName]);
+  useEffect(() => {
+    setLocalChannelId(channelId || '');
+  }, [channelId]);
+  useEffect(() => {
+    setLocalUserName(userName || '');
+  }, [userName]);
+
+  const handleSearch = () => {
+    setPage(1);
+    setTaskId(localTaskId || null);
+    setProvider(localProvider || null);
+    setModelName(localModelName || null);
+    setChannelId(localChannelId || null);
+    setUserName(localUserName || null);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
 
   // 导出CSV功能
   const exportToCSV = React.useCallback(
@@ -290,40 +329,112 @@ export default function VideoTable({
   return (
     <div className="space-y-4 ">
       <div className="flex flex-wrap items-center gap-4">
-        <DataTableSearch
-          searchKey="Task Id"
-          searchQuery={taskId}
-          setSearchQuery={setTaskId}
-          setPage={setPage}
-        />
-        <DataTableSearch
-          searchKey="Provider"
-          searchQuery={provider}
-          setSearchQuery={setProvider}
-          setPage={setPage}
-        />
-        <DataTableSearch
-          searchKey="Model Name"
-          searchQuery={modelName}
-          setSearchQuery={setModelName}
-          setPage={setPage}
-        />
+        <div className="relative min-w-[200px] flex-1">
+          <Input
+            placeholder="Search Task Id..."
+            value={localTaskId}
+            onChange={(e) => setLocalTaskId(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="pr-8"
+          />
+          {localTaskId && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setLocalTaskId('')}
+              className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2 p-0 hover:bg-gray-100"
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          )}
+        </div>
+        <div className="relative min-w-[200px] flex-1">
+          <Input
+            placeholder="Search Provider..."
+            value={localProvider}
+            onChange={(e) => setLocalProvider(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="pr-8"
+          />
+          {localProvider && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setLocalProvider('')}
+              className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2 p-0 hover:bg-gray-100"
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          )}
+        </div>
+        <div className="relative min-w-[200px] flex-1">
+          <Input
+            placeholder="Search Model Name..."
+            value={localModelName}
+            onChange={(e) => setLocalModelName(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="pr-8"
+          />
+          {localModelName && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setLocalModelName('')}
+              className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2 p-0 hover:bg-gray-100"
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          )}
+        </div>
+
         {[10, 100].includes((session?.user as any).role) && (
           <>
-            <DataTableSearch
-              searchKey="Channel ID"
-              searchQuery={channelId}
-              setSearchQuery={setChannelId}
-              setPage={setPage}
-            />
-            <DataTableSearch
-              searchKey="User Name"
-              searchQuery={userName}
-              setSearchQuery={setUserName}
-              setPage={setPage}
-            />
+            <div className="relative min-w-[200px] flex-1">
+              <Input
+                placeholder="Search Channel ID..."
+                value={localChannelId}
+                onChange={(e) => setLocalChannelId(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="pr-8"
+              />
+              {localChannelId && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setLocalChannelId('')}
+                  className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2 p-0 hover:bg-gray-100"
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
+            <div className="relative min-w-[200px] flex-1">
+              <Input
+                placeholder="Search User Name..."
+                value={localUserName}
+                onChange={(e) => setLocalUserName(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="pr-8"
+              />
+              {localUserName && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setLocalUserName('')}
+                  className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2 p-0 hover:bg-gray-100"
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
           </>
         )}
+
+        <Button onClick={handleSearch} className="gap-2">
+          <Search className="h-4 w-4" />
+          <span className="hidden sm:inline">Search</span>
+        </Button>
+
         <DateTimeRangePicker
           value={dateTimeRange}
           onValueChange={(newRange) => {

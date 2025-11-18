@@ -25,34 +25,27 @@ export default async function VideoListingPage({}: TVideoListingPage) {
   const page = searchParamsCache.get('page');
   const search = searchParamsCache.get('q');
   const pageLimit = searchParamsCache.get('limit');
-  const mjId = searchParamsCache.get('mj_id');
+  const taskId = searchParamsCache.get('task_id');
+  const provider = searchParamsCache.get('provider');
+  const modelName = searchParamsCache.get('model_name');
   const channel = searchParamsCache.get('channel');
   const username = searchParamsCache.get('username');
   const startTime = searchParamsCache.get('start_timestamp');
   const endTime = searchParamsCache.get('end_timestamp');
 
-  // const filters = {
-  //   page,
-  //   limit: pageLimit,
-  //   ...(search && { search }),
-  //   ...(mjId && { mj_id: mjId }),
-  //   ...(channel && { channel }),
-  //   ...(username && { username }),
-  //   ...(startTime && { start_timestamp: startTime }),
-  //   ...(endTime && { end_timestamp: endTime })
-  // };
-
   const params = new URLSearchParams({
     page: String(page),
     pagesize: String(pageLimit),
     ...(search && { keyword: search }),
-    ...(mjId && { mj_id: mjId }),
-    ...(channel && { channel: String(channel) }),
+    ...(taskId && { taskid: taskId }),
+    ...(provider && { provider: provider }),
+    ...(modelName && { model_name: modelName }),
+    ...(channel && { channel_id: String(channel) }),
     ...(username && { username }),
     ...(startTime && { start_timestamp: String(startTime) }),
     ...(endTime && { end_timestamp: String(endTime) })
   });
-  // console.log('Midjourney params', params);
+  // console.log('Video params', params);
   const session = await auth();
   // const _cookie = 'session=' + cookies().get('session')?.value + '==';
   // 查看角色

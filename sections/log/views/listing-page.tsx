@@ -35,19 +35,6 @@ export default async function LogListingPage({}: TLogListingPage) {
   const startTime = searchParamsCache.get('start_timestamp');
   const endTime = searchParamsCache.get('end_timestamp');
 
-  // const filters = {
-  //   page,
-  //   limit: pageLimit,
-  //   ...(search && { search }),
-  //   ...(tokenName && { token_name: tokenName }),
-  //   ...(modelName && { model_name: modelName }),
-  //   ...(channel && { channel }),
-  //   ...(username && { username }),
-  //   ...(type && { type }),
-  //   ...(startTime && { start_timestamp: startTime }),
-  //   ...(endTime && { end_timestamp: endTime })
-  // };
-
   const params = new URLSearchParams({
     page: String(page),
     pagesize: String(pageLimit),

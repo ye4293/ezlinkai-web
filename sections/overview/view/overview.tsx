@@ -4,10 +4,8 @@ import { getUnixTime } from 'date-fns';
 // import { AreaGraph } from '../area-graph';
 import { BarGraph } from '../bar-graph';
 // import { PieGraph } from '../pie-graph';
-import { CalendarDateRangePicker } from '@/components/date-range-picker';
 import PageContainer from '@/components/layout/page-container';
 import { RecentSales } from '../recent-sales';
-import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -117,10 +115,6 @@ export default async function OverViewPage() {
           <h2 className="text-2xl font-bold tracking-tight">
             Hi, Welcome back 👋
           </h2>
-          <div className="hidden items-center space-x-2 md:flex">
-            <CalendarDateRangePicker />
-            <Button>Download</Button>
-          </div>
         </div>
         <Tabs defaultValue="overview" className="space-y-4">
           <TabsList>
