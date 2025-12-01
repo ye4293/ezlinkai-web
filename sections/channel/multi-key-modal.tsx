@@ -731,11 +731,12 @@ const Card = ({
           </span>
         </span>
       </div>
-      <Progress
-        value={percentage}
-        className="h-1.5"
-        indicatorColor={progressColor}
-      />
+      <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-secondary">
+        <div
+          className={`h-full w-full flex-1 transition-all ${progressColor}`}
+          style={{ transform: `translateX(-${100 - (percentage || 0)}%)` }}
+        />
+      </div>
       <div className="mt-1 text-right text-xs text-muted-foreground">
         {percentage.toFixed(1)}%
       </div>
