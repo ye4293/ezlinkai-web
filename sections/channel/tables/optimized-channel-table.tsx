@@ -215,7 +215,7 @@ const MobileChannelCard = memo(
             <div className="flex flex-col gap-1">
               <span className="text-xs text-muted-foreground">已用/余额</span>
               <div className="font-mono text-xs">
-                <div>${(channel.used_quota / 500000).toFixed(2)}</div>
+                <div>${((channel.used_quota || 0) / 500000).toFixed(2)}</div>
                 <div className="text-muted-foreground">
                   {channel.balance !== undefined
                     ? `$${channel.balance?.toFixed(2)}`
