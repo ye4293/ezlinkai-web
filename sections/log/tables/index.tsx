@@ -28,6 +28,97 @@ import {
   TooltipProvider,
   TooltipTrigger
 } from '@/components/ui/tooltip';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import dayjs from 'dayjs';
+
+// 移动端卡片组件
+const MobileLogCard = ({ row }: { row: LogStat }) => {
+  const log = row;
+
+  const renderType = (status: number) => {
+    switch (status) {
+      case 1:
+        return <Badge variant="outline">Top up</Badge>;
+      case 2:
+        return <Badge variant="outline">Consumption</Badge>;
+      case 3:
+        return <Badge variant="outline">Management</Badge>;
+      case 4:
+        return <Badge variant="outline">System</Badge>;
+      default:
+        return <Badge variant="outline">Unknown</Badge>;
+    }
+  };
+
+  return (
+    <Card className="mb-4 overflow-hidden text-sm">
+      <CardContent className="space-y-3 p-4">
+        <div className="flex items-center justify-between border-b pb-2">
+          <div className="text-xs text-muted-foreground">
+            {dayjs(Number(log.created_at || 0) * 1000).format(
+              'YYYY-MM-DD HH:mm:ss'
+            )}
+          </div>
+          <div>{renderType(log.type || 0)}</div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <div className="flex flex-col">
+            <span className="text-xs text-muted-foreground">User</span>
+            <span className="truncate font-medium">{log.username}</span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-xs text-muted-foreground">Channel ID</span>
+            <span className="font-medium">{log.channel}</span>
+          </div>
+        </div>
+
+        <div className="flex flex-col">
+          <span className="text-xs text-muted-foreground">Model</span>
+          <span className="break-all font-medium">{log.model_name}</span>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2 rounded bg-muted/30 p-2">
+          <div className="flex flex-col items-center">
+            <span className="text-xs text-muted-foreground">Prompt</span>
+            <span className="font-mono">{log.prompt_tokens}</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="text-xs text-muted-foreground">Completion</span>
+            <span className="font-mono">{log.completion_tokens}</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="text-xs text-muted-foreground">Quota</span>
+            <span className="font-mono text-blue-600">
+              ${((log.quota || 0) / 500000).toFixed(6)}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between pt-1">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Duration:</span>
+            <span>{log.duration}s</span>
+            {log.is_stream && (
+              <Badge variant="secondary" className="h-4 px-1 text-[10px]">
+                Stream
+              </Badge>
+            )}
+          </div>
+        </div>
+
+        {log.content && (
+          <div className="break-all border-t pt-2 text-xs text-muted-foreground">
+            {log.content.length > 100
+              ? log.content.substring(0, 100) + '...'
+              : log.content}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
 
 export default function LogTable({
   data,
@@ -556,42 +647,82 @@ export default function LogTable({
           </div>
         </div>
       </div>
-      <DataTable
-        columns={filterColumns}
-        data={data}
-        totalItems={totalData}
-        currentPage={page}
-        pageSize={pageSize}
-        setCurrentPage={setPage}
-        setPageSize={handlePageSizeChange}
-        pageSizeOptions={[10, 50, 100, 500]}
-        showColumnToggle={true}
-        initialColumnVisibility={{
-          // 默认隐藏的列
-          x_request_id: false,
-          x_response_id: false,
-          // 根据屏幕尺寸智能隐藏列
-          ...(isMobile
-            ? {
-                // 移动端：只显示最重要的列
-                channel: false,
-                prompt_tokens: false,
-                completion_tokens: false,
-                duration: false,
-                retry: false,
-                content: false
-              }
-            : isTablet
-            ? {
-                // 平板端：隐藏部分次要列
-                prompt_tokens: false,
-                completion_tokens: false,
-                retry: false,
-                content: false
-              }
-            : {})
-        }}
-      />
+
+      {/* Desktop View */}
+      <div className="hidden md:block">
+        <DataTable
+          columns={filterColumns}
+          data={data}
+          totalItems={totalData}
+          currentPage={page}
+          pageSize={pageSize}
+          setCurrentPage={setPage}
+          setPageSize={handlePageSizeChange}
+          pageSizeOptions={[10, 50, 100, 500]}
+          showColumnToggle={true}
+          initialColumnVisibility={{
+            // 默认隐藏的列
+            x_request_id: false,
+            x_response_id: false,
+            // 根据屏幕尺寸智能隐藏列
+            ...(isMobile
+              ? {
+                  // 移动端：只显示最重要的列
+                  channel: false,
+                  prompt_tokens: false,
+                  completion_tokens: false,
+                  duration: false,
+                  retry: false,
+                  content: false
+                }
+              : isTablet
+              ? {
+                  // 平板端：隐藏部分次要列
+                  prompt_tokens: false,
+                  completion_tokens: false,
+                  retry: false,
+                  content: false
+                }
+              : {})
+          }}
+          minWidth="1000px"
+        />
+      </div>
+
+      {/* Mobile View */}
+      <div className="space-y-4 md:hidden">
+        {data.length > 0 ? (
+          data.map((row, index) => <MobileLogCard key={index} row={row} />)
+        ) : (
+          <div className="py-10 text-center text-muted-foreground">
+            No results found.
+          </div>
+        )}
+
+        {/* Mobile Pagination */}
+        <div className="flex items-center justify-between border-t pt-4">
+          <div className="text-sm text-muted-foreground">Total {totalData}</div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(Math.max(1, page - 1))}
+              disabled={page <= 1}
+            >
+              Prev
+            </Button>
+            <span className="flex items-center px-2 text-sm">{page}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(page + 1)}
+              disabled={data.length < pageSize}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

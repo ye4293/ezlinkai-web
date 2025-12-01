@@ -21,6 +21,95 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import dayjs from 'dayjs';
+
+// 移动端视频/Midjourney卡片
+const MobileVideoCard = ({ row }: { row: VideoStat }) => {
+  const item = row;
+
+  const getStatusColor = (status: string) => {
+    if (status === 'success') return 'bg-green-100 text-green-800';
+    if (status === 'failed') return 'bg-red-100 text-red-800';
+    if (status === 'running') return 'bg-blue-100 text-blue-800';
+    return 'bg-gray-100 text-gray-800';
+  };
+
+  return (
+    <Card className="mb-4 overflow-hidden text-sm">
+      <CardContent className="space-y-3 p-4">
+        <div className="flex items-center justify-between border-b pb-2">
+          <div className="text-xs text-muted-foreground">
+            {dayjs(Number(item.created_at || 0) * 1000).format(
+              'YYYY-MM-DD HH:mm:ss'
+            )}
+          </div>
+          <Badge
+            variant="outline"
+            className={getStatusColor(item.status || '')}
+          >
+            {item.status}
+          </Badge>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <div className="flex flex-col">
+            <span className="text-xs text-muted-foreground">User</span>
+            <span className="truncate font-medium">{item.username}</span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-xs text-muted-foreground">Task ID</span>
+            <span className="truncate font-mono text-xs" title={item.task_id}>
+              {(item.task_id || '').substring(0, 10)}...
+            </span>
+          </div>
+        </div>
+
+        <div className="flex flex-col">
+          <span className="text-xs text-muted-foreground">Model</span>
+          <span className="break-all font-medium">{item.model}</span>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2 rounded bg-muted/30 p-2">
+          <div className="flex flex-col items-center">
+            <span className="text-xs text-muted-foreground">Channel</span>
+            <span className="font-mono">{item.channel_id}</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="text-xs text-muted-foreground">Duration</span>
+            <span className="font-mono">{item.duration}s</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="text-xs text-muted-foreground">Quota</span>
+            <span className="font-mono text-blue-600">
+              ${((item.quota || 0) / 500000).toFixed(6)}
+            </span>
+          </div>
+        </div>
+
+        {item.store_url && (
+          <div className="pt-1">
+            <a
+              href={item.store_url}
+              target="_blank"
+              rel="noreferrer"
+              className="text-xs text-blue-600 underline"
+            >
+              View Generated Content
+            </a>
+          </div>
+        )}
+
+        {item.fail_reason && (
+          <div className="break-all border-t pt-2 text-xs text-red-600">
+            Error: {item.fail_reason}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
 
 export default function VideoTable({
   data,
@@ -476,17 +565,57 @@ export default function VideoTable({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <DataTable
-        columns={filterColumns}
-        data={data}
-        totalItems={totalData}
-        currentPage={page}
-        pageSize={pageSize}
-        setCurrentPage={setPage}
-        setPageSize={handlePageSizeChange}
-        pageSizeOptions={[10, 50, 100, 500]}
-        showColumnToggle={true}
-      />
+
+      {/* Desktop View */}
+      <div className="hidden md:block">
+        <DataTable
+          columns={filterColumns}
+          data={data}
+          totalItems={totalData}
+          currentPage={page}
+          pageSize={pageSize}
+          setCurrentPage={setPage}
+          setPageSize={handlePageSizeChange}
+          pageSizeOptions={[10, 50, 100, 500]}
+          showColumnToggle={true}
+          minWidth="1000px"
+        />
+      </div>
+
+      {/* Mobile View */}
+      <div className="space-y-4 md:hidden">
+        {data.length > 0 ? (
+          data.map((row, index) => <MobileVideoCard key={index} row={row} />)
+        ) : (
+          <div className="py-10 text-center text-muted-foreground">
+            No results found.
+          </div>
+        )}
+
+        {/* Mobile Pagination */}
+        <div className="flex items-center justify-between border-t pt-4">
+          <div className="text-sm text-muted-foreground">Total {totalData}</div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(Math.max(1, page - 1))}
+              disabled={page <= 1}
+            >
+              Prev
+            </Button>
+            <span className="flex items-center px-2 text-sm">{page}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(page + 1)}
+              disabled={data.length < pageSize}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
