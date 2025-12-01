@@ -46,6 +46,7 @@ interface DataTableProps<TData, TValue> {
   pageSizeOptions?: number[];
   showColumnToggle?: boolean;
   initialColumnVisibility?: VisibilityState;
+  minWidth?: string; // 添加 minWidth 属性
 }
 
 export function DataTable<TData, TValue>({
@@ -60,7 +61,8 @@ export function DataTable<TData, TValue>({
   setPageSize: externalSetPageSize,
   pageSizeOptions = [10, 50, 100, 500],
   showColumnToggle = false,
-  initialColumnVisibility
+  initialColumnVisibility,
+  minWidth = '100%' // 默认为 100%
 }: DataTableProps<TData, TValue>) {
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(
@@ -145,37 +147,40 @@ export function DataTable<TData, TValue>({
       {showColumnToggle && (
         <div className="flex items-center justify-between">
           <div className="text-xs text-muted-foreground sm:hidden">
-            💡 左右滑动查看更多列 (表格宽度: 1500px)
+            💡 左右滑动查看更多列
           </div>
           <DataTableViewOptions table={table} />
         </div>
       )}
       <div
-        className="mobile-table-container h-[calc(80vh-220px)] w-full overflow-auto rounded-md border"
+        className="mobile-table-container h-[calc(100vh-280px)] w-full overflow-auto rounded-md border shadow-sm"
         style={{
           touchAction: 'pan-x pan-y',
           WebkitOverflowScrolling: 'touch',
-          scrollbarWidth: 'thin',
-          scrollbarColor: 'rgb(203 213 225) transparent',
           overscrollBehavior: 'contain'
         }}
       >
         <Table
-          className="relative w-full min-w-[1900px]"
+          className="relative w-full"
           style={{
-            tableLayout: 'fixed',
-            width: '1900px'
+            tableLayout: 'auto', // 改为 auto，让列宽自适应内容
+            minWidth:
+              minWidth === '100%' && columns.length > 5 ? '1200px' : minWidth // 如果列多，给一个最小宽度
           }}
         >
-          <TableHeader className="sticky top-0 z-10 bg-background">
+          <TableHeader className="sticky top-0 z-10 bg-secondary/90 backdrop-blur supports-[backdrop-filter]:bg-secondary/50">
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
+              <TableRow
+                key={headerGroup.id}
+                className="border-b border-border hover:bg-transparent"
+              >
                 {headerGroup.headers.map((header) => (
                   <TableHead
                     key={header.id}
-                    className="whitespace-nowrap border-b border-border/40"
+                    className="whitespace-nowrap px-4 py-3 font-semibold text-foreground"
                     style={{
-                      width: header.getSize()
+                      width:
+                        header.getSize() === 150 ? 'auto' : header.getSize() // 让默认大小自适应
                     }}
                   >
                     {header.isPlaceholder
@@ -195,14 +200,16 @@ export function DataTable<TData, TValue>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && 'selected'}
-                  className="touch-manipulation hover:bg-muted/50"
+                  className="touch-manipulation border-b border-border/50 last:border-0 hover:bg-muted/50"
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell
                       key={cell.id}
-                      className="whitespace-nowrap px-2 py-2 sm:px-4"
+                      className="whitespace-nowrap px-4 py-3"
                       style={{
-                        width: cell.column.getSize()
+                        maxWidth: '300px', // 限制单元格最大宽度，防止内容过长撑开太宽
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
                       }}
                     >
                       {flexRender(
@@ -217,9 +224,9 @@ export function DataTable<TData, TValue>({
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
-                  className="h-24 text-center"
+                  className="h-24 text-center text-muted-foreground"
                 >
-                  No results.
+                  No results found.
                 </TableCell>
               </TableRow>
             )}
@@ -227,16 +234,17 @@ export function DataTable<TData, TValue>({
         </Table>
       </div>
 
-      <div className="relative z-10 flex flex-col gap-4 px-2 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
+      <div className="flex flex-col gap-4 px-2 py-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-4 sm:justify-start">
           <div className="flex items-center gap-2">
-            <p className="text-xs font-medium sm:text-sm">Rows per page</p>
+            <p className="text-xs font-medium text-muted-foreground sm:text-sm">
+              Rows
+            </p>
             <Select
               value={`${pageSize}`}
               onValueChange={(value) => {
                 const newPageSize = Number(value);
                 setPageSize(newPageSize);
-                // 如果有外部的setCurrentPage，也重置页面到第一页
                 if (externalSetCurrentPage) {
                   externalSetCurrentPage(1);
                 } else {
@@ -244,7 +252,7 @@ export function DataTable<TData, TValue>({
                 }
               }}
             >
-              <SelectTrigger className="h-8 w-[60px] sm:w-[70px]">
+              <SelectTrigger className="h-8 w-[70px]">
                 <SelectValue placeholder={pageSize} />
               </SelectTrigger>
               <SelectContent side="top">
@@ -256,76 +264,72 @@ export function DataTable<TData, TValue>({
               </SelectContent>
             </Select>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground sm:text-sm">
-              {data.length > 0 ? (
-                <>
-                  Showing {(currentPage - 1) * pageSize + 1} to{' '}
-                  {Math.min(currentPage * pageSize, data.length)} of{' '}
-                  {data.length} entries
-                </>
-              ) : (
-                'No entries found'
-              )}
-            </span>
+          <div className="text-xs text-muted-foreground sm:text-sm">
+            {data.length > 0 ? (
+              <span>
+                {(currentPage - 1) * pageSize + 1}-
+                {Math.min(currentPage * pageSize, totalItems || data.length)} of{' '}
+                {totalItems || data.length}
+              </span>
+            ) : (
+              '0 of 0'
+            )}
           </div>
         </div>
-        <div className="flex items-center justify-between gap-4 sm:justify-end sm:gap-6">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-medium sm:text-sm">
-              {data.length > 0 ? (
-                <>
-                  Page {currentPage} of {pageCount}
-                </>
-              ) : (
-                'No pages'
-              )}
-            </span>
-          </div>
+
+        <div className="flex items-center justify-between gap-2 sm:justify-end">
+          <span className="text-xs text-muted-foreground sm:hidden">
+            Page {currentPage}/{pageCount || 1}
+          </span>
           <div className="flex items-center gap-1">
             <Button
               variant="outline"
-              className="relative z-20 h-8 w-8 touch-manipulation p-0"
+              size="icon"
+              className="h-8 w-8"
               onClick={useCallback(() => {
                 setCurrentPage(1);
               }, [setCurrentPage])}
               disabled={currentPage <= 1}
             >
-              <span className="sr-only">Go to first page</span>
-              <DoubleArrowLeftIcon className="h-3 w-3 sm:h-4 sm:w-4" />
+              <DoubleArrowLeftIcon className="h-4 w-4" />
             </Button>
             <Button
               variant="outline"
-              className="relative z-20 h-8 w-8 touch-manipulation p-0"
+              size="icon"
+              className="h-8 w-8"
               onClick={useCallback(() => {
                 setCurrentPage(Math.max(1, currentPage - 1));
               }, [setCurrentPage, currentPage])}
               disabled={currentPage <= 1}
             >
-              <span className="sr-only">Go to previous page</span>
-              <ChevronLeftIcon className="h-3 w-3 sm:h-4 sm:w-4" />
+              <ChevronLeftIcon className="h-4 w-4" />
             </Button>
+
+            <span className="hidden text-xs font-medium sm:block sm:px-2">
+              Page {currentPage} of {pageCount || 1}
+            </span>
+
             <Button
               variant="outline"
-              className="relative z-20 h-8 w-8 touch-manipulation p-0"
+              size="icon"
+              className="h-8 w-8"
               onClick={useCallback(() => {
                 setCurrentPage(Math.min(pageCount, currentPage + 1));
               }, [setCurrentPage, currentPage, pageCount])}
               disabled={currentPage >= pageCount}
             >
-              <span className="sr-only">Go to next page</span>
-              <ChevronRightIcon className="h-3 w-3 sm:h-4 sm:w-4" />
+              <ChevronRightIcon className="h-4 w-4" />
             </Button>
             <Button
               variant="outline"
-              className="relative z-20 h-8 w-8 touch-manipulation p-0"
+              size="icon"
+              className="h-8 w-8"
               onClick={useCallback(() => {
                 setCurrentPage(pageCount);
               }, [setCurrentPage, pageCount])}
               disabled={currentPage >= pageCount}
             >
-              <span className="sr-only">Go to last page</span>
-              <DoubleArrowRightIcon className="h-3 w-3 sm:h-4 sm:w-4" />
+              <DoubleArrowRightIcon className="h-4 w-4" />
             </Button>
           </div>
         </div>

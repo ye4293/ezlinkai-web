@@ -141,7 +141,7 @@ export function MidjourneyTable<TData, TValue>({
   //       }
   //     )
   //   }
-
+  //
   //   if (debounceValue.length === 0) {
   //     router.push(
   //       `${pathname}?${createQueryString({
@@ -194,16 +194,16 @@ export function MidjourneyTable<TData, TValue>({
         onChange={(event) =>
           table.getColumn(searchKey)?.setFilterValue(event.target.value)
         }
-        className="w-full md:max-w-sm"
+        className="mb-4 w-full md:max-w-sm"
       />
       <ScrollArea className="h-[calc(80vh-220px)] rounded-md border">
-        <Table className="relative">
+        <Table className="relative" style={{ minWidth: '1000px' }}>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id}>
+                    <TableHead key={header.id} className="whitespace-nowrap">
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -224,7 +224,10 @@ export function MidjourneyTable<TData, TValue>({
                   data-state={row.getIsSelected() && 'selected'}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell
+                      key={cell.id}
+                      className="max-w-[300px] overflow-hidden text-ellipsis whitespace-nowrap"
+                    >
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()
@@ -248,9 +251,9 @@ export function MidjourneyTable<TData, TValue>({
         <ScrollBar orientation="horizontal" />
       </ScrollArea>
 
-      <div className="relative z-10 flex items-center justify-between space-x-6 px-2 py-4">
-        <div className="flex items-center space-x-6">
-          <div className="flex items-center space-x-2">
+      <div className="flex flex-col gap-4 px-2 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-4 sm:justify-start">
+          <div className="flex items-center gap-2">
             <p className="text-sm font-medium">Rows per page</p>
             <Select
               value={`${table.getState().pagination.pageSize}`}
@@ -272,44 +275,35 @@ export function MidjourneyTable<TData, TValue>({
               </SelectContent>
             </Select>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">
-              {table.getFilteredSelectedRowModel().rows.length} of{' '}
-              {table.getFilteredRowModel().rows.length} row(s) selected
+              {table.getFilteredRowModel().rows.length} rows
             </span>
           </div>
         </div>
-        <div className="flex items-center space-x-6">
-          <div className="flex items-center space-x-2">
-            <span className="text-sm font-medium">
-              Page {table.getState().pagination.pageIndex + 1} of{' '}
-              {table.getPageCount()}
-            </span>
-          </div>
-          <div className="flex items-center space-x-1">
+
+        <div className="flex items-center justify-between gap-2 sm:justify-end">
+          <span className="text-xs text-muted-foreground sm:hidden">
+            Page {table.getState().pagination.pageIndex + 1} of{' '}
+            {table.getPageCount()}
+          </span>
+          <div className="flex items-center gap-1">
             <Button
               variant="outline"
-              className="relative z-20 h-8 w-8 p-0"
+              size="icon"
+              className="h-8 w-8"
               onClick={() => {
-                console.log(
-                  'First page clicked, current pageIndex:',
-                  pageIndex
-                );
                 setPagination({ pageIndex: 0, pageSize });
               }}
               disabled={pageIndex <= 0}
             >
-              <span className="sr-only">Go to first page</span>
               <DoubleArrowLeftIcon className="h-4 w-4" />
             </Button>
             <Button
               variant="outline"
-              className="relative z-20 h-8 w-8 p-0"
+              size="icon"
+              className="h-8 w-8"
               onClick={() => {
-                console.log(
-                  'Previous page clicked, current pageIndex:',
-                  pageIndex
-                );
                 setPagination({
                   pageIndex: Math.max(0, pageIndex - 1),
                   pageSize
@@ -317,43 +311,36 @@ export function MidjourneyTable<TData, TValue>({
               }}
               disabled={pageIndex <= 0}
             >
-              <span className="sr-only">Go to previous page</span>
               <ChevronLeftIcon className="h-4 w-4" />
             </Button>
+
+            <span className="hidden text-sm font-medium sm:block sm:px-2">
+              Page {table.getState().pagination.pageIndex + 1} of{' '}
+              {table.getPageCount()}
+            </span>
+
             <Button
               variant="outline"
-              className="relative z-20 h-8 w-8 p-0"
+              size="icon"
+              className="h-8 w-8"
               onClick={() => {
-                console.log(
-                  'Next page clicked, current pageIndex:',
-                  pageIndex,
-                  'pageCount:',
-                  pageCount
-                );
                 setPagination({ pageIndex: pageIndex + 1, pageSize });
               }}
               disabled={!pageCount || pageIndex >= pageCount - 1}
             >
-              <span className="sr-only">Go to next page</span>
               <ChevronRightIcon className="h-4 w-4" />
             </Button>
             <Button
               variant="outline"
-              className="relative z-20 h-8 w-8 p-0"
+              size="icon"
+              className="h-8 w-8"
               onClick={() => {
-                console.log(
-                  'Last page clicked, current pageIndex:',
-                  pageIndex,
-                  'pageCount:',
-                  pageCount
-                );
                 if (pageCount) {
                   setPagination({ pageIndex: pageCount - 1, pageSize });
                 }
               }}
               disabled={!pageCount || pageIndex >= pageCount - 1}
             >
-              <span className="sr-only">Go to last page</span>
               <DoubleArrowRightIcon className="h-4 w-4" />
             </Button>
           </div>

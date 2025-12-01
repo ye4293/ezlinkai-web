@@ -288,14 +288,16 @@ const OptimizedChannelTable = memo(
         />
 
         {/* 搜索和筛选区域 */}
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex flex-1 items-center gap-4">
-            <DataTableSearch
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              setPage={setPage}
-              searchKey="ID,Name,Key"
-            />
+        <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-4 sm:flex-1 sm:flex-row sm:items-center">
+            <div className="w-full sm:w-auto sm:min-w-[200px]">
+              <DataTableSearch
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                setPage={setPage}
+                searchKey="ID,Name,Key"
+              />
+            </div>
             <DataTableSingleSelectFilter
               filterValue={statusFilter}
               setFilterValue={setStatusFilter}
@@ -305,12 +307,13 @@ const OptimizedChannelTable = memo(
             />
 
             {/* 批量操作按钮 - 直接跟在Status后面 */}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Button
                 variant="destructive"
                 size="sm"
                 onClick={() => setOpen(true)}
                 disabled={batchLoading || selectedChannels.length === 0}
+                className="flex-1 sm:flex-none"
               >
                 <Trash className="mr-2 h-4 w-4" />
                 删除
@@ -321,6 +324,7 @@ const OptimizedChannelTable = memo(
                 size="sm"
                 onClick={handleDisable}
                 disabled={batchLoading || selectedChannels.length === 0}
+                className="flex-1 sm:flex-none"
               >
                 <Ban className="mr-2 h-4 w-4" />
                 禁用
@@ -331,6 +335,7 @@ const OptimizedChannelTable = memo(
                 size="sm"
                 onClick={handleEnable}
                 disabled={batchLoading || selectedChannels.length === 0}
+                className="flex-1 sm:flex-none"
               >
                 <CircleSlash2 className="mr-2 h-4 w-4" />
                 启用
@@ -338,10 +343,12 @@ const OptimizedChannelTable = memo(
               </Button>
             </div>
           </div>
-          <DataTableResetFilter
-            isFilterActive={isAnyFilterActive}
-            onReset={resetFilters}
-          />
+          <div className="self-end sm:self-auto">
+            <DataTableResetFilter
+              isFilterActive={isAnyFilterActive}
+              onReset={resetFilters}
+            />
+          </div>
         </div>
 
         {/* 超明显居中加载指示器 - 支持搜索和批量操作加载 */}
@@ -400,6 +407,7 @@ const OptimizedChannelTable = memo(
           setCurrentPage={setPage}
           setPageSize={setPageSize}
           pageSizeOptions={[10, 50, 100, 500]}
+          minWidth="1500px" // 在小屏上保证最小宽度，允许横向滚动
         />
 
         {/* 多密钥管理Modal */}

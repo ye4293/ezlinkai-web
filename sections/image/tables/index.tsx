@@ -332,9 +332,9 @@ export default function ImageTable({
   );
 
   return (
-    <div className="space-y-4 ">
-      <div className="flex flex-wrap items-center gap-4">
-        <div className="relative min-w-[200px] flex-1">
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="relative min-w-[200px]">
           <Input
             placeholder="Search..."
             value={localSearchQuery}
@@ -353,7 +353,7 @@ export default function ImageTable({
             </Button>
           )}
         </div>
-        <div className="relative min-w-[200px] flex-1">
+        <div className="relative min-w-[200px]">
           <Input
             placeholder="Search Task ID..."
             value={localTaskId}
@@ -372,7 +372,7 @@ export default function ImageTable({
             </Button>
           )}
         </div>
-        <div className="relative min-w-[200px] flex-1">
+        <div className="relative min-w-[200px]">
           <Input
             placeholder="Search Provider..."
             value={localProvider}
@@ -391,7 +391,7 @@ export default function ImageTable({
             </Button>
           )}
         </div>
-        <div className="relative min-w-[200px] flex-1">
+        <div className="relative min-w-[200px]">
           <Input
             placeholder="Search Model Name..."
             value={localModelName}
@@ -412,7 +412,7 @@ export default function ImageTable({
         </div>
         {[10, 100].includes((session?.user as any).role) && (
           <>
-            <div className="relative min-w-[200px] flex-1">
+            <div className="relative min-w-[200px]">
               <Input
                 placeholder="Search Channel ID..."
                 value={localChannelId}
@@ -431,7 +431,7 @@ export default function ImageTable({
                 </Button>
               )}
             </div>
-            <div className="relative min-w-[200px] flex-1">
+            <div className="relative min-w-[200px]">
               <Input
                 placeholder="Search User Name..."
                 value={localUserName}
@@ -452,52 +452,56 @@ export default function ImageTable({
             </div>
           </>
         )}
-
-        <Button onClick={handleSearch} className="gap-2">
-          <Search className="h-4 w-4" />
-          <span className="hidden sm:inline">Search</span>
-        </Button>
-
-        <DateTimeRangePicker
-          value={dateTimeRange}
-          onValueChange={(newRange) => {
-            setDateTimeRange(newRange);
-            setPage(1);
-          }}
-        />
-        <DataTableResetFilter
-          isFilterActive={isAnyFilterActive}
-          onReset={() => {
-            resetFilters();
-            setPage(1);
-          }}
-        />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="gap-2">
-              <Download className="h-4 w-4" />
-              导出
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={exportCurrentPage}>
-              <div className="flex flex-col gap-1">
-                <span>导出当前页数据</span>
-                <span className="text-xs text-muted-foreground">
-                  当前页 {data.length} 条记录
-                </span>
-              </div>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={exportAllData}>
-              <div className="flex flex-col gap-1">
-                <span>导出全部符合条件的数据</span>
-                <span className="text-xs text-muted-foreground">
-                  包含所有筛选条件的完整数据
-                </span>
-              </div>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex items-center gap-2">
+          <Button onClick={handleSearch} className="flex-1 gap-2 sm:flex-none">
+            <Search className="h-4 w-4" />
+            <span className="sm:inline">Search</span>
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="flex-1 gap-2 sm:flex-none">
+                <Download className="h-4 w-4" />
+                导出
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={exportCurrentPage}>
+                <div className="flex flex-col gap-1">
+                  <span>导出当前页数据</span>
+                  <span className="text-xs text-muted-foreground">
+                    当前页 {data.length} 条记录
+                  </span>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={exportAllData}>
+                <div className="flex flex-col gap-1">
+                  <span>导出全部符合条件的数据</span>
+                  <span className="text-xs text-muted-foreground">
+                    包含所有筛选条件的完整数据
+                  </span>
+                </div>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <div className="flex items-center gap-2">
+            <DataTableResetFilter
+              isFilterActive={isAnyFilterActive}
+              onReset={() => {
+                resetFilters();
+                setPage(1);
+              }}
+            />
+          </div>
+        </div>
+        <div className="col-span-full flex justify-end">
+          <DateTimeRangePicker
+            value={dateTimeRange}
+            onValueChange={(newRange) => {
+              setDateTimeRange(newRange);
+              setPage(1);
+            }}
+          />
+        </div>
       </div>
       <DataTable
         columns={filterColumns}
@@ -509,6 +513,7 @@ export default function ImageTable({
         setPageSize={handlePageSizeChange}
         pageSizeOptions={[10, 50, 100, 500]}
         showColumnToggle={true}
+        minWidth="1600px"
       />
     </div>
   );

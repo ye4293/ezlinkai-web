@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Channel } from '@/lib/types/channel';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -21,7 +21,16 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table';
-import { useRouter } from 'next/navigation';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  CheckCircle2,
+  Search,
+  Play,
+  RotateCw
+} from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 interface ModelsModalProps {
   isOpen: boolean;
@@ -47,36 +56,22 @@ export const ModelsModal: React.FC<ModelsModalProps> = ({
   const [models, setModels] = useState<Model[]>([]);
   const [search, setSearch] = useState('');
   const [selectedModels, setSelectedModels] = useState<Model[]>([]);
-  const router = useRouter();
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(10);
 
   useEffect(() => {
     if (isOpen) {
       const fetchModels = async () => {
         setLoading(true);
         try {
-          console.log(`获取频道 ${channel.id} 的模型列表`);
           const res = await fetch(`/api/channel/models_by_id?id=${channel.id}`);
-
-          console.log(`获取模型API响应状态: ${res.status} ${res.statusText}`);
-
-          if (!res.ok) {
-            const errorText = await res.text();
-            console.error(
-              `获取模型列表失败: ${res.status} ${res.statusText}`,
-              errorText
-            );
-            toast.error(`获取模型列表失败: ${res.status} ${res.statusText}`);
-            return;
-          }
-
+          if (!res.ok) throw new Error(res.statusText);
           const data = await res.json();
-          console.log('模型列表API响应数据:', data);
-
           if (data.success) {
             setModels(
               data.data.map((model: any) => ({
                 id: model.id,
-                name: model.id, // The API seems to return id as the name
+                name: model.id,
                 owned_by: model.owned_by,
                 created_at: model.created_at,
                 testStatus: 'idle' as const,
@@ -87,12 +82,8 @@ export const ModelsModal: React.FC<ModelsModalProps> = ({
             toast.error(data.message || '获取模型列表失败');
           }
         } catch (error) {
-          console.error('获取模型列表时发生错误:', error);
-          toast.error(
-            `获取模型列表时发生错误: ${
-              error instanceof Error ? error.message : '未知错误'
-            }`
-          );
+          console.error(error);
+          toast.error('获取模型列表失败');
         } finally {
           setLoading(false);
         }
@@ -101,366 +92,323 @@ export const ModelsModal: React.FC<ModelsModalProps> = ({
     }
   }, [isOpen, channel.id]);
 
+  // Reset page when search changes
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
+
   const testModel = async (modelName: string) => {
-    // 更新模型状态为测试中
-    setModels((prevModels) =>
-      prevModels.map((model) =>
-        model.id === modelName
-          ? {
-              ...model,
-              testStatus: 'testing' as const,
-              responseTime: undefined
-            }
-          : model
+    setModels((prev) =>
+      prev.map((m) =>
+        m.id === modelName
+          ? { ...m, testStatus: 'testing', responseTime: undefined }
+          : m
       )
     );
 
-    toast.info(`正在测试模型: ${modelName}...`);
     const startTime = Date.now();
-
     try {
-      console.log(`开始测试频道 ${channel.id} 的模型 ${modelName}`);
       const res = await fetch(`/api/channel/test/${channel.id}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ model: modelName }),
-        credentials: 'include'
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: modelName })
       });
 
       const endTime = Date.now();
-      const responseTime = (endTime - startTime) / 1000; // 转换为秒
+      const localTime = (endTime - startTime) / 1000;
 
-      console.log(`API响应状态: ${res.status} ${res.statusText}`);
-      console.log(`本地测量响应时间: ${responseTime.toFixed(2)}s`);
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.error(
-          `API请求失败: ${res.status} ${res.statusText}`,
-          errorText
-        );
-        toast.error(`API请求失败: ${res.status} ${res.statusText}`);
-
-        // 更新模型状态为失败
-        setModels((prevModels) =>
-          prevModels.map((model) =>
-            model.id === modelName
-              ? {
-                  ...model,
-                  testStatus: 'failed' as const,
-                  responseTime: responseTime
-                }
-              : model
-          )
-        );
-        return;
-      }
-
+      if (!res.ok) throw new Error(res.statusText);
       const result = await res.json();
-      console.log('API响应数据:', result);
 
-      // 从返回消息中提取服务器端测量的时间（如果有）
-      let serverResponseTime = responseTime;
+      let serverTime = localTime;
       if (result.message && typeof result.message === 'string') {
-        const timeMatch = result.message.match(/took ([\d.]+)s/);
-        if (timeMatch) {
-          serverResponseTime = parseFloat(timeMatch[1]);
-          console.log(`服务器端测量响应时间: ${serverResponseTime}s`);
-        }
+        const match = result.message.match(/took ([\d.]+)s/);
+        if (match) serverTime = parseFloat(match[1]);
       }
 
       if (result.success) {
-        toast.success(
-          result.message ||
-            `模型 ${modelName} 测试成功，耗时 ${serverResponseTime.toFixed(2)}s`
-        );
-
-        // 更新模型状态为成功
-        setModels((prevModels) =>
-          prevModels.map((model) =>
-            model.id === modelName
-              ? {
-                  ...model,
-                  testStatus: 'success' as const,
-                  responseTime: serverResponseTime
-                }
-              : model
+        setModels((prev) =>
+          prev.map((m) =>
+            m.id === modelName
+              ? { ...m, testStatus: 'success', responseTime: serverTime }
+              : m
           )
         );
+        toast.success(result.message || `模型 ${modelName} 测试成功`);
       } else {
-        toast.error(result.message || `模型 ${modelName} 测试失败`);
-
-        // 更新模型状态为失败
-        setModels((prevModels) =>
-          prevModels.map((model) =>
-            model.id === modelName
-              ? {
-                  ...model,
-                  testStatus: 'failed' as const,
-                  responseTime: serverResponseTime
-                }
-              : model
-          )
-        );
+        throw new Error(result.message);
       }
-    } catch (e) {
-      const endTime = Date.now();
-      const responseTime = (endTime - startTime) / 1000;
-
-      console.error(`测试模型 ${modelName} 时发生错误:`, e);
-      toast.error(
-        `测试模型 ${modelName} 时发生错误: ${
-          e instanceof Error ? e.message : '未知错误'
-        }`
-      );
-
-      // 更新模型状态为失败
-      setModels((prevModels) =>
-        prevModels.map((model) =>
-          model.id === modelName
+    } catch (error: any) {
+      setModels((prev) =>
+        prev.map((m) =>
+          m.id === modelName
             ? {
-                ...model,
-                testStatus: 'failed' as const,
-                responseTime: responseTime
+                ...m,
+                testStatus: 'failed',
+                responseTime: (Date.now() - startTime) / 1000
               }
-            : model
+            : m
         )
       );
+      toast.error(error.message || `模型 ${modelName} 测试失败`);
     }
   };
 
   const onBatchTest = async () => {
-    if (selectedModels.length === 0) {
-      toast.warning('请至少选择一个模型进行测试。');
-      return;
-    }
-
+    if (selectedModels.length === 0) return;
     toast.info(`开始批量测试 ${selectedModels.length} 个模型...`);
-
     for (const model of selectedModels) {
       await testModel(model.id);
     }
   };
 
-  const [allSelected, setAllSelected] = useState(false);
+  const filteredModels = useMemo(() => {
+    return models.filter((model) =>
+      model.id.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [models, search]);
 
-  const handleSelectAll = (checked: boolean) => {
-    setAllSelected(checked);
+  const totalPages = Math.ceil(filteredModels.length / pageSize);
+  const paginatedModels = filteredModels.slice(
+    (page - 1) * pageSize,
+    page * pageSize
+  );
+
+  const allPageSelected =
+    paginatedModels.length > 0 &&
+    paginatedModels.every((m) => selectedModels.some((s) => s.id === m.id));
+
+  const handleSelectAllPage = (checked: boolean) => {
     if (checked) {
-      setSelectedModels([...filteredModels]);
+      const newSelected = [...selectedModels];
+      paginatedModels.forEach((m) => {
+        if (!newSelected.some((s) => s.id === m.id)) newSelected.push(m);
+      });
+      setSelectedModels(newSelected);
     } else {
-      setSelectedModels([]);
+      const pageIds = paginatedModels.map((m) => m.id);
+      setSelectedModels(selectedModels.filter((m) => !pageIds.includes(m.id)));
     }
   };
 
   const handleSelectModel = (model: Model, checked: boolean) => {
     if (checked) {
-      setSelectedModels((prev) => [...prev, model]);
+      setSelectedModels([...selectedModels, model]);
     } else {
-      setSelectedModels((prev) => prev.filter((m) => m.id !== model.id));
-      setAllSelected(false);
+      setSelectedModels(selectedModels.filter((m) => m.id !== model.id));
     }
   };
 
-  const isModelSelected = (model: Model) => {
-    return selectedModels.some((m) => m.id === model.id);
+  const handleCopySelected = () => {
+    if (selectedModels.length === 0) return;
+    const text = selectedModels.map((m) => m.id).join('\n');
+    navigator.clipboard.writeText(text);
+    toast.success('已复制选中模型名称');
   };
 
-  const filteredModels = models.filter((model) =>
-    model.id.toLowerCase().includes(search.toLowerCase())
-  );
+  const handleSelectSuccessful = () => {
+    const successModels = filteredModels.filter(
+      (m) => m.testStatus === 'success'
+    );
+    const newSelected = [...selectedModels];
+    successModels.forEach((m) => {
+      if (!newSelected.some((s) => s.id === m.id)) newSelected.push(m);
+    });
+    setSelectedModels(newSelected);
+    toast.success(`已选择 ${successModels.length} 个测试成功的模型`);
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="flex h-[800px] max-h-[95vh] w-[1200px] max-w-[95vw] flex-col">
-        <DialogHeader className="flex-shrink-0">
-          <DialogTitle className="text-center text-xl font-bold">
-            Models for Channel: {channel.name}
-          </DialogTitle>
-        </DialogHeader>
-        <div className="min-h-0 flex-1 space-y-6 py-4">
-          <div className="px-6">
-            <Input
-              placeholder="搜索模型..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="mx-auto block h-10 max-w-lg text-base"
-              disabled={loading}
-            />
+      <DialogContent className="flex h-[800px] flex-col gap-0 p-0 sm:max-h-[85vh] sm:max-w-4xl">
+        <DialogHeader className="flex-shrink-0 border-b px-6 py-4">
+          <div className="flex items-center justify-between">
+            <DialogTitle className="text-lg font-semibold">
+              模型测试 - {channel.name}
+            </DialogTitle>
+            <Badge variant="secondary" className="font-mono">
+              共 {models.length} 个模型
+            </Badge>
           </div>
-          <div className="min-h-0 flex-1 rounded-lg bg-gray-50/50 p-4">
-            {loading ? (
-              <div className="flex h-64 items-center justify-center">
-                <div className="space-y-4 text-center">
-                  <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">
-                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
-                  </div>
-                  <div>
-                    <p className="text-lg font-medium text-gray-900">
-                      加载模型中...
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      正在获取频道 {channel.name} 的模型列表
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="h-full w-full overflow-auto">
-                <Table
-                  style={{ width: '1100px', tableLayout: 'fixed' }}
-                  className="mx-auto"
-                >
-                  <TableHeader className="sticky top-0 bg-background">
-                    <TableRow>
-                      <TableHead
-                        style={{ width: '80px' }}
-                        className="text-center"
-                      >
-                        <Checkbox
-                          checked={allSelected}
-                          onCheckedChange={handleSelectAll}
-                          aria-label="Select all"
-                        />
-                      </TableHead>
-                      <TableHead
-                        style={{ width: '600px' }}
-                        className="text-left"
-                      >
-                        模型名称
-                      </TableHead>
-                      <TableHead
-                        style={{ width: '140px' }}
-                        className="text-center"
-                      >
-                        状态
-                      </TableHead>
-                      <TableHead
-                        style={{ width: '140px' }}
-                        className="text-center"
-                      >
-                        响应时间
-                      </TableHead>
-                      <TableHead
-                        style={{ width: '140px' }}
-                        className="text-center"
-                      >
-                        操作
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredModels.map((model) => (
-                      <TableRow key={model.id} className="hover:bg-gray-50">
-                        <TableCell
-                          style={{ width: '80px' }}
-                          className="text-center"
-                        >
-                          <Checkbox
-                            checked={isModelSelected(model)}
-                            onCheckedChange={(checked) =>
-                              handleSelectModel(model, checked as boolean)
-                            }
-                            aria-label="Select row"
-                          />
-                        </TableCell>
-                        <TableCell
-                          style={{ width: '600px' }}
-                          className="text-left"
-                        >
-                          <div
-                            className="truncate pr-4 font-mono text-base text-gray-900"
-                            title={model.name}
-                          >
-                            {model.name}
-                          </div>
-                        </TableCell>
-                        <TableCell
-                          style={{ width: '140px' }}
-                          className="text-center"
-                        >
-                          <span className="inline-flex items-center rounded-full bg-blue-100 px-4 py-2 text-sm font-medium text-blue-800">
-                            {model.owned_by}
-                          </span>
-                        </TableCell>
-                        <TableCell
-                          style={{ width: '140px' }}
-                          className="text-center"
-                        >
-                          {model.testStatus === 'testing' ? (
-                            <span className="inline-flex animate-pulse items-center rounded-full bg-blue-100 px-4 py-2 text-sm font-medium text-blue-600">
-                              测试中
-                            </span>
-                          ) : model.responseTime !== undefined ? (
-                            <span
-                              className={`inline-flex items-center rounded-full px-4 py-2 font-mono text-sm font-medium ${
-                                model.testStatus === 'success'
-                                  ? 'bg-green-100 text-green-800'
-                                  : model.testStatus === 'failed'
-                                  ? 'bg-red-100 text-red-800'
-                                  : 'bg-gray-100 text-gray-800'
-                              }`}
-                            >
-                              {model.responseTime.toFixed(1)}s
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center rounded-full bg-gray-100 px-4 py-2 text-sm font-medium text-gray-500">
-                              未测试
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell
-                          style={{ width: '140px' }}
-                          className="text-center"
-                        >
-                          <Button
-                            variant={
-                              model.testStatus === 'testing'
-                                ? 'secondary'
-                                : 'outline'
-                            }
-                            size="default"
-                            onClick={() => testModel(model.id)}
-                            disabled={model.testStatus === 'testing'}
-                            className="h-9 px-4 text-sm"
-                          >
-                            {model.testStatus === 'testing' ? '测试中' : '测试'}
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+        </DialogHeader>
 
-                {/* 底部统计信息 */}
-                <div className="sticky bottom-0 border-t bg-background pt-3">
-                  <div className="flex items-center justify-center">
-                    <span className="text-sm text-gray-600">
-                      共 {filteredModels.length} 个模型
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
+        <div className="flex flex-col gap-4 border-b bg-muted/30 px-6 py-4">
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="搜索模型..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="bg-background pl-9"
+              />
+            </div>
+            <Button
+              variant="outline"
+              onClick={handleCopySelected}
+              disabled={selectedModels.length === 0}
+              title="复制选中模型名称"
+            >
+              <Copy className="mr-2 h-4 w-4" />
+              复制选中
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleSelectSuccessful}
+              title="选择所有测试成功的模型"
+            >
+              <CheckCircle2 className="mr-2 h-4 w-4" />
+              选择成功
+            </Button>
           </div>
         </div>
-        <DialogFooter className="flex-shrink-0 gap-4 border-t pt-6">
-          <Button
-            variant="outline"
-            onClick={onClose}
-            className="h-10 px-6 text-base"
-          >
-            取消
-          </Button>
-          <Button
-            onClick={onBatchTest}
-            disabled={selectedModels.length === 0}
-            className="h-10 px-6 text-base"
-          >
-            批量测试选中模型 ({selectedModels.length})
-          </Button>
+
+        <div className="flex-1 overflow-auto">
+          {loading ? (
+            <div className="flex h-full items-center justify-center">
+              <div className="flex flex-col items-center gap-2">
+                <RotateCw className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">
+                  正在加载模型列表...
+                </p>
+              </div>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader className="sticky top-0 z-10 bg-background">
+                <TableRow>
+                  <TableHead className="w-[40px] text-center">
+                    <Checkbox
+                      checked={allPageSelected}
+                      onCheckedChange={handleSelectAllPage}
+                    />
+                  </TableHead>
+                  <TableHead>模型名称</TableHead>
+                  <TableHead className="w-[120px] text-center">状态</TableHead>
+                  <TableHead className="w-[120px] text-center">
+                    响应时间
+                  </TableHead>
+                  <TableHead className="w-[100px] text-center">操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedModels.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={5}
+                      className="h-24 text-center text-muted-foreground"
+                    >
+                      未找到相关模型
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  paginatedModels.map((model) => (
+                    <TableRow key={model.id} className="hover:bg-muted/30">
+                      <TableCell className="text-center">
+                        <Checkbox
+                          checked={selectedModels.some(
+                            (m) => m.id === model.id
+                          )}
+                          onCheckedChange={(checked) =>
+                            handleSelectModel(model, checked as boolean)
+                          }
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-medium">{model.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {model.owned_by}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {model.testStatus === 'testing' ? (
+                          <Badge
+                            variant="outline"
+                            className="animate-pulse border-blue-200 bg-blue-50 text-blue-700"
+                          >
+                            测试中
+                          </Badge>
+                        ) : model.testStatus === 'success' ? (
+                          <Badge
+                            variant="outline"
+                            className="border-green-200 bg-green-50 text-green-700"
+                          >
+                            成功
+                          </Badge>
+                        ) : model.testStatus === 'failed' ? (
+                          <Badge
+                            variant="outline"
+                            className="border-red-200 bg-red-50 text-red-700"
+                          >
+                            失败
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary">未测试</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center font-mono text-sm">
+                        {model.responseTime
+                          ? `${model.responseTime.toFixed(2)}s`
+                          : '-'}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => testModel(model.id)}
+                          disabled={model.testStatus === 'testing'}
+                        >
+                          测试
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          )}
+        </div>
+
+        <DialogFooter className="flex-shrink-0 flex-row items-center justify-between border-t bg-muted/30 px-6 py-4 sm:justify-between">
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <span>已选择 {selectedModels.length} 项</span>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="min-w-[3rem] text-center">
+                {page} / {Math.max(1, totalPages)}
+              </span>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages || totalPages === 0}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={onClose}>
+              关闭
+            </Button>
+            <Button
+              onClick={onBatchTest}
+              disabled={selectedModels.length === 0}
+            >
+              <Play className="mr-2 h-4 w-4" />
+              批量测试
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

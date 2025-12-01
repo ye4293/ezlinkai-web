@@ -160,6 +160,12 @@ export function BarGraph({ session }: BarGraphProps) {
       // });
       // const { data } = await res.json();
       const res: GraphResult = await request.get(`${graphApi}?${params}`);
+      if (activeChart === 'quota') {
+        res.data = res.data.map((item: GraphData) => ({
+          ...item,
+          amount: parseFloat((item.amount / 500000).toFixed(3))
+        }));
+      }
       setGraphData(res.data);
       // const graphRes = await fetch(
       //   process.env.NEXT_PUBLIC_API_BASE_URL + `${graphApi}?${params}`,
