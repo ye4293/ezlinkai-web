@@ -68,11 +68,14 @@ const MobileVideoCard = ({ row }: { row: any }) => {
       <CardContent className="space-y-3 p-4">
         <div className="flex items-center justify-between border-b pb-2">
           <div className="text-xs text-muted-foreground">
-            {dayjs(Number(item.created_at) * 1000).format(
+            {dayjs(Number(item.created_at || 0) * 1000).format(
               'YYYY-MM-DD HH:mm:ss'
             )}
           </div>
-          <Badge variant="outline" className={getStatusColor(item.status)}>
+          <Badge
+            variant="outline"
+            className={getStatusColor(item.status || '')}
+          >
             {item.status}
           </Badge>
         </div>
@@ -85,7 +88,7 @@ const MobileVideoCard = ({ row }: { row: any }) => {
           <div className="flex flex-col">
             <span className="text-xs text-muted-foreground">Task ID</span>
             <span className="truncate font-mono text-xs" title={item.task_id}>
-              {item.task_id.substring(0, 10)}...
+              {(item.task_id || '').substring(0, 10)}...
             </span>
           </div>
         </div>
@@ -107,7 +110,7 @@ const MobileVideoCard = ({ row }: { row: any }) => {
           <div className="flex flex-col items-center">
             <span className="text-xs text-muted-foreground">Quota</span>
             <span className="font-mono text-blue-600">
-              ${(item.quota / 500000).toFixed(6)}
+              ${((item.quota || 0) / 500000).toFixed(6)}
             </span>
           </div>
         </div>
