@@ -12,17 +12,268 @@ import { useTableFilters, STATUS_OPTIONS } from './use-table-filters';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { Trash, Ban, CircleSlash2 } from 'lucide-react';
+import {
+  Trash,
+  Ban,
+  CircleSlash2,
+  Edit,
+  MoreHorizontal,
+  Lightbulb,
+  ListTree,
+  KeyRound
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { AlertModal } from '@/components/modal/alert-modal';
 import { useRouter } from 'next/navigation';
 import MultiKeyManagementModal from '../multi-key-modal';
 import { useSession } from 'next-auth/react';
+import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
+import { ModelsModal } from './models-modal';
 
 interface OptimizedChannelTableProps {
   initialData?: Channel[];
   initialTotal?: number;
 }
+
+// 定义 Card View 组件，用于移动端展示
+const MobileChannelCard = memo(
+  ({
+    channel,
+    channelTypes,
+    onManageKeys,
+    onDataChange,
+    onDelete
+  }: {
+    channel: Channel;
+    channelTypes: ChannelType[];
+    onManageKeys: (channel: Channel) => void;
+    onDataChange: () => void;
+    onDelete: (channel: Channel) => void;
+  }) => {
+    const router = useRouter();
+    const [testLoading, setTestLoading] = useState(false);
+    const [modelsModalOpen, setModelsModalOpen] = useState(false);
+
+    // 获取状态文本和颜色
+    const statusMap = {
+      1: { text: '已启用', color: 'bg-green-100 text-green-800' },
+      2: { text: '手动禁用', color: 'bg-gray-100 text-gray-800' },
+      3: { text: '自动禁用', color: 'bg-orange-100 text-orange-800' }
+    };
+    const currentStatus =
+      statusMap[channel.status as keyof typeof statusMap] || statusMap[2];
+
+    // 获取类型信息
+    const channelTypeInfo = useMemo(() => {
+      const typeValue = channel.type;
+      const channelType = channelTypes.find((t) => t.value === typeValue);
+      return channelType
+        ? { text: channelType.text, color: channelType.color }
+        : { text: `未知类型 (${typeValue})`, color: 'gray' };
+    }, [channelTypes, channel.type]);
+
+    // 处理状态切换
+    const handleStatusChange = async (newStatus: number) => {
+      try {
+        const res = await fetch(`/api/channel/`, {
+          method: 'PUT',
+          body: JSON.stringify({ id: channel.id, status: newStatus }),
+          credentials: 'include'
+        });
+        if (res.ok) {
+          toast.success('状态更新成功');
+          onDataChange();
+        } else {
+          toast.error('状态更新失败');
+        }
+      } catch (error) {
+        toast.error('状态更新失败');
+      }
+    };
+
+    // 测试渠道
+    const testChannel = async () => {
+      setTestLoading(true);
+      try {
+        const res = await fetch(`/api/channel/test/${channel.id}`, {
+          method: 'GET',
+          credentials: 'include'
+        });
+        const { success, message, time } = await res.json();
+        if (success) {
+          toast.success(`测试成功，耗时 ${time.toFixed(2)} 秒`);
+          onDataChange();
+        } else {
+          toast.error(message || '测试失败');
+        }
+      } finally {
+        setTestLoading(false);
+      }
+    };
+
+    return (
+      <Card className="mb-4 overflow-hidden">
+        <CardContent className="p-4">
+          <div className="mb-3 flex items-center justify-between border-b pb-3">
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-sm text-muted-foreground">
+                ID: {channel.id}
+              </span>
+              <div className="font-medium">{channel.name}</div>
+            </div>
+            <DropdownMenu modal={false}>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>操作</DropdownMenuLabel>
+                {channel.multi_key_info?.is_multi_key && (
+                  <DropdownMenuItem onClick={() => onManageKeys(channel)}>
+                    <KeyRound className="mr-2 h-4 w-4" /> 多密钥管理
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem
+                  onClick={() =>
+                    router.push(`/dashboard/channel/${channel.id}`)
+                  }
+                >
+                  <Edit className="mr-2 h-4 w-4" /> 编辑
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onDelete(channel)}>
+                  <Trash className="mr-2 h-4 w-4" /> 删除
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setModelsModalOpen(true)}>
+                  <ListTree className="mr-2 h-4 w-4" /> 查看模型
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-muted-foreground">类型</span>
+              <Badge variant="secondary" className="w-fit font-normal">
+                {channelTypeInfo.text}
+              </Badge>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-muted-foreground">分组</span>
+              <div className="w-fit rounded bg-muted px-2 py-1 font-mono text-xs">
+                {channel.group || 'default'}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-muted-foreground">状态</span>
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={channel.status === 1}
+                  onCheckedChange={(checked) =>
+                    handleStatusChange(checked ? 1 : 2)
+                  }
+                  className="origin-left scale-75"
+                />
+                <Badge
+                  variant="outline"
+                  className={`border-transparent ${currentStatus.color} px-1.5 py-0 text-xs`}
+                >
+                  {currentStatus.text}
+                </Badge>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-muted-foreground">响应时间</span>
+              <span
+                className={`font-mono ${
+                  !channel.response_time
+                    ? 'text-gray-500'
+                    : channel.response_time < 1000
+                    ? 'text-green-600'
+                    : channel.response_time < 3000
+                    ? 'text-yellow-600'
+                    : 'text-red-600'
+                }`}
+              >
+                {channel.response_time
+                  ? `${(channel.response_time / 1000).toFixed(2)}s`
+                  : '未测试'}
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-muted-foreground">已用/余额</span>
+              <div className="font-mono text-xs">
+                <div>${(channel.used_quota / 500000).toFixed(2)}</div>
+                <div className="text-muted-foreground">
+                  {channel.balance !== undefined
+                    ? `$${channel.balance?.toFixed(2)}`
+                    : '-'}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-muted-foreground">
+                优先级 / 权重
+              </span>
+              <div className="font-mono">
+                {channel.priority ?? 0} / {channel.weight ?? 0}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 flex-1 text-xs"
+              onClick={testChannel}
+              disabled={testLoading}
+            >
+              <Lightbulb className="mr-2 h-3 w-3" />
+              {testLoading ? '测试中...' : '测试'}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 flex-1 text-xs"
+              onClick={() => handleStatusChange(channel.status === 1 ? 2 : 1)}
+            >
+              {channel.status === 1 ? (
+                <>
+                  <Ban className="mr-2 h-3 w-3" /> 禁用
+                </>
+              ) : (
+                <>
+                  <CircleSlash2 className="mr-2 h-3 w-3" /> 启用
+                </>
+              )}
+            </Button>
+          </div>
+        </CardContent>
+
+        <ModelsModal
+          channel={channel}
+          isOpen={modelsModalOpen}
+          onClose={() => setModelsModalOpen(false)}
+        />
+      </Card>
+    );
+  }
+);
+MobileChannelCard.displayName = 'MobileChannelCard';
 
 const OptimizedChannelTable = memo(
   ({ initialData = [], initialTotal = 0 }: OptimizedChannelTableProps) => {
@@ -51,6 +302,7 @@ const OptimizedChannelTable = memo(
     const [resetSelection, setResetSelection] = useState(false);
     const [open, setOpen] = useState(false);
     const [batchLoading, setBatchLoading] = useState(false);
+    const [deleteChannel, setDeleteChannel] = useState<Channel | null>(null); // 单个删除确认
 
     // 多密钥管理Modal状态
     const [isMultiKeyModalOpen, setIsMultiKeyModalOpen] = useState(false);
@@ -118,8 +370,31 @@ const OptimizedChannelTable = memo(
       setIsMultiKeyModalOpen(true);
     }, []);
 
+    // 单个删除
+    const handleDeleteOne = async () => {
+      if (!deleteChannel) return;
+      setBatchLoading(true);
+      try {
+        const res = await fetch(`/api/channel/${deleteChannel.id}`, {
+          method: 'DELETE'
+        });
+        if (res.ok) {
+          toast.success('删除成功');
+          refetch();
+        } else {
+          toast.error('删除失败');
+        }
+      } catch (error) {
+        toast.error('删除失败');
+      } finally {
+        setOpen(false);
+        setDeleteChannel(null);
+        setBatchLoading(false);
+      }
+    };
+
     // 批量删除操作
-    const handleDelete = async () => {
+    const handleDeleteBatch = async () => {
       setBatchLoading(true);
       const ids = selectedChannels.map((channel) => channel.id);
       try {
@@ -264,16 +539,25 @@ const OptimizedChannelTable = memo(
     // 加载状态
     if (loading && displayData.length === 0) {
       return (
-        <Card>
-          <CardContent className="p-6">
-            <div className="space-y-2">
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-3/4" />
-            </div>
-          </CardContent>
-        </Card>
+        <div className="space-y-4">
+          {/* Mobile Skeleton */}
+          <div className="space-y-4 md:hidden">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-48 w-full rounded-lg" />
+            ))}
+          </div>
+          {/* Desktop Skeleton */}
+          <Card className="hidden md:block">
+            <CardContent className="p-6">
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       );
     }
 
@@ -282,8 +566,11 @@ const OptimizedChannelTable = memo(
         {/* 添加AlertModal用于删除确认 */}
         <AlertModal
           isOpen={open}
-          onClose={() => setOpen(false)}
-          onConfirm={handleDelete}
+          onClose={() => {
+            setOpen(false);
+            setDeleteChannel(null);
+          }}
+          onConfirm={deleteChannel ? handleDeleteOne : handleDeleteBatch}
           loading={batchLoading}
         />
 
@@ -306,42 +593,41 @@ const OptimizedChannelTable = memo(
               filterKey="status"
             />
 
-            {/* 批量操作按钮 - 直接跟在Status后面 */}
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => setOpen(true)}
-                disabled={batchLoading || selectedChannels.length === 0}
-                className="flex-1 sm:flex-none"
-              >
-                <Trash className="mr-2 h-4 w-4" />
-                删除
-                {selectedChannels.length > 0 && ` (${selectedChannels.length})`}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleDisable}
-                disabled={batchLoading || selectedChannels.length === 0}
-                className="flex-1 sm:flex-none"
-              >
-                <Ban className="mr-2 h-4 w-4" />
-                禁用
-                {selectedChannels.length > 0 && ` (${selectedChannels.length})`}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleEnable}
-                disabled={batchLoading || selectedChannels.length === 0}
-                className="flex-1 sm:flex-none"
-              >
-                <CircleSlash2 className="mr-2 h-4 w-4" />
-                启用
-                {selectedChannels.length > 0 && ` (${selectedChannels.length})`}
-              </Button>
-            </div>
+            {/* 批量操作按钮 - 仅在有选中项时显示 */}
+            {selectedChannels.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 animate-in fade-in zoom-in-50">
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setOpen(true)}
+                  disabled={batchLoading}
+                  className="flex-1 sm:flex-none"
+                >
+                  <Trash className="mr-2 h-4 w-4" />
+                  删除 ({selectedChannels.length})
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDisable}
+                  disabled={batchLoading}
+                  className="flex-1 sm:flex-none"
+                >
+                  <Ban className="mr-2 h-4 w-4" />
+                  禁用
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleEnable}
+                  disabled={batchLoading}
+                  className="flex-1 sm:flex-none"
+                >
+                  <CircleSlash2 className="mr-2 h-4 w-4" />
+                  启用
+                </Button>
+              </div>
+            )}
           </div>
           <div className="self-end sm:self-auto">
             <DataTableResetFilter
@@ -395,20 +681,66 @@ const OptimizedChannelTable = memo(
           </div>
         )}
 
-        {/* 数据表格 */}
-        <DataTable
-          columns={tableColumns}
-          data={displayData}
-          totalItems={displayTotal}
-          onSelectionChange={setSelectedChannels}
-          resetSelection={resetSelection}
-          currentPage={page}
-          pageSize={pageSize}
-          setCurrentPage={setPage}
-          setPageSize={setPageSize}
-          pageSizeOptions={[10, 50, 100, 500]}
-          minWidth="1500px" // 在小屏上保证最小宽度，允许横向滚动
-        />
+        {/* 移动端视图：卡片列表 (仅在 md 以下显示) */}
+        <div className="space-y-4 md:hidden">
+          {displayData.map((channel) => (
+            <MobileChannelCard
+              key={channel.id}
+              channel={channel}
+              channelTypes={channelTypes}
+              onManageKeys={handleManageKeys}
+              onDataChange={refetch}
+              onDelete={(c) => {
+                setDeleteChannel(c);
+                setOpen(true);
+              }}
+            />
+          ))}
+          {/* 移动端分页控制 */}
+          <div className="flex items-center justify-between border-t pt-4">
+            <span className="text-sm text-muted-foreground">
+              共 {displayTotal} 条
+            </span>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(Math.max(1, page - 1))}
+                disabled={page <= 1}
+              >
+                上一页
+              </Button>
+              <span className="flex items-center px-2 text-sm">
+                {page} / {Math.max(1, pageCount)}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(Math.min(pageCount, page + 1))}
+                disabled={page >= pageCount}
+              >
+                下一页
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* 桌面端视图：数据表格 (仅在 md 及以上显示) */}
+        <div className="hidden md:block">
+          <DataTable
+            columns={tableColumns}
+            data={displayData}
+            totalItems={displayTotal}
+            onSelectionChange={setSelectedChannels}
+            resetSelection={resetSelection}
+            currentPage={page}
+            pageSize={pageSize}
+            setCurrentPage={setPage}
+            setPageSize={setPageSize}
+            pageSizeOptions={[10, 50, 100, 500]}
+            minWidth="1500px" // 在小屏上保证最小宽度，允许横向滚动
+          />
+        </div>
 
         {/* 多密钥管理Modal */}
         <MultiKeyManagementModal
