@@ -320,9 +320,9 @@ export const ModelsModal: React.FC<ModelsModalProps> = ({
         Mobile: Full screen (h-[100dvh] w-screen max-w-none rounded-none)
         Desktop: Centered dialog (sm:h-[85vh] sm:max-w-4xl sm:rounded-lg)
       */}
-      <DialogContent className="fixed left-0 top-0 z-50 flex h-[100dvh] w-screen max-w-none flex-col gap-0 border-0 bg-background p-0 shadow-lg sm:left-[50%] sm:top-[50%] sm:h-[85vh] sm:w-full sm:max-w-4xl sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-lg sm:border">
+      <DialogContent className="fixed left-0 top-0 z-50 flex h-[100dvh] w-screen max-w-none flex-col gap-0 border-0 bg-background p-0 shadow-lg duration-200 sm:left-[50%] sm:top-[50%] sm:h-[85vh] sm:w-full sm:max-w-4xl sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-lg sm:border">
         {/* Header */}
-        <DialogHeader className="flex flex-shrink-0 flex-row items-center justify-between border-b px-4 py-3">
+        <DialogHeader className="flex flex-shrink-0 flex-row items-center justify-between border-b px-4 py-3 pr-12 sm:pr-6">
           <div className="flex items-center gap-2">
             <DialogTitle className="text-base font-semibold">
               模型列表
@@ -331,14 +331,6 @@ export const ModelsModal: React.FC<ModelsModalProps> = ({
               {models.length}
             </Badge>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="h-8 w-8 rounded-full"
-          >
-            <X className="h-5 w-5" />
-          </Button>
         </DialogHeader>
 
         {/* Toolbar */}
