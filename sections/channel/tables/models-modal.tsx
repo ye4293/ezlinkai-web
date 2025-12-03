@@ -318,9 +318,9 @@ export const ModelsModal: React.FC<ModelsModalProps> = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       {/* 
         Mobile: Full screen (h-[100dvh] w-screen max-w-none rounded-none)
-        Desktop: Centered dialog (sm:h-[85vh] sm:max-w-4xl sm:rounded-lg)
+        Desktop: Centered dialog (sm:h-auto sm:max-h-[85vh] sm:max-w-4xl sm:rounded-lg)
       */}
-      <DialogContent className="fixed left-0 top-0 z-50 flex h-[100dvh] w-screen max-w-none flex-col gap-0 border-0 bg-background p-0 shadow-lg duration-200 sm:left-[50%] sm:top-[50%] sm:h-[85vh] sm:w-full sm:max-w-4xl sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-lg sm:border">
+      <DialogContent className="fixed left-0 top-0 z-50 flex h-[100dvh] w-screen max-w-none flex-col gap-0 border-0 bg-background p-0 shadow-lg duration-200 sm:left-[50%] sm:top-[50%] sm:h-auto sm:max-h-[85vh] sm:w-full sm:max-w-4xl sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-lg sm:border">
         {/* Header */}
         <DialogHeader className="flex flex-shrink-0 flex-row items-center justify-between border-b px-4 py-3 pr-12 sm:pr-6">
           <div className="flex items-center gap-2">
@@ -446,7 +446,7 @@ export const ModelsModal: React.FC<ModelsModalProps> = ({
               </div>
 
               {/* Desktop Table View */}
-              <div className="hidden sm:block">
+              <div className="hidden flex-col sm:flex">
                 <Table>
                   <TableHeader className="sticky top-0 z-10 bg-background shadow-sm">
                     <TableRow>
