@@ -28,9 +28,11 @@ import {
   CheckCircle2,
   Search,
   Play,
-  RotateCw
+  RotateCw,
+  X
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface ModelsModalProps {
   isOpen: boolean;
@@ -45,6 +47,77 @@ type Model = {
   created_at: number;
   responseTime?: number; // 响应时间（秒）
   testStatus?: 'testing' | 'success' | 'failed' | 'idle'; // 测试状态
+};
+
+// 移动端模型卡片组件
+const MobileModelCard = ({
+  model,
+  isSelected,
+  onSelect,
+  onTest
+}: {
+  model: Model;
+  isSelected: boolean;
+  onSelect: (checked: boolean) => void;
+  onTest: () => void;
+}) => {
+  return (
+    <Card className="mb-3 overflow-hidden border shadow-sm">
+      <CardContent className="p-3">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-3">
+            <Checkbox checked={isSelected} onCheckedChange={onSelect} />
+            <div>
+              <div className="break-all font-medium">{model.name}</div>
+              <div className="text-xs text-muted-foreground">
+                {model.owned_by}
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-col items-end gap-2">
+            {model.testStatus === 'testing' ? (
+              <Badge
+                variant="outline"
+                className="animate-pulse border-blue-200 bg-blue-50 text-blue-700"
+              >
+                测试中
+              </Badge>
+            ) : model.testStatus === 'success' ? (
+              <Badge
+                variant="outline"
+                className="border-green-200 bg-green-50 text-green-700"
+              >
+                成功
+              </Badge>
+            ) : model.testStatus === 'failed' ? (
+              <Badge
+                variant="outline"
+                className="border-red-200 bg-red-50 text-red-700"
+              >
+                失败
+              </Badge>
+            ) : (
+              <Badge variant="secondary">未测试</Badge>
+            )}
+            <span className="font-mono text-xs text-muted-foreground">
+              {model.responseTime ? `${model.responseTime.toFixed(2)}s` : '-'}
+            </span>
+          </div>
+        </div>
+        <div className="mt-3 flex justify-end border-t pt-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onTest}
+            disabled={model.testStatus === 'testing'}
+            className="h-8 text-xs"
+          >
+            <Play className="mr-1 h-3 w-3" /> 测试
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
 };
 
 export const ModelsModal: React.FC<ModelsModalProps> = ({
@@ -220,20 +293,35 @@ export const ModelsModal: React.FC<ModelsModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="flex h-[800px] flex-col gap-0 p-0 sm:max-h-[85vh] sm:max-w-4xl">
-        <DialogHeader className="flex-shrink-0 border-b px-6 py-4">
+      {/* 调整 DialogContent 样式以适应移动端 */}
+      <DialogContent className="flex h-[95vh] w-[95vw] max-w-4xl flex-col gap-0 overflow-hidden p-0 sm:h-[85vh]">
+        <DialogHeader className="flex-shrink-0 border-b px-4 py-3 sm:px-6 sm:py-4">
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-lg font-semibold">
+            <DialogTitle className="text-base font-semibold sm:text-lg">
               模型测试 - {channel.name}
             </DialogTitle>
-            <Badge variant="secondary" className="font-mono">
-              共 {models.length} 个模型
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge
+                variant="secondary"
+                className="font-mono text-xs sm:text-sm"
+              >
+                共 {models.length} 个
+              </Badge>
+              {/* 移动端显示的关闭按钮 */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 rounded-full sm:hidden"
+                onClick={onClose}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </DialogHeader>
 
-        <div className="flex flex-col gap-4 border-b bg-muted/30 px-6 py-4">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-3 border-b bg-muted/30 px-4 py-3 sm:px-6 sm:py-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <div className="relative flex-1">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -243,27 +331,48 @@ export const ModelsModal: React.FC<ModelsModalProps> = ({
                 className="bg-background pl-9"
               />
             </div>
-            <Button
-              variant="outline"
-              onClick={handleCopySelected}
-              disabled={selectedModels.length === 0}
-              title="复制选中模型名称"
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={handleCopySelected}
+                disabled={selectedModels.length === 0}
+                title="复制选中模型名称"
+                className="flex-1 sm:flex-none"
+              >
+                <Copy className="mr-2 h-4 w-4" />
+                <span className="sm:hidden">复制</span>
+                <span className="hidden sm:inline">复制选中</span>
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleSelectSuccessful}
+                title="选择所有测试成功的模型"
+                className="flex-1 sm:flex-none"
+              >
+                <CheckCircle2 className="mr-2 h-4 w-4" />
+                <span className="sm:hidden">全选成功</span>
+                <span className="hidden sm:inline">选择成功</span>
+              </Button>
+            </div>
+          </div>
+
+          {/* 全选 checkbox for mobile */}
+          <div className="flex items-center gap-2 sm:hidden">
+            <Checkbox
+              checked={allPageSelected}
+              onCheckedChange={handleSelectAllPage}
+              id="select-all-mobile"
+            />
+            <label
+              htmlFor="select-all-mobile"
+              className="text-sm text-muted-foreground"
             >
-              <Copy className="mr-2 h-4 w-4" />
-              复制选中
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handleSelectSuccessful}
-              title="选择所有测试成功的模型"
-            >
-              <CheckCircle2 className="mr-2 h-4 w-4" />
-              选择成功
-            </Button>
+              全选当前页
+            </label>
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-0">
           {loading ? (
             <div className="flex h-full items-center justify-center">
               <div className="flex flex-col items-center gap-2">
@@ -274,104 +383,132 @@ export const ModelsModal: React.FC<ModelsModalProps> = ({
               </div>
             </div>
           ) : (
-            <Table>
-              <TableHeader className="sticky top-0 z-10 bg-background">
-                <TableRow>
-                  <TableHead className="w-[40px] text-center">
-                    <Checkbox
-                      checked={allPageSelected}
-                      onCheckedChange={handleSelectAllPage}
-                    />
-                  </TableHead>
-                  <TableHead>模型名称</TableHead>
-                  <TableHead className="w-[120px] text-center">状态</TableHead>
-                  <TableHead className="w-[120px] text-center">
-                    响应时间
-                  </TableHead>
-                  <TableHead className="w-[100px] text-center">操作</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* Desktop View: Table */}
+              <div className="hidden sm:block">
+                <Table>
+                  <TableHeader className="sticky top-0 z-10 bg-background">
+                    <TableRow>
+                      <TableHead className="w-[40px] text-center">
+                        <Checkbox
+                          checked={allPageSelected}
+                          onCheckedChange={handleSelectAllPage}
+                        />
+                      </TableHead>
+                      <TableHead>模型名称</TableHead>
+                      <TableHead className="w-[120px] text-center">
+                        状态
+                      </TableHead>
+                      <TableHead className="w-[120px] text-center">
+                        响应时间
+                      </TableHead>
+                      <TableHead className="w-[100px] text-center">
+                        操作
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedModels.length === 0 ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={5}
+                          className="h-24 text-center text-muted-foreground"
+                        >
+                          未找到相关模型
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      paginatedModels.map((model) => (
+                        <TableRow key={model.id} className="hover:bg-muted/30">
+                          <TableCell className="text-center">
+                            <Checkbox
+                              checked={selectedModels.some(
+                                (m) => m.id === model.id
+                              )}
+                              onCheckedChange={(checked) =>
+                                handleSelectModel(model, checked as boolean)
+                              }
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <div className="font-medium">{model.name}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {model.owned_by}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {model.testStatus === 'testing' ? (
+                              <Badge
+                                variant="outline"
+                                className="animate-pulse border-blue-200 bg-blue-50 text-blue-700"
+                              >
+                                测试中
+                              </Badge>
+                            ) : model.testStatus === 'success' ? (
+                              <Badge
+                                variant="outline"
+                                className="border-green-200 bg-green-50 text-green-700"
+                              >
+                                成功
+                              </Badge>
+                            ) : model.testStatus === 'failed' ? (
+                              <Badge
+                                variant="outline"
+                                className="border-red-200 bg-red-50 text-red-700"
+                              >
+                                失败
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary">未测试</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center font-mono text-sm">
+                            {model.responseTime
+                              ? `${model.responseTime.toFixed(2)}s`
+                              : '-'}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => testModel(model.id)}
+                              disabled={model.testStatus === 'testing'}
+                            >
+                              测试
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile View: Cards */}
+              <div className="block p-4 sm:hidden">
                 {paginatedModels.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={5}
-                      className="h-24 text-center text-muted-foreground"
-                    >
-                      未找到相关模型
-                    </TableCell>
-                  </TableRow>
+                  <div className="py-10 text-center text-muted-foreground">
+                    未找到相关模型
+                  </div>
                 ) : (
                   paginatedModels.map((model) => (
-                    <TableRow key={model.id} className="hover:bg-muted/30">
-                      <TableCell className="text-center">
-                        <Checkbox
-                          checked={selectedModels.some(
-                            (m) => m.id === model.id
-                          )}
-                          onCheckedChange={(checked) =>
-                            handleSelectModel(model, checked as boolean)
-                          }
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <div className="font-medium">{model.name}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {model.owned_by}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {model.testStatus === 'testing' ? (
-                          <Badge
-                            variant="outline"
-                            className="animate-pulse border-blue-200 bg-blue-50 text-blue-700"
-                          >
-                            测试中
-                          </Badge>
-                        ) : model.testStatus === 'success' ? (
-                          <Badge
-                            variant="outline"
-                            className="border-green-200 bg-green-50 text-green-700"
-                          >
-                            成功
-                          </Badge>
-                        ) : model.testStatus === 'failed' ? (
-                          <Badge
-                            variant="outline"
-                            className="border-red-200 bg-red-50 text-red-700"
-                          >
-                            失败
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary">未测试</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-center font-mono text-sm">
-                        {model.responseTime
-                          ? `${model.responseTime.toFixed(2)}s`
-                          : '-'}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => testModel(model.id)}
-                          disabled={model.testStatus === 'testing'}
-                        >
-                          测试
-                        </Button>
-                      </TableCell>
-                    </TableRow>
+                    <MobileModelCard
+                      key={model.id}
+                      model={model}
+                      isSelected={selectedModels.some((m) => m.id === model.id)}
+                      onSelect={(checked) => handleSelectModel(model, checked)}
+                      onTest={() => testModel(model.id)}
+                    />
                   ))
                 )}
-              </TableBody>
-            </Table>
+              </div>
+            </>
           )}
         </div>
 
-        <DialogFooter className="flex-shrink-0 flex-row items-center justify-between border-t bg-muted/30 px-6 py-4 sm:justify-between">
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <span>已选择 {selectedModels.length} 项</span>
+        <DialogFooter className="flex-shrink-0 flex-col gap-3 border-t bg-muted/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4">
+          <div className="flex w-full items-center justify-between text-sm text-muted-foreground sm:w-auto sm:gap-4">
+            <span>已选 {selectedModels.length}</span>
             <div className="flex items-center gap-1">
               <Button
                 variant="outline"
@@ -397,16 +534,22 @@ export const ModelsModal: React.FC<ModelsModalProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={onClose}>
+          <div className="flex w-full items-center gap-2 sm:w-auto">
+            <Button
+              variant="outline"
+              onClick={onClose}
+              className="flex-1 sm:flex-none"
+            >
               关闭
             </Button>
             <Button
               onClick={onBatchTest}
               disabled={selectedModels.length === 0}
+              className="flex-1 sm:flex-none"
             >
               <Play className="mr-2 h-4 w-4" />
-              批量测试
+              <span className="sm:hidden">测试选中</span>
+              <span className="hidden sm:inline">批量测试</span>
             </Button>
           </div>
         </DialogFooter>
