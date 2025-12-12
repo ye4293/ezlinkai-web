@@ -29,13 +29,9 @@ import {
   Search,
   Play,
   RotateCw,
-  X,
-  MoreVertical,
-  CheckSquare,
-  Square
+  MoreVertical
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -58,8 +54,8 @@ type Model = {
   testStatus?: 'testing' | 'success' | 'failed' | 'idle'; // 测试状态
 };
 
-// 移动端模型卡片组件
-const MobileModelCard = ({
+// 移动端模型行组件 - 简洁的表格行样式
+const MobileModelRow = ({
   model,
   isSelected,
   onSelect,
@@ -70,74 +66,74 @@ const MobileModelCard = ({
   onSelect: (checked: boolean) => void;
   onTest: () => void;
 }) => {
+  const getStatusBadge = () => {
+    if (model.testStatus === 'testing') {
+      return (
+        <Badge
+          variant="outline"
+          className="animate-pulse border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300"
+        >
+          测试中
+        </Badge>
+      );
+    }
+    if (model.testStatus === 'success') {
+      return (
+        <Badge
+          variant="outline"
+          className="border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-300"
+        >
+          成功
+        </Badge>
+      );
+    }
+    if (model.testStatus === 'failed') {
+      return (
+        <Badge
+          variant="outline"
+          className="border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300"
+        >
+          失败
+        </Badge>
+      );
+    }
+    return <Badge variant="secondary">未开始</Badge>;
+  };
+
   return (
     <div
-      className={`flex flex-col gap-2 border-b p-3 last:border-0 ${
-        isSelected ? 'bg-primary/5' : 'bg-background'
+      className={`flex items-center gap-3 border-b px-4 py-3 last:border-0 ${
+        isSelected ? 'bg-muted/50' : ''
       }`}
     >
-      <div className="flex items-start gap-3">
-        <div className="pt-1">
-          <Checkbox checked={isSelected} onCheckedChange={onSelect} />
+      <Checkbox
+        checked={isSelected}
+        onCheckedChange={onSelect}
+        className="shrink-0"
+      />
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-sm font-medium">{model.name}</div>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span>{model.owned_by}</span>
+          {model.responseTime && (
+            <span className="font-mono">{model.responseTime.toFixed(2)}s</span>
+          )}
         </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-2">
-            <span className="break-all text-sm font-medium leading-tight">
-              {model.name}
-            </span>
-            {model.testStatus === 'testing' ? (
-              <Badge
-                variant="outline"
-                className="h-5 flex-shrink-0 animate-pulse whitespace-nowrap border-blue-200 bg-blue-50 px-1.5 text-[10px] text-blue-700"
-              >
-                测试中
-              </Badge>
-            ) : model.testStatus === 'success' ? (
-              <Badge
-                variant="outline"
-                className="h-5 flex-shrink-0 whitespace-nowrap border-green-200 bg-green-50 px-1.5 text-[10px] text-green-700"
-              >
-                成功
-              </Badge>
-            ) : model.testStatus === 'failed' ? (
-              <Badge
-                variant="outline"
-                className="h-5 flex-shrink-0 whitespace-nowrap border-red-200 bg-red-50 px-1.5 text-[10px] text-red-700"
-              >
-                失败
-              </Badge>
-            ) : (
-              <Badge
-                variant="secondary"
-                className="h-5 flex-shrink-0 whitespace-nowrap px-1.5 text-[10px]"
-              >
-                未测试
-              </Badge>
-            )}
-          </div>
-          <div className="mt-1 flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">
-              {model.owned_by}
-            </span>
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-xs text-muted-foreground">
-                {model.responseTime ? `${model.responseTime.toFixed(2)}s` : '-'}
-              </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onTest();
-                }}
-                disabled={model.testStatus === 'testing'}
-                className="h-7 px-2 text-xs"
-              >
-                <Play className="mr-1 h-3 w-3" /> 测试
-              </Button>
-            </div>
-          </div>
-        </div>
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        {getStatusBadge()}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            onTest();
+          }}
+          disabled={model.testStatus === 'testing'}
+          className="h-7 px-2 text-xs"
+        >
+          测试
+        </Button>
       </div>
     </div>
   );
@@ -320,15 +316,15 @@ export const ModelsModal: React.FC<ModelsModalProps> = ({
         Mobile: Full screen (h-[100dvh] w-screen max-w-none rounded-none)
         Desktop: Centered dialog (sm:h-auto sm:max-h-[85vh] sm:max-w-4xl sm:rounded-lg)
       */}
-      <DialogContent className="fixed left-0 top-0 z-50 flex h-[100dvh] w-screen max-w-none flex-col gap-0 border-0 bg-background p-0 shadow-lg duration-200 sm:left-[50%] sm:top-[50%] sm:h-auto sm:max-h-[85vh] sm:w-full sm:max-w-4xl sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-lg sm:border">
+      <DialogContent className="fixed left-[50%] top-[50%] z-50 flex max-h-[85vh] w-[90vw] max-w-4xl -translate-x-1/2 -translate-y-1/2 flex-col gap-0 rounded-lg border bg-background p-0 shadow-lg duration-200 sm:w-full">
         {/* Header */}
         <DialogHeader className="flex flex-shrink-0 flex-row items-center justify-between border-b px-4 py-3 pr-12 sm:pr-6">
           <div className="flex items-center gap-2">
             <DialogTitle className="text-base font-semibold">
-              模型列表
+              {channel.name} 渠道的模型测试
             </DialogTitle>
             <Badge variant="secondary" className="h-5 px-1.5 text-xs">
-              {models.length}
+              共 {models.length} 个模型
             </Badge>
           </div>
         </DialogHeader>
@@ -434,8 +430,14 @@ export const ModelsModal: React.FC<ModelsModalProps> = ({
             <>
               {/* Mobile List View */}
               <div className="block sm:hidden">
+                {/* 移动端表头 */}
+                <div className="flex items-center gap-3 border-b bg-muted/30 px-4 py-2 text-xs font-medium text-muted-foreground">
+                  <div className="w-4 shrink-0"></div>
+                  <div className="flex-1">模型信息</div>
+                  <div className="shrink-0 text-right">状态/操作</div>
+                </div>
                 {paginatedModels.map((model) => (
-                  <MobileModelCard
+                  <MobileModelRow
                     key={model.id}
                     model={model}
                     isSelected={selectedModels.some((m) => m.id === model.id)}
@@ -488,21 +490,21 @@ export const ModelsModal: React.FC<ModelsModalProps> = ({
                           {model.testStatus === 'testing' ? (
                             <Badge
                               variant="outline"
-                              className="animate-pulse border-blue-200 bg-blue-50 text-blue-700"
+                              className="animate-pulse border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300"
                             >
                               测试中
                             </Badge>
                           ) : model.testStatus === 'success' ? (
                             <Badge
                               variant="outline"
-                              className="border-green-200 bg-green-50 text-green-700"
+                              className="border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-300"
                             >
                               成功
                             </Badge>
                           ) : model.testStatus === 'failed' ? (
                             <Badge
                               variant="outline"
-                              className="border-red-200 bg-red-50 text-red-700"
+                              className="border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300"
                             >
                               失败
                             </Badge>

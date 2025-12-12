@@ -416,7 +416,7 @@ export default function VideoTable({
   );
 
   return (
-    <div className="space-y-4 ">
+    <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-4">
         <div className="relative min-w-[200px] flex-1">
           <Input

@@ -108,6 +108,15 @@ const MobileLogCard = ({ row }: { row: LogStat }) => {
           </div>
         </div>
 
+        {log.x_request_id && (
+          <div className="flex flex-col">
+            <span className="text-xs text-muted-foreground">X-Request-ID</span>
+            <span className="truncate font-mono text-xs">
+              {log.x_request_id}
+            </span>
+          </div>
+        )}
+
         {log.content && (
           <div className="break-all border-t pt-2 text-xs text-muted-foreground">
             {log.content.length > 100
@@ -662,7 +671,7 @@ export default function LogTable({
           showColumnToggle={true}
           initialColumnVisibility={{
             // 默认隐藏的列
-            x_request_id: false,
+            x_request_id: true,
             x_response_id: false,
             // 根据屏幕尺寸智能隐藏列
             ...(isMobile

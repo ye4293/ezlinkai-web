@@ -153,8 +153,10 @@ export function DataTable<TData, TValue>({
         </div>
       )}
       <div
-        className="mobile-table-container h-[calc(100vh-280px)] w-full overflow-auto rounded-md border shadow-sm"
+        className="mobile-table-container w-full overflow-auto rounded-md border shadow-sm"
         style={{
+          maxHeight: 'calc(100vh - 320px)',
+          minHeight: '200px',
           touchAction: 'pan-x pan-y',
           WebkitOverflowScrolling: 'touch',
           overscrollBehavior: 'contain'
