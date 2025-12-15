@@ -29,6 +29,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { FileUploader } from '@/components/file-uploader';
 import { Channel } from '@/lib/types/channel';
 import request from '@/app/lib/clientFetch';
+import JSONEditor from '@/components/json-editor';
 
 const formSchema = z.object({
   type: z.string().min(1, {
@@ -67,6 +68,9 @@ const formSchema = z.object({
   vertex_ai_project_id: z.string().optional(),
   vertex_ai_adc: z.string().optional(),
   google_storage: z.string().optional(),
+  // Vertex AI 新增配置
+  vertex_key_type: z.enum(['json', 'api_key']).optional(), // 密钥格式
+  vertex_model_region: z.string().optional(), // 模型专用区域 JSON
   user_id: z.string().optional(),
   model_mapping: z.string().optional(),
   models: z.array(z.string(), {
@@ -145,6 +149,17 @@ export default function ChannelForm() {
   );
   const [channelData, setChannelData] = useState<Object | null>(null);
   const [vertexAiFiles, setVertexAiFiles] = useState<File[]>([]);
+
+  // Vertex AI 配置相关状态
+  const [vertexInputMode, setVertexInputMode] = useState<'upload' | 'manual'>(
+    'upload'
+  );
+  const [vertexRegionMode, setVertexRegionMode] = useState<'visual' | 'manual'>(
+    'visual'
+  );
+  const [vertexModelRegions, setVertexModelRegions] = useState<
+    Array<{ model: string; region: string }>
+  >([]);
 
   // 模型搜索相关状态
   const [searchQuery, setSearchQuery] = useState('');
@@ -385,6 +400,13 @@ export default function ChannelForm() {
             vertex_ai_adc: config.vertex_ai_adc || '',
             google_storage: config.google_storage || '',
             user_id: config.user_id || '',
+            // Vertex AI 新增配置
+            vertex_key_type: config.vertex_key_type || 'json',
+            vertex_model_region: config.vertex_model_region
+              ? typeof config.vertex_model_region === 'object'
+                ? JSON.stringify(config.vertex_model_region, null, 2)
+                : config.vertex_model_region
+              : '',
             model_mapping: channelData.model_mapping || '',
             models: channelData.models?.split(',') || [],
             customModelName: channelData.customModelName,
@@ -398,6 +420,30 @@ export default function ChannelForm() {
             batch_import_mode:
               (channelData as any).multi_key_info?.batch_import_mode ?? 1
           });
+
+          // 初始化 Vertex AI 模型区域映射状态
+          if (config.vertex_model_region) {
+            try {
+              const regionMap =
+                typeof config.vertex_model_region === 'object'
+                  ? config.vertex_model_region
+                  : JSON.parse(config.vertex_model_region);
+              const regions = Object.entries(regionMap).map(
+                ([model, region]) => ({
+                  model,
+                  region: region as string
+                })
+              );
+              setVertexModelRegions(regions);
+            } catch (e) {
+              console.log('Failed to parse vertex_model_region');
+            }
+          }
+
+          // 设置输入模式
+          if (config.vertex_key_type === 'api_key') {
+            setVertexInputMode('manual');
+          }
         }
       } catch (error) {
         console.error('Error initializing data:', error);
@@ -427,6 +473,8 @@ export default function ChannelForm() {
       vertex_ai_project_id: undefined,
       vertex_ai_adc: undefined,
       google_storage: undefined,
+      vertex_key_type: 'json',
+      vertex_model_region: undefined,
       user_id: undefined,
       model_mapping: undefined,
       models: undefined,
@@ -468,6 +516,24 @@ export default function ChannelForm() {
     } catch (error) {
       // JSON解析失败时不做处理，用户可能还在输入过程中
       console.log('JSON parsing in progress or invalid format');
+    }
+  };
+
+  // 更新模型区域映射表单字段
+  const updateVertexModelRegionField = (
+    regions: Array<{ model: string; region: string }>
+  ) => {
+    const validRegions = regions.filter(
+      (r) => r.model.trim() && r.region.trim()
+    );
+    if (validRegions.length > 0) {
+      const regionMap: Record<string, string> = {};
+      validRegions.forEach((r) => {
+        regionMap[r.model.trim()] = r.region.trim();
+      });
+      form.setValue('vertex_model_region', JSON.stringify(regionMap));
+    } else {
+      form.setValue('vertex_model_region', '');
     }
   };
 
@@ -824,8 +890,32 @@ export default function ChannelForm() {
       }
 
       // --- 逻辑分支重构 ---
+      // 判断是否为 Vertex AI
+      const isVertexAI = Number(values.type) === 48;
+      const isVertexAIAPIKeyMode =
+        isVertexAI && values.vertex_key_type === 'api_key';
+      const isVertexAIJSONMode =
+        isVertexAI && (values.vertex_key_type || 'json') === 'json';
+
+      // 判断批量创建：
+      // - API Key 模式：使用 key 字段
+      // - JSON 模式：优先使用 batch_keys，如果为空则尝试 key 或 vertex_ai_adc 字段
+      let hasValidKeys = false;
+      if (isVertexAIAPIKeyMode) {
+        hasValidKeys = !!values.key;
+      } else if (isVertexAIJSONMode) {
+        // JSON 模式：检查 batch_keys、key 或 vertex_ai_adc 中是否有内容
+        hasValidKeys = !!(
+          values.batch_keys ||
+          values.key ||
+          values.vertex_ai_adc
+        );
+      } else {
+        hasValidKeys = !!values.batch_keys;
+      }
+
       const isBatchCreate =
-        values.batch_create && values.batch_keys && channelId === 'create';
+        values.batch_create && hasValidKeys && channelId === 'create';
       const isAggregateMode = isBatchCreate && values.aggregate_mode;
 
       // 添加调试信息
@@ -833,42 +923,64 @@ export default function ChannelForm() {
       console.log('values.batch_create:', values.batch_create);
       console.log('values.aggregate_mode:', values.aggregate_mode);
       console.log('channelId:', channelId);
+      console.log('isVertexAIAPIKeyMode:', isVertexAIAPIKeyMode);
       console.log('isBatchCreate:', isBatchCreate);
       console.log('isAggregateMode:', isAggregateMode);
 
       // 根据渠道类型使用正确的密钥解析逻辑
       let keys: string[] = [];
-      if (Number(values.type) === 48) {
+      if (isVertexAI) {
         // Vertex AI
-        // 对于Vertex AI，使用与后端相同的JSON解析逻辑
-        const batchKeysContent = values.batch_keys || '';
-        try {
-          // 使用简化的JSON对象提取逻辑（与后端ExtractJSONObjects类似）
-          const jsonObjects: string[] = [];
-          let balance = 0;
-          let start = -1;
-          const trimmed = batchKeysContent.trim();
+        if (isVertexAIAPIKeyMode) {
+          // API Key 模式：从 key 字段按行分割
+          keys = (values.key || '')
+            .split('\n')
+            .map((key) => key.trim())
+            .filter((key) => key.length > 0);
+        } else {
+          // JSON 模式：使用与后端相同的JSON解析逻辑
+          // 优先使用 batch_keys，如果为空则尝试 key 或 vertex_ai_adc 字段
+          let jsonContent = values.batch_keys || '';
+          if (!jsonContent && values.key) {
+            jsonContent = values.key;
+          }
+          if (!jsonContent && values.vertex_ai_adc) {
+            jsonContent = values.vertex_ai_adc;
+          }
 
-          for (let i = 0; i < trimmed.length; i++) {
-            const char = trimmed[i];
-            if (char === '{') {
-              if (balance === 0) start = i;
-              balance++;
-            } else if (char === '}') {
-              if (balance > 0) {
-                balance--;
-                if (balance === 0 && start !== -1) {
-                  jsonObjects.push(trimmed.slice(start, i + 1));
-                  start = -1;
+          try {
+            // 使用简化的JSON对象提取逻辑（与后端ExtractJSONObjects类似）
+            const jsonObjects: string[] = [];
+            let balance = 0;
+            let start = -1;
+            const trimmed = jsonContent.trim();
+
+            for (let i = 0; i < trimmed.length; i++) {
+              const char = trimmed[i];
+              if (char === '{') {
+                if (balance === 0) start = i;
+                balance++;
+              } else if (char === '}') {
+                if (balance > 0) {
+                  balance--;
+                  if (balance === 0 && start !== -1) {
+                    jsonObjects.push(trimmed.slice(start, i + 1));
+                    start = -1;
+                  }
                 }
               }
             }
+            keys = jsonObjects;
+            console.log(
+              'Vertex AI JSON 模式 - 解析到',
+              keys.length,
+              '个 JSON 凭证'
+            );
+          } catch (error) {
+            console.error('解析Vertex AI JSON时出错:', error);
+            // 回退到简单计数
+            keys = [];
           }
-          keys = jsonObjects;
-        } catch (error) {
-          console.error('解析Vertex AI JSON时出错:', error);
-          // 回退到简单计数
-          keys = [];
         }
       } else {
         // 其他渠道类型使用原有的行分割逻辑
@@ -890,6 +1002,18 @@ export default function ChannelForm() {
         if (values.vertex_ai_adc) config.vertex_ai_adc = values.vertex_ai_adc;
         if (values.google_storage)
           config.google_storage = values.google_storage;
+        // Vertex AI 新增配置
+        if (values.vertex_key_type)
+          config.vertex_key_type = values.vertex_key_type;
+        if (values.vertex_model_region) {
+          try {
+            // 解析并存储模型区域映射
+            config.vertex_model_region = JSON.parse(values.vertex_model_region);
+          } catch (e) {
+            // 如果解析失败，存储原始字符串
+            config.vertex_model_region = values.vertex_model_region;
+          }
+        }
         return Object.keys(config).length > 0 ? JSON.stringify(config) : '';
       };
 
@@ -1967,23 +2091,23 @@ export default function ChannelForm() {
                       name="model_mapping"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="font-medium text-gray-700 dark:text-gray-300">
-                            模型重定向
-                          </FormLabel>
                           <FormControl>
-                            <Textarea
-                              className="h-auto max-h-64 min-h-32 resize-none overflow-auto border-gray-300 focus:border-gray-500"
+                            <JSONEditor
+                              label="模型重定向"
+                              value={field.value || ''}
+                              onChange={field.onChange}
                               placeholder={`可选配置，用于修改请求体中的模型名称，格式为 JSON 字符串\n示例：\n${JSON.stringify(
                                 MODEL_MAPPING_EXAMPLE,
                                 null,
                                 2
                               )}`}
-                              {...field}
+                              template={MODEL_MAPPING_EXAMPLE}
+                              templateLabel="填入模板"
+                              keyPlaceholder="请求的模型名称"
+                              valuePlaceholder="实际发送的模型名称"
+                              extraText="键为请求中的模型名称，值为要替换的模型名称"
                             />
                           </FormControl>
-                          <div className="text-sm text-gray-600 dark:text-gray-400">
-                            💡 该配置可以将请求中的模型名称替换为实际的模型名称
-                          </div>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -2015,67 +2139,460 @@ export default function ChannelForm() {
 
               {form.watch('type') === '48' && (
                 <>
+                  {/* 密钥格式选择 */}
                   <FormField
                     control={form.control}
-                    name="region"
+                    name="vertex_key_type"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Region</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="Vertex AI Region.g. us-east5"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="vertex_ai_project_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Vertex AI Project ID</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="Vertex AI Project ID"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="vertex_ai_adc"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          Google Cloud Application Default Credentials JSON
-                        </FormLabel>
-                        <FormControl>
-                          <Textarea
-                            className="h-auto max-h-48 min-h-32 resize-none overflow-auto"
-                            placeholder="请粘贴Google Cloud Application Default Credentials JSON内容，系统会自动提取Project ID"
-                            {...field}
-                            onChange={(e) => {
-                              field.onChange(e);
-                              handleVertexAiAdcChange(e.target.value);
-                            }}
-                          />
-                        </FormControl>
+                        <FormLabel>密钥格式</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value || 'json'}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="选择密钥格式" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="json">JSON</SelectItem>
+                            <SelectItem value="api_key">API Key</SelectItem>
+                          </SelectContent>
+                        </Select>
                         <div className="text-[0.8rem] text-muted-foreground">
-                          粘贴JSON后会自动提取project_id填充到上方的Project
-                          ID字段，并设置region为global
+                          {(field.value || 'json') === 'json'
+                            ? 'JSON 模式支持手动输入或上传服务账号 JSON'
+                            : 'API Key 模式直接使用 Vertex AI API 密钥'}
                         </div>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
 
+                  {/* JSON 模式配置 */}
+                  {(form.watch('vertex_key_type') || 'json') === 'json' && (
+                    <>
+                      {/* 密钥输入方式切换 */}
+                      <div className="space-y-3 rounded-lg border p-4">
+                        <div className="flex items-center gap-4">
+                          <span className="text-sm font-medium">
+                            密钥输入方式
+                          </span>
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              variant={
+                                vertexInputMode === 'upload'
+                                  ? 'default'
+                                  : 'outline'
+                              }
+                              size="sm"
+                              onClick={() => setVertexInputMode('upload')}
+                            >
+                              文件上传
+                            </Button>
+                            <Button
+                              type="button"
+                              variant={
+                                vertexInputMode === 'manual'
+                                  ? 'default'
+                                  : 'outline'
+                              }
+                              size="sm"
+                              onClick={() => setVertexInputMode('manual')}
+                            >
+                              手动输入
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* 文件上传 */}
+                        {vertexInputMode === 'upload' && (
+                          <div className="space-y-3">
+                            <FormLabel>密钥文件 (.json) *</FormLabel>
+                            <FileUploader
+                              value={vertexAiFiles}
+                              onValueChange={setVertexAiFiles}
+                              onUpload={handleVertexAiFileUpload}
+                              accept={{
+                                'application/json': ['.json'],
+                                'text/json': ['.json'],
+                                'text/plain': ['.json']
+                              }}
+                              maxSize={50 * 1024 * 1024}
+                              maxFiles={100}
+                              multiple={true}
+                              className="w-full"
+                            />
+                            <div className="text-xs text-muted-foreground">
+                              点击上传文件或拖拽文件到这里，仅支持 JSON 文件
+                            </div>
+                            {/* 文件预览 */}
+                            <FilePreviewList
+                              files={parsedFilesPreview}
+                              onClear={() => {
+                                setParsedFilesPreview([]);
+                                setVertexAiFiles([]);
+                              }}
+                              onRemove={handleRemoveFile}
+                            />
+                          </div>
+                        )}
+
+                        {/* 手动输入 */}
+                        {vertexInputMode === 'manual' && (
+                          <FormField
+                            control={form.control}
+                            name="vertex_ai_adc"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>服务账号 JSON 凭证</FormLabel>
+                                <FormControl>
+                                  <Textarea
+                                    className="h-auto max-h-48 min-h-32 resize-none overflow-auto font-mono text-sm"
+                                    placeholder='{"type": "service_account", "project_id": "...", ...}'
+                                    {...field}
+                                    onChange={(e) => {
+                                      field.onChange(e);
+                                      handleVertexAiAdcChange(e.target.value);
+                                    }}
+                                  />
+                                </FormControl>
+                                <div className="text-[0.8rem] text-muted-foreground">
+                                  粘贴JSON后会自动提取project_id
+                                </div>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
+                      </div>
+
+                      {/* Vertex AI JSON 模式的批量创建/聚合选项 - 仅在创建模式下显示 */}
+                      {channelId === 'create' && (
+                        <div className="flex flex-row items-center justify-between rounded-lg border p-4">
+                          <div className="space-y-0.5">
+                            <div className="text-sm font-medium">
+                              多密钥处理方式
+                            </div>
+                            <div className="text-[0.8rem] text-muted-foreground">
+                              选择如何处理上传或输入的多个 JSON 凭证
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-4">
+                            <FormField
+                              control={form.control}
+                              name="batch_create"
+                              render={({ field }) => (
+                                <FormItem className="flex items-center space-x-2">
+                                  <Checkbox
+                                    id="vertex_json_batch_create"
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                  <label
+                                    htmlFor="vertex_json_batch_create"
+                                    className="cursor-pointer text-sm font-medium leading-none"
+                                  >
+                                    批量创建
+                                  </label>
+                                </FormItem>
+                              )}
+                            />
+                            {form.watch('batch_create') && (
+                              <FormField
+                                control={form.control}
+                                name="aggregate_mode"
+                                render={({ field }) => (
+                                  <FormItem className="flex items-center space-x-2">
+                                    <Checkbox
+                                      id="vertex_json_aggregate_mode"
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                    />
+                                    <label
+                                      htmlFor="vertex_json_aggregate_mode"
+                                      className="cursor-pointer text-sm font-medium leading-none"
+                                    >
+                                      密钥聚合模式
+                                    </label>
+                                  </FormItem>
+                                )}
+                              />
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 提示信息 */}
+                      {channelId === 'create' && (
+                        <div className="text-[0.8rem] text-muted-foreground">
+                          {!form.watch('batch_create')
+                            ? '💡 默认：所有 JSON 凭证将聚合到一个渠道，系统自动轮询使用'
+                            : form.watch('aggregate_mode')
+                            ? '✅ 聚合模式：所有 JSON 凭证将聚合到一个渠道，系统自动轮询使用'
+                            : '📦 批量创建：每个 JSON 凭证将创建一个独立的渠道'}
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* API Key 模式配置 */}
+                  {form.watch('vertex_key_type') === 'api_key' && (
+                    <div className="space-y-4">
+                      <FormField
+                        control={form.control}
+                        name="key"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>API Key *</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder="输入 Vertex AI API Key，支持多个 Key（每行一个）"
+                                rows={3}
+                                {...field}
+                              />
+                            </FormControl>
+                            <div className="text-[0.8rem] text-muted-foreground">
+                              使用 Vertex AI API Key 进行认证，支持输入多个
+                              Key（每行一个）
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {/* Vertex AI API Key 模式的批量创建/聚合选项 - 仅在创建模式下显示 */}
+                      {channelId === 'create' && (
+                        <div className="flex flex-row items-center justify-between rounded-lg border p-4">
+                          <div className="space-y-0.5">
+                            <div className="text-sm font-medium">
+                              多密钥处理方式
+                            </div>
+                            <div className="text-[0.8rem] text-muted-foreground">
+                              选择如何处理输入的多个 API Key
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-4">
+                            <FormField
+                              control={form.control}
+                              name="batch_create"
+                              render={({ field }) => (
+                                <FormItem className="flex items-center space-x-2">
+                                  <Checkbox
+                                    id="vertex_batch_create"
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                  <label
+                                    htmlFor="vertex_batch_create"
+                                    className="cursor-pointer text-sm font-medium leading-none"
+                                  >
+                                    批量创建
+                                  </label>
+                                </FormItem>
+                              )}
+                            />
+                            {form.watch('batch_create') && (
+                              <FormField
+                                control={form.control}
+                                name="aggregate_mode"
+                                render={({ field }) => (
+                                  <FormItem className="flex items-center space-x-2">
+                                    <Checkbox
+                                      id="vertex_aggregate_mode"
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                    />
+                                    <label
+                                      htmlFor="vertex_aggregate_mode"
+                                      className="cursor-pointer text-sm font-medium leading-none"
+                                    >
+                                      密钥聚合模式
+                                    </label>
+                                  </FormItem>
+                                )}
+                              />
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 提示信息 */}
+                      <div className="text-[0.8rem] text-muted-foreground">
+                        {!form.watch('batch_create')
+                          ? '💡 默认：所有 Key 将聚合到一个渠道，系统自动轮询使用'
+                          : form.watch('aggregate_mode')
+                          ? '✅ 聚合模式：所有 Key 将聚合到一个渠道，系统自动轮询使用'
+                          : '📦 批量创建：每个 Key 将创建一个独立的渠道'}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 部署地区配置 */}
+                  <div className="space-y-4 rounded-lg border p-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">部署地区</span>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant={
+                            vertexRegionMode === 'visual'
+                              ? 'default'
+                              : 'outline'
+                          }
+                          size="sm"
+                          onClick={() => setVertexRegionMode('visual')}
+                        >
+                          可视化
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={
+                            vertexRegionMode === 'manual'
+                              ? 'default'
+                              : 'outline'
+                          }
+                          size="sm"
+                          onClick={() => setVertexRegionMode('manual')}
+                        >
+                          手动编辑
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            // 填入模板
+                            form.setValue(
+                              'vertex_model_region',
+                              JSON.stringify(
+                                {
+                                  'gemini-2.5-pro': 'us-central1',
+                                  'gemini-2.5-flash': 'us-east5'
+                                },
+                                null,
+                                2
+                              )
+                            );
+                          }}
+                        >
+                          填入模板
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* 可视化模式 */}
+                    {vertexRegionMode === 'visual' && (
+                      <div className="space-y-4">
+                        {/* 默认区域 */}
+                        <FormField
+                          control={form.control}
+                          name="region"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>默认区域</FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="默认区域，如: us-central1"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        {/* 模型专用区域 */}
+                        <div className="space-y-3">
+                          <FormLabel>模型专用区域</FormLabel>
+                          {vertexModelRegions.map((item, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center gap-2"
+                            >
+                              <Input
+                                placeholder="模型名称"
+                                value={item.model}
+                                onChange={(e) => {
+                                  const newRegions = [...vertexModelRegions];
+                                  newRegions[index].model = e.target.value;
+                                  setVertexModelRegions(newRegions);
+                                  updateVertexModelRegionField(newRegions);
+                                }}
+                                className="flex-1"
+                              />
+                              <Input
+                                placeholder="区域"
+                                value={item.region}
+                                onChange={(e) => {
+                                  const newRegions = [...vertexModelRegions];
+                                  newRegions[index].region = e.target.value;
+                                  setVertexModelRegions(newRegions);
+                                  updateVertexModelRegionField(newRegions);
+                                }}
+                                className="flex-1"
+                              />
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => {
+                                  const newRegions = vertexModelRegions.filter(
+                                    (_, i) => i !== index
+                                  );
+                                  setVertexModelRegions(newRegions);
+                                  updateVertexModelRegionField(newRegions);
+                                }}
+                              >
+                                删除
+                              </Button>
+                            </div>
+                          ))}
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setVertexModelRegions([
+                                ...vertexModelRegions,
+                                { model: '', region: '' }
+                              ]);
+                            }}
+                          >
+                            + 添加模型区域
+                          </Button>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          设置默认地区和特定模型的专用地区
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 手动编辑模式 */}
+                    {vertexRegionMode === 'manual' && (
+                      <FormField
+                        control={form.control}
+                        name="vertex_model_region"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>模型区域映射 (JSON)</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                className="h-auto min-h-24 resize-none font-mono text-sm"
+                                placeholder='{"gemini-2.5-pro": "us-central1", "gemini-2.5-flash": "us-east5"}'
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+                  </div>
+
+                  {/* Google Storage (可选) */}
                   <FormField
                     control={form.control}
                     name="google_storage"
@@ -2096,48 +2613,6 @@ export default function ChannelForm() {
                       </FormItem>
                     )}
                   />
-
-                  {/* JSON文件上传 */}
-                  <div className="space-y-3 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                        📁 Vertex AI JSON文件上传
-                      </span>
-                    </div>
-                    <FileUploader
-                      value={vertexAiFiles}
-                      onValueChange={setVertexAiFiles}
-                      onUpload={handleVertexAiFileUpload}
-                      accept={{
-                        'application/json': ['.json'],
-                        'text/json': ['.json'],
-                        'text/plain': ['.json']
-                      }}
-                      maxSize={50 * 1024 * 1024} // 设置50MB限制，覆盖默认的2MB
-                      maxFiles={100} // 允许更多文件
-                      multiple={true}
-                      className="w-full"
-                    />
-                    <div className="text-xs text-blue-600 dark:text-blue-400">
-                      💡 上传Google Cloud凭证JSON文件，支持单个或多个文件上传
-                      <br />
-                      📝
-                      系统会自动根据当前模式处理文件：单个创建时填充字段，批量/聚合时添加到密钥列表
-                      <br />
-                      🔍 基础检测：文件格式、内容有效性、服务账号类型等
-                      <br />✅ 支持重复上传：相同项目ID的文件可以多次上传
-                    </div>
-
-                    {/* 文件预览 */}
-                    <FilePreviewList
-                      files={parsedFilesPreview}
-                      onClear={() => {
-                        setParsedFilesPreview([]);
-                        setVertexAiFiles([]);
-                      }}
-                      onRemove={handleRemoveFile}
-                    />
-                  </div>
                 </>
               )}
 
@@ -2178,96 +2653,105 @@ export default function ChannelForm() {
               )}
 
               <>
-                {/* 批量创建开关 - 仅在创建模式下显示 */}
-                {channelId === 'create' && (
-                  <>
-                    <FormField
-                      control={form.control}
-                      name="batch_create"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                          <div className="space-y-0.5">
-                            <FormLabel className="text-base">
-                              批量创建
-                            </FormLabel>
-                            <div className="text-[0.8rem] text-muted-foreground">
-                              开启后可以批量输入多个key来创建多个渠道（并行处理，速度更快）
+                {/* 批量创建开关 - 仅在创建模式下显示，且排除 Vertex AI API Key 模式（已在上方单独处理） */}
+                {channelId === 'create' &&
+                  !(
+                    form.watch('type') === '48' &&
+                    form.watch('vertex_key_type') === 'api_key'
+                  ) && (
+                    <>
+                      <FormField
+                        control={form.control}
+                        name="batch_create"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                              <FormLabel className="text-base">
+                                批量创建
+                              </FormLabel>
+                              <div className="text-[0.8rem] text-muted-foreground">
+                                开启后可以批量输入多个key来创建多个渠道（并行处理，速度更快）
+                              </div>
                             </div>
-                          </div>
-                          <FormControl>
-                            <div className="flex items-center space-x-4">
-                              {form.watch('batch_create') && (
-                                <FormField
-                                  control={form.control}
-                                  name="aggregate_mode"
-                                  render={({ field: aggregateField }) => (
-                                    <FormItem className="flex items-center space-x-2">
-                                      <Checkbox
-                                        id="aggregate_mode"
-                                        checked={aggregateField.value}
-                                        onCheckedChange={
-                                          aggregateField.onChange
-                                        }
-                                      />
-                                      <label
-                                        htmlFor="aggregate_mode"
-                                        className="cursor-pointer text-sm font-medium leading-none"
-                                      >
-                                        密钥聚合模式
-                                      </label>
-                                    </FormItem>
-                                  )}
+                            <FormControl>
+                              <div className="flex items-center space-x-4">
+                                {form.watch('batch_create') && (
+                                  <FormField
+                                    control={form.control}
+                                    name="aggregate_mode"
+                                    render={({ field: aggregateField }) => (
+                                      <FormItem className="flex items-center space-x-2">
+                                        <Checkbox
+                                          id="aggregate_mode"
+                                          checked={aggregateField.value}
+                                          onCheckedChange={
+                                            aggregateField.onChange
+                                          }
+                                        />
+                                        <label
+                                          htmlFor="aggregate_mode"
+                                          className="cursor-pointer text-sm font-medium leading-none"
+                                        >
+                                          密钥聚合模式
+                                        </label>
+                                      </FormItem>
+                                    )}
+                                  />
+                                )}
+                                <Checkbox
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
                                 />
-                              )}
-                              <Checkbox
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
+                              </div>
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+
+                      {/* 批量创建进度显示 */}
+                      {form.watch('batch_create') &&
+                        isSubmitting &&
+                        batchProgress.total > 0 && (
+                          <div className="rounded border border-green-200 bg-green-50 p-4">
+                            <div className="mb-2 flex items-center justify-between">
+                              <span className="text-sm font-medium text-green-800">
+                                批量创建进度
+                              </span>
+                              <span className="text-sm text-green-600">
+                                {batchProgress.current} / {batchProgress.total}
+                              </span>
                             </div>
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
+                            <div className="h-2 w-full rounded-full bg-green-200">
+                              <div
+                                className="h-2 rounded-full bg-green-600 transition-all duration-300"
+                                style={{
+                                  width: `${
+                                    batchProgress.total > 0
+                                      ? (batchProgress.current /
+                                          batchProgress.total) *
+                                        100
+                                      : 0
+                                  }%`
+                                }}
+                              ></div>
+                            </div>
+                            <div className="mt-1 text-xs text-green-600">
+                              {batchProgress.current === batchProgress.total
+                                ? '处理完成，正在跳转...'
+                                : '正在并行创建渠道...'}
+                            </div>
+                          </div>
+                        )}
+                    </>
+                  )}
 
-                    {/* 批量创建进度显示 */}
-                    {form.watch('batch_create') &&
-                      isSubmitting &&
-                      batchProgress.total > 0 && (
-                        <div className="rounded border border-green-200 bg-green-50 p-4">
-                          <div className="mb-2 flex items-center justify-between">
-                            <span className="text-sm font-medium text-green-800">
-                              批量创建进度
-                            </span>
-                            <span className="text-sm text-green-600">
-                              {batchProgress.current} / {batchProgress.total}
-                            </span>
-                          </div>
-                          <div className="h-2 w-full rounded-full bg-green-200">
-                            <div
-                              className="h-2 rounded-full bg-green-600 transition-all duration-300"
-                              style={{
-                                width: `${
-                                  batchProgress.total > 0
-                                    ? (batchProgress.current /
-                                        batchProgress.total) *
-                                      100
-                                    : 0
-                                }%`
-                              }}
-                            ></div>
-                          </div>
-                          <div className="mt-1 text-xs text-green-600">
-                            {batchProgress.current === batchProgress.total
-                              ? '处理完成，正在跳转...'
-                              : '正在并行创建渠道...'}
-                          </div>
-                        </div>
-                      )}
-                  </>
-                )}
-
-                {/* 根据批量创建开关显示不同的密钥输入界面 */}
-                {form.watch('batch_create') && channelId === 'create' ? (
+                {/* 根据批量创建开关显示不同的密钥输入界面 - 排除 Vertex AI API Key 模式（已在上方单独处理） */}
+                {form.watch('batch_create') &&
+                channelId === 'create' &&
+                !(
+                  form.watch('type') === '48' &&
+                  form.watch('vertex_key_type') === 'api_key'
+                ) ? (
                   <div className="space-y-4">
                     <FormField
                       control={form.control}

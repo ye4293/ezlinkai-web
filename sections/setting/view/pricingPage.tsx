@@ -33,6 +33,8 @@ export default function PricingPage() {
   const [outputVolumePrice, setOutputVolumePrice] = useState('');
   const [audioInputRatio, setAudioInputRatio] = useState('');
   const [audioOutputRatio, setAudioOutputRatio] = useState('');
+  const [imageInputRatio, setImageInputRatio] = useState('');
+  const [imageOutputRatio, setImageOutputRatio] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -57,6 +59,14 @@ export default function PricingPage() {
 }`;
 
   const defaultAudioOutputRatio = `{
+
+}`;
+
+  const defaultImageInputRatio = `{
+
+}`;
+
+  const defaultImageOutputRatio = `{
 
 }`;
 
@@ -126,6 +136,28 @@ export default function PricingPage() {
         } else {
           setAudioOutputRatio(defaultAudioOutputRatio);
         }
+
+        const imageInputOption = options.find(
+          (o: Option) => o.key === 'ImageInputRatio'
+        );
+        if (imageInputOption) {
+          setImageInputRatio(
+            formatJSON(imageInputOption.value) || defaultImageInputRatio
+          );
+        } else {
+          setImageInputRatio(defaultImageInputRatio);
+        }
+
+        const imageOutputOption = options.find(
+          (o: Option) => o.key === 'ImageOutputRatio'
+        );
+        if (imageOutputOption) {
+          setImageOutputRatio(
+            formatJSON(imageOutputOption.value) || defaultImageOutputRatio
+          );
+        } else {
+          setImageOutputRatio(defaultImageOutputRatio);
+        }
       }
     } catch (err) {
       setError(
@@ -169,7 +201,9 @@ export default function PricingPage() {
         !validateJSON(inputVolumePrice, '模型基础价格倍率') ||
         !validateJSON(outputVolumePrice, '输出token价格倍率') ||
         !validateJSON(audioInputRatio, '音频输入token倍率') ||
-        !validateJSON(audioOutputRatio, '音频输出token倍率')
+        !validateJSON(audioOutputRatio, '音频输出token倍率') ||
+        !validateJSON(imageInputRatio, '图片输入token倍率') ||
+        !validateJSON(imageOutputRatio, '图片输出token倍率')
       ) {
         return;
       }
@@ -252,6 +286,38 @@ export default function PricingPage() {
 
       if (!audioOutputResponse.ok) {
         throw new Error('Failed to save audio output ratio');
+      }
+
+      // 保存图片输入token倍率
+      const imageInputResponse = await fetch('/api/option', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          key: 'ImageInputRatio',
+          value: imageInputRatio
+        })
+      });
+
+      if (!imageInputResponse.ok) {
+        throw new Error('Failed to save image input ratio');
+      }
+
+      // 保存图片输出token倍率
+      const imageOutputResponse = await fetch('/api/option', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          key: 'ImageOutputRatio',
+          value: imageOutputRatio
+        })
+      });
+
+      if (!imageOutputResponse.ok) {
+        throw new Error('Failed to save image output ratio');
       }
 
       toast.success('价格设置保存成功！');
@@ -406,6 +472,56 @@ export default function PricingPage() {
                 />
                 <p className="text-sm text-muted-foreground">
                   JSON格式，key为模型名称，value为音频输出token相对文本输出token的倍率（如：200表示音频输出token是文本输出token价格的200倍）
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>图片输入token倍率</CardTitle>
+              <CardDescription>
+                设置图片输入token相对于文本输入token的价格倍率
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid w-full items-center gap-1.5">
+                <Label htmlFor="image-input-ratio">图片输入token倍率配置</Label>
+                <Textarea
+                  id="image-input-ratio"
+                  value={imageInputRatio}
+                  onChange={(e) => setImageInputRatio(e.target.value)}
+                  placeholder="请输入JSON格式的图片输入token倍率配置"
+                  className="h-60 font-mono text-sm"
+                />
+                <p className="text-sm text-muted-foreground">
+                  JSON格式，key为模型名称，value为图片输入token相对文本输入token的倍率（如：50表示图片输入token是文本输入token价格的50倍）
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>图片输出token倍率</CardTitle>
+              <CardDescription>
+                设置图片输出token相对于文本输出token的价格倍率
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid w-full items-center gap-1.5">
+                <Label htmlFor="image-output-ratio">
+                  图片输出token倍率配置
+                </Label>
+                <Textarea
+                  id="image-output-ratio"
+                  value={imageOutputRatio}
+                  onChange={(e) => setImageOutputRatio(e.target.value)}
+                  placeholder="请输入JSON格式的图片输出token倍率配置"
+                  className="h-60 font-mono text-sm"
+                />
+                <p className="text-sm text-muted-foreground">
+                  JSON格式，key为模型名称，value为图片输出token相对文本输出token的倍率（如：100表示图片输出token是文本输出token价格的100倍）
                 </p>
               </div>
             </CardContent>
