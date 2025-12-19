@@ -67,15 +67,38 @@ interface EditingRow {
 
 // 未设置倍率模型的编辑数据
 interface UnsetModelEditData {
-  input_price: string;
+  // 价格输入（$/1M tokens）
+  input_price: string; // 文字输入价格
+  output_price: string; // 文字输出价格
+  image_input_price: string; // 图片输入价格
+  image_output_price: string; // 图片输出价格
+  audio_input_price: string; // 音频输入价格
+  audio_output_price: string; // 音频输出价格
+  // 计算后的倍率
   model_ratio: string;
-  output_price: string;
   completion_ratio: string;
   image_input_ratio: string;
   image_output_ratio: string;
   audio_input_ratio: string;
   audio_output_ratio: string;
 }
+
+// 价格转倍率的换算函数
+// 所有倍率都是相对于"文字输入价格"来计算的
+// ModelRatio = 文字输入价格($/1M tokens) / 2
+// CompletionRatio = 文字输出价格 / 文字输入价格
+// AudioInputRatio = 音频输入价格 / 文字输入价格
+// AudioOutputRatio = 音频输出价格 / 文字输入价格
+// ImageInputRatio = 图片输入价格 / 文字输入价格
+// ImageOutputRatio = 图片输出价格 / 文字输入价格
+const priceToModelRatio = (inputPrice: number): number => {
+  return inputPrice / 2;
+};
+
+const priceToRatio = (price: number, baseInputPrice: number): number => {
+  if (baseInputPrice === 0) return 1;
+  return price / baseInputPrice;
+};
 
 export default function PricingPage() {
   // ==================== 模型倍率设置状态 ====================
@@ -244,8 +267,12 @@ export default function PricingPage() {
         (result.data.list || []).forEach((m: ModelPriceInfo) => {
           editData[m.model_name] = {
             input_price: '',
-            model_ratio: '',
             output_price: '',
+            image_input_price: '',
+            image_output_price: '',
+            audio_input_price: '',
+            audio_output_price: '',
+            model_ratio: '',
             completion_ratio: '',
             image_input_ratio: '',
             image_output_ratio: '',
@@ -381,13 +408,155 @@ export default function PricingPage() {
     field: keyof UnsetModelEditData,
     value: string
   ) => {
-    setUnsetEditData((prev) => ({
-      ...prev,
-      [modelName]: {
-        ...prev[modelName],
-        [field]: value
+    setUnsetEditData((prev) => {
+      const currentData = prev[modelName] || {
+        input_price: '',
+        output_price: '',
+        image_input_price: '',
+        image_output_price: '',
+        audio_input_price: '',
+        audio_output_price: '',
+        model_ratio: '',
+        completion_ratio: '',
+        image_input_ratio: '',
+        image_output_ratio: '',
+        audio_input_ratio: '',
+        audio_output_ratio: ''
+      };
+
+      const newData = { ...currentData, [field]: value };
+
+      // 获取文字输入价格（基准价格）
+      const baseInputPrice = parseFloat(newData.input_price) || 0;
+
+      // 辅助函数：格式化倍率
+      const formatRatio = (ratio: number): string => {
+        if (ratio === 0) return '';
+        // 如果是整数或接近整数，显示整数
+        if (Math.abs(ratio - Math.round(ratio)) < 0.0001) {
+          return Math.round(ratio).toString();
+        }
+        // 否则保留合适的小数位
+        return parseFloat(ratio.toFixed(6)).toString();
+      };
+
+      // 当文字输入价格变化时，重新计算所有倍率
+      if (field === 'input_price') {
+        const inputPrice = parseFloat(value);
+        if (!isNaN(inputPrice) && inputPrice > 0) {
+          // 模型倍率 = 文字输入价格 / 2
+          newData.model_ratio = formatRatio(priceToModelRatio(inputPrice));
+
+          // 补全倍率 = 文字输出价格 / 文字输入价格
+          const outputPrice = parseFloat(newData.output_price);
+          if (!isNaN(outputPrice) && outputPrice > 0) {
+            newData.completion_ratio = formatRatio(
+              priceToRatio(outputPrice, inputPrice)
+            );
+          }
+
+          // 图片输入倍率 = 图片输入价格 / 文字输入价格
+          const imageInputPrice = parseFloat(newData.image_input_price);
+          if (!isNaN(imageInputPrice) && imageInputPrice > 0) {
+            newData.image_input_ratio = formatRatio(
+              priceToRatio(imageInputPrice, inputPrice)
+            );
+          }
+
+          // 图片输出倍率 = 图片输出价格 / 文字输入价格
+          const imageOutputPrice = parseFloat(newData.image_output_price);
+          if (!isNaN(imageOutputPrice) && imageOutputPrice > 0) {
+            newData.image_output_ratio = formatRatio(
+              priceToRatio(imageOutputPrice, inputPrice)
+            );
+          }
+
+          // 音频输入倍率 = 音频输入价格 / 文字输入价格
+          const audioInputPrice = parseFloat(newData.audio_input_price);
+          if (!isNaN(audioInputPrice) && audioInputPrice > 0) {
+            newData.audio_input_ratio = formatRatio(
+              priceToRatio(audioInputPrice, inputPrice)
+            );
+          }
+
+          // 音频输出倍率 = 音频输出价格 / 文字输入价格
+          const audioOutputPrice = parseFloat(newData.audio_output_price);
+          if (!isNaN(audioOutputPrice) && audioOutputPrice > 0) {
+            newData.audio_output_ratio = formatRatio(
+              priceToRatio(audioOutputPrice, inputPrice)
+            );
+          }
+        } else {
+          // 如果文字输入价格无效，清空所有自动计算的倍率
+          newData.model_ratio = '';
+        }
       }
-    }));
+
+      // 当文字输出价格变化时，计算补全倍率
+      if (field === 'output_price' && baseInputPrice > 0) {
+        const outputPrice = parseFloat(value);
+        if (!isNaN(outputPrice) && outputPrice > 0) {
+          newData.completion_ratio = formatRatio(
+            priceToRatio(outputPrice, baseInputPrice)
+          );
+        } else {
+          newData.completion_ratio = '';
+        }
+      }
+
+      // 当图片输入价格变化时，计算图片输入倍率
+      if (field === 'image_input_price' && baseInputPrice > 0) {
+        const imageInputPrice = parseFloat(value);
+        if (!isNaN(imageInputPrice) && imageInputPrice > 0) {
+          newData.image_input_ratio = formatRatio(
+            priceToRatio(imageInputPrice, baseInputPrice)
+          );
+        } else {
+          newData.image_input_ratio = '';
+        }
+      }
+
+      // 当图片输出价格变化时，计算图片输出倍率
+      if (field === 'image_output_price' && baseInputPrice > 0) {
+        const imageOutputPrice = parseFloat(value);
+        if (!isNaN(imageOutputPrice) && imageOutputPrice > 0) {
+          newData.image_output_ratio = formatRatio(
+            priceToRatio(imageOutputPrice, baseInputPrice)
+          );
+        } else {
+          newData.image_output_ratio = '';
+        }
+      }
+
+      // 当音频输入价格变化时，计算音频输入倍率
+      if (field === 'audio_input_price' && baseInputPrice > 0) {
+        const audioInputPrice = parseFloat(value);
+        if (!isNaN(audioInputPrice) && audioInputPrice > 0) {
+          newData.audio_input_ratio = formatRatio(
+            priceToRatio(audioInputPrice, baseInputPrice)
+          );
+        } else {
+          newData.audio_input_ratio = '';
+        }
+      }
+
+      // 当音频输出价格变化时，计算音频输出倍率
+      if (field === 'audio_output_price' && baseInputPrice > 0) {
+        const audioOutputPrice = parseFloat(value);
+        if (!isNaN(audioOutputPrice) && audioOutputPrice > 0) {
+          newData.audio_output_ratio = formatRatio(
+            priceToRatio(audioOutputPrice, baseInputPrice)
+          );
+        } else {
+          newData.audio_output_ratio = '';
+        }
+      }
+
+      return {
+        ...prev,
+        [modelName]: newData
+      };
+    });
   };
 
   // 保存所有已填写数据的未配置模型
@@ -897,6 +1066,20 @@ export default function PricingPage() {
 
           {/* ==================== 未设置倍率模型 Tab ==================== */}
           <TabsContent value="unset-models" className="space-y-4">
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-950">
+              <p className="text-sm text-blue-800 dark:text-blue-200">
+                <strong>💡 提示：</strong>直接输入模型的官方价格（$/1M
+                tokens），系统将自动换算成倍率。所有倍率都相对于文字输入价格计算。
+              </p>
+              <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-blue-600 dark:text-blue-400 md:grid-cols-3">
+                <span>• 模型倍率 = 文字输入价格 / 2</span>
+                <span>• 补全倍率 = 文字输出价格 / 文字输入价格</span>
+                <span>• 图片输入倍率 = 图片输入价格 / 文字输入价格</span>
+                <span>• 图片输出倍率 = 图片输出价格 / 文字输入价格</span>
+                <span>• 音频输入倍率 = 音频输入价格 / 文字输入价格</span>
+                <span>• 音频输出倍率 = 音频输出价格 / 文字输入价格</span>
+              </div>
+            </div>
             <p className="text-sm text-muted-foreground">
               此页面仅显示未设置默认价格或倍率的模型。设置后将自动从列表中移除。
             </p>
@@ -933,10 +1116,10 @@ export default function PricingPage() {
             </div>
 
             <div className="overflow-x-auto rounded-md border">
-              <Table className="w-full min-w-[800px] table-fixed">
+              <Table className="w-full min-w-[1400px] table-fixed">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-10 px-2">
+                    <TableHead className="w-8 px-1">
                       <Checkbox
                         checked={
                           unsetModels.length > 0 &&
@@ -955,44 +1138,78 @@ export default function PricingPage() {
                         }}
                       />
                     </TableHead>
-                    <TableHead className="w-[220px] px-2">模型名称</TableHead>
-                    <TableHead className="w-[85px] px-1 text-center text-xs">
-                      模型倍率
+                    <TableHead className="w-[160px] px-1">模型名称</TableHead>
+                    <TableHead
+                      colSpan={6}
+                      className="border-l bg-blue-50/50 px-1 text-center text-xs dark:bg-blue-950/30"
+                    >
+                      价格输入 ($/1M tokens)
                     </TableHead>
-                    <TableHead className="w-[85px] px-1 text-center text-xs">
-                      补全倍率
+                    <TableHead
+                      colSpan={6}
+                      className="border-l bg-green-50/50 px-1 text-center text-xs dark:bg-green-950/30"
+                    >
+                      倍率（自动计算）
                     </TableHead>
-                    <TableHead className="w-[85px] px-1 text-center text-xs">
+                  </TableRow>
+                  <TableRow>
+                    <TableHead className="w-8 px-1"></TableHead>
+                    <TableHead className="w-[160px] px-1"></TableHead>
+                    <TableHead className="w-[70px] border-l bg-blue-50/50 px-1 text-center text-xs dark:bg-blue-950/30">
+                      文字输入
+                    </TableHead>
+                    <TableHead className="w-[70px] bg-blue-50/50 px-1 text-center text-xs dark:bg-blue-950/30">
+                      文字输出
+                    </TableHead>
+                    <TableHead className="w-[70px] bg-blue-50/50 px-1 text-center text-xs dark:bg-blue-950/30">
                       图片输入
                     </TableHead>
-                    <TableHead className="w-[85px] px-1 text-center text-xs">
+                    <TableHead className="w-[70px] bg-blue-50/50 px-1 text-center text-xs dark:bg-blue-950/30">
                       图片输出
                     </TableHead>
-                    <TableHead className="w-[85px] px-1 text-center text-xs">
+                    <TableHead className="w-[70px] bg-blue-50/50 px-1 text-center text-xs dark:bg-blue-950/30">
                       音频输入
                     </TableHead>
-                    <TableHead className="w-[85px] px-1 text-center text-xs">
+                    <TableHead className="w-[70px] bg-blue-50/50 px-1 text-center text-xs dark:bg-blue-950/30">
                       音频输出
+                    </TableHead>
+                    <TableHead className="w-[65px] border-l bg-green-50/50 px-1 text-center text-xs dark:bg-green-950/30">
+                      模型
+                    </TableHead>
+                    <TableHead className="w-[65px] bg-green-50/50 px-1 text-center text-xs dark:bg-green-950/30">
+                      补全
+                    </TableHead>
+                    <TableHead className="w-[65px] bg-green-50/50 px-1 text-center text-xs dark:bg-green-950/30">
+                      图片入
+                    </TableHead>
+                    <TableHead className="w-[65px] bg-green-50/50 px-1 text-center text-xs dark:bg-green-950/30">
+                      图片出
+                    </TableHead>
+                    <TableHead className="w-[65px] bg-green-50/50 px-1 text-center text-xs dark:bg-green-950/30">
+                      音频入
+                    </TableHead>
+                    <TableHead className="w-[65px] bg-green-50/50 px-1 text-center text-xs dark:bg-green-950/30">
+                      音频出
                     </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isUnsetLoading ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="h-24 text-center">
+                      <TableCell colSpan={14} className="h-24 text-center">
                         加载中...
                       </TableCell>
                     </TableRow>
                   ) : unsetModels.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="h-24 text-center">
+                      <TableCell colSpan={14} className="h-24 text-center">
                         🎉 太棒了！所有模型都已配置倍率
                       </TableCell>
                     </TableRow>
                   ) : (
                     unsetModels.map((model) => (
                       <TableRow key={model.model_name}>
-                        <TableCell className="px-2">
+                        <TableCell className="px-1">
                           <Checkbox
                             checked={selectedModels.has(model.model_name)}
                             onCheckedChange={(checked) => {
@@ -1007,15 +1224,124 @@ export default function PricingPage() {
                           />
                         </TableCell>
                         <TableCell
-                          className="truncate px-2 font-mono text-xs"
+                          className="truncate px-1 font-mono text-xs"
                           title={model.model_name}
                         >
                           {model.model_name}
                         </TableCell>
-                        <TableCell className="px-1">
+                        {/* 价格输入区域 */}
+                        <TableCell className="border-l bg-blue-50/30 px-0.5 dark:bg-blue-950/20">
                           <Input
                             type="text"
-                            placeholder="1.0"
+                            placeholder="0.1"
+                            value={
+                              unsetEditData[model.model_name]?.input_price || ''
+                            }
+                            onChange={(e) =>
+                              updateUnsetEditData(
+                                model.model_name,
+                                'input_price',
+                                e.target.value
+                              )
+                            }
+                            className="h-7 px-1 text-center text-xs"
+                          />
+                        </TableCell>
+                        <TableCell className="bg-blue-50/30 px-0.5 dark:bg-blue-950/20">
+                          <Input
+                            type="text"
+                            placeholder="0.4"
+                            value={
+                              unsetEditData[model.model_name]?.output_price ||
+                              ''
+                            }
+                            onChange={(e) =>
+                              updateUnsetEditData(
+                                model.model_name,
+                                'output_price',
+                                e.target.value
+                              )
+                            }
+                            className="h-7 px-1 text-center text-xs"
+                          />
+                        </TableCell>
+                        <TableCell className="bg-blue-50/30 px-0.5 dark:bg-blue-950/20">
+                          <Input
+                            type="text"
+                            placeholder="-"
+                            value={
+                              unsetEditData[model.model_name]
+                                ?.image_input_price || ''
+                            }
+                            onChange={(e) =>
+                              updateUnsetEditData(
+                                model.model_name,
+                                'image_input_price',
+                                e.target.value
+                              )
+                            }
+                            className="h-7 px-1 text-center text-xs"
+                          />
+                        </TableCell>
+                        <TableCell className="bg-blue-50/30 px-0.5 dark:bg-blue-950/20">
+                          <Input
+                            type="text"
+                            placeholder="-"
+                            value={
+                              unsetEditData[model.model_name]
+                                ?.image_output_price || ''
+                            }
+                            onChange={(e) =>
+                              updateUnsetEditData(
+                                model.model_name,
+                                'image_output_price',
+                                e.target.value
+                              )
+                            }
+                            className="h-7 px-1 text-center text-xs"
+                          />
+                        </TableCell>
+                        <TableCell className="bg-blue-50/30 px-0.5 dark:bg-blue-950/20">
+                          <Input
+                            type="text"
+                            placeholder="-"
+                            value={
+                              unsetEditData[model.model_name]
+                                ?.audio_input_price || ''
+                            }
+                            onChange={(e) =>
+                              updateUnsetEditData(
+                                model.model_name,
+                                'audio_input_price',
+                                e.target.value
+                              )
+                            }
+                            className="h-7 px-1 text-center text-xs"
+                          />
+                        </TableCell>
+                        <TableCell className="bg-blue-50/30 px-0.5 dark:bg-blue-950/20">
+                          <Input
+                            type="text"
+                            placeholder="-"
+                            value={
+                              unsetEditData[model.model_name]
+                                ?.audio_output_price || ''
+                            }
+                            onChange={(e) =>
+                              updateUnsetEditData(
+                                model.model_name,
+                                'audio_output_price',
+                                e.target.value
+                              )
+                            }
+                            className="h-7 px-1 text-center text-xs"
+                          />
+                        </TableCell>
+                        {/* 倍率显示区域（自动计算，也可手动修改） */}
+                        <TableCell className="border-l bg-green-50/30 px-0.5 dark:bg-green-950/20">
+                          <Input
+                            type="text"
+                            placeholder="自动"
                             value={
                               unsetEditData[model.model_name]?.model_ratio || ''
                             }
@@ -1026,13 +1352,13 @@ export default function PricingPage() {
                                 e.target.value
                               )
                             }
-                            className="h-7 px-1.5 text-center text-xs"
+                            className="h-7 bg-muted/30 px-1 text-center text-xs"
                           />
                         </TableCell>
-                        <TableCell className="px-1">
+                        <TableCell className="bg-green-50/30 px-0.5 dark:bg-green-950/20">
                           <Input
                             type="text"
-                            placeholder="1.0"
+                            placeholder="自动"
                             value={
                               unsetEditData[model.model_name]
                                 ?.completion_ratio || ''
@@ -1044,13 +1370,13 @@ export default function PricingPage() {
                                 e.target.value
                               )
                             }
-                            className="h-7 px-1.5 text-center text-xs"
+                            className="h-7 bg-muted/30 px-1 text-center text-xs"
                           />
                         </TableCell>
-                        <TableCell className="px-1">
+                        <TableCell className="bg-green-50/30 px-0.5 dark:bg-green-950/20">
                           <Input
                             type="text"
-                            placeholder="倍率"
+                            placeholder="自动"
                             value={
                               unsetEditData[model.model_name]
                                 ?.image_input_ratio || ''
@@ -1062,13 +1388,13 @@ export default function PricingPage() {
                                 e.target.value
                               )
                             }
-                            className="h-7 px-1.5 text-center text-xs"
+                            className="h-7 bg-muted/30 px-1 text-center text-xs"
                           />
                         </TableCell>
-                        <TableCell className="px-1">
+                        <TableCell className="bg-green-50/30 px-0.5 dark:bg-green-950/20">
                           <Input
                             type="text"
-                            placeholder="倍率"
+                            placeholder="自动"
                             value={
                               unsetEditData[model.model_name]
                                 ?.image_output_ratio || ''
@@ -1080,13 +1406,13 @@ export default function PricingPage() {
                                 e.target.value
                               )
                             }
-                            className="h-7 px-1.5 text-center text-xs"
+                            className="h-7 bg-muted/30 px-1 text-center text-xs"
                           />
                         </TableCell>
-                        <TableCell className="px-1">
+                        <TableCell className="bg-green-50/30 px-0.5 dark:bg-green-950/20">
                           <Input
                             type="text"
-                            placeholder="倍率"
+                            placeholder="自动"
                             value={
                               unsetEditData[model.model_name]
                                 ?.audio_input_ratio || ''
@@ -1098,13 +1424,13 @@ export default function PricingPage() {
                                 e.target.value
                               )
                             }
-                            className="h-7 px-1.5 text-center text-xs"
+                            className="h-7 bg-muted/30 px-1 text-center text-xs"
                           />
                         </TableCell>
-                        <TableCell className="px-1">
+                        <TableCell className="bg-green-50/30 px-0.5 dark:bg-green-950/20">
                           <Input
                             type="text"
-                            placeholder="倍率"
+                            placeholder="自动"
                             value={
                               unsetEditData[model.model_name]
                                 ?.audio_output_ratio || ''
@@ -1116,7 +1442,7 @@ export default function PricingPage() {
                                 e.target.value
                               )
                             }
-                            className="h-7 px-1.5 text-center text-xs"
+                            className="h-7 bg-muted/30 px-1 text-center text-xs"
                           />
                         </TableCell>
                       </TableRow>
