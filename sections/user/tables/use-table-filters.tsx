@@ -24,7 +24,7 @@ export function useTableFilters() {
 
   const [page, setPage] = useQueryState(
     'page',
-    searchParams.page.withDefault(1)
+    searchParams.page.withOptions({ shallow: false }).withDefault(1)
   );
 
   const resetFilters = useCallback(() => {
