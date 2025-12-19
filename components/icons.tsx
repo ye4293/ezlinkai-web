@@ -35,7 +35,8 @@ import {
   KeyRound,
   Antenna,
   SquarePlay,
-  Images
+  Images,
+  BarChart3
 } from 'lucide-react';
 
 export type Icon = LucideIcon;
@@ -111,5 +112,6 @@ export const Icons = {
   video: SquarePlay,
   images: Images,
   setting: Settings,
-  file: File
+  file: File,
+  chart: BarChart3
 };

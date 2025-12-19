@@ -229,7 +229,7 @@ export const navItems: NavItem[] = [
         roles: [100]
       },
       {
-        title: '价格设置',
+        title: '分组与模型定价设置',
         href: '/dashboard/setting/pricing',
         icon: 'billing',
         label: 'pricing-setting',

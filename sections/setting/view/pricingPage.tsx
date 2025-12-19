@@ -1,25 +1,45 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import PageContainer from '@/components/layout/page-container';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card';
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Save } from 'lucide-react';
+import {
+  Save,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  Edit2,
+  Check,
+  X,
+  RefreshCcw
+} from 'lucide-react';
 
 const breadcrumbItems = [
   { title: 'Dashboard', link: '/dashboard' },
   { title: '系统设置', link: '/dashboard/setting' },
-  { title: '价格设置', link: '/dashboard/setting/pricing' }
+  { title: '模型定价设置', link: '/dashboard/setting/pricing' }
 ];
 
 interface Option {
@@ -27,158 +47,89 @@ interface Option {
   value: any;
 }
 
+interface ModelPriceInfo {
+  model_name: string;
+  model_ratio: number;
+  completion_ratio: number;
+  fixed_price: number;
+  input_price: number;
+  output_price: number;
+  price_type: string;
+  has_ratio: boolean;
+}
+
+interface EditingRow {
+  model_name: string;
+  model_ratio: string;
+  completion_ratio: string;
+  fixed_price: string;
+}
+
+// 未设置倍率模型的编辑数据
+interface UnsetModelEditData {
+  input_price: string;
+  model_ratio: string;
+  output_price: string;
+  completion_ratio: string;
+  image_input_ratio: string;
+  image_output_ratio: string;
+  audio_input_ratio: string;
+  audio_output_ratio: string;
+}
+
 export default function PricingPage() {
+  // ==================== 模型倍率设置状态 ====================
   const [perCallPricing, setPerCallPricing] = useState('');
-  const [inputVolumePrice, setInputVolumePrice] = useState('');
-  const [outputVolumePrice, setOutputVolumePrice] = useState('');
+  const [modelRatio, setModelRatio] = useState('');
+  const [completionRatio, setCompletionRatio] = useState('');
   const [audioInputRatio, setAudioInputRatio] = useState('');
   const [audioOutputRatio, setAudioOutputRatio] = useState('');
   const [imageInputRatio, setImageInputRatio] = useState('');
   const [imageOutputRatio, setImageOutputRatio] = useState('');
+
+  // ==================== 可视化倍率设置状态 ====================
+  const [configuredModels, setConfiguredModels] = useState<ModelPriceInfo[]>(
+    []
+  );
+  const [configuredTotal, setConfiguredTotal] = useState(0);
+  const [configuredPage, setConfiguredPage] = useState(1);
+  const [configuredPageSize, setConfiguredPageSize] = useState(20);
+  const [configuredKeyword, setConfiguredKeyword] = useState('');
+
+  // ==================== 未设置倍率模型状态 ====================
+  const [unsetModels, setUnsetModels] = useState<ModelPriceInfo[]>([]);
+  const [unsetTotal, setUnsetTotal] = useState(0);
+  const [unsetPage, setUnsetPage] = useState(1);
+  const [unsetPageSize, setUnsetPageSize] = useState(10);
+  const [unsetKeyword, setUnsetKeyword] = useState('');
+  // 未设置模型的编辑数据
+  const [unsetEditData, setUnsetEditData] = useState<
+    Record<string, UnsetModelEditData>
+  >({});
+
+  // ==================== 加载状态 ====================
   const [isLoading, setIsLoading] = useState(false);
   const [isDataLoading, setIsDataLoading] = useState(true);
+  const [isConfiguredLoading, setIsConfiguredLoading] = useState(true);
+  const [isUnsetLoading, setIsUnsetLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // 默认的定价配置示例
-  const defaultPerCallPricing = `{
-  "doubao-seedream-4-0-250828": 0.3
-}`;
+  // ==================== 编辑状态 ====================
+  const [editingRow, setEditingRow] = useState<EditingRow | null>(null);
+  const [selectedModels, setSelectedModels] = useState<Set<string>>(new Set());
 
-  const defaultInputVolumePrice = `{
-  "gpt-image-1": 0.0025,
-  "gemini-2.5-flash-image-preview": 0.15
-}`;
+  // ==================== 默认值 ====================
+  const defaultPerCallPricing = `{}`;
+  const defaultModelRatio = `{}`;
+  const defaultCompletionRatio = `{}`;
 
-  const defaultOutputVolumePrice = `{
-  "gpt-image-1": 8,
-  "gemini-2.5-flash-image-preview": 100
-}`;
-
-  const defaultAudioInputRatio = `{
-
-}`;
-
-  const defaultAudioOutputRatio = `{
-
-}`;
-
-  const defaultImageInputRatio = `{
-
-}`;
-
-  const defaultImageOutputRatio = `{
-
-}`;
-
-  // 获取价格设置数据
-  const fetchPricingOptions = async () => {
-    try {
-      setIsDataLoading(true);
-      const response = await fetch('/api/option');
-      if (!response.ok) {
-        throw new Error('Failed to fetch pricing options');
-      }
-      const result = await response.json();
-      if (result.success && result.data) {
-        const options = result.data;
-
-        const perCallOption = options.find(
-          (o: Option) => o.key === 'PerCallPricing'
-        );
-        if (perCallOption) {
-          setPerCallPricing(
-            formatJSON(perCallOption.value) || defaultPerCallPricing
-          );
-        } else {
-          setPerCallPricing(defaultPerCallPricing);
-        }
-
-        const inputVolumeOption = options.find(
-          (o: Option) => o.key === 'ModelRatio'
-        );
-        if (inputVolumeOption) {
-          setInputVolumePrice(
-            formatJSON(inputVolumeOption.value) || defaultInputVolumePrice
-          );
-        } else {
-          setInputVolumePrice(defaultInputVolumePrice);
-        }
-
-        const outputVolumeOption = options.find(
-          (o: Option) => o.key === 'CompletionRatio'
-        );
-        if (outputVolumeOption) {
-          setOutputVolumePrice(
-            formatJSON(outputVolumeOption.value) || defaultOutputVolumePrice
-          );
-        } else {
-          setOutputVolumePrice(defaultOutputVolumePrice);
-        }
-
-        const audioInputOption = options.find(
-          (o: Option) => o.key === 'AudioInputRatio'
-        );
-        if (audioInputOption) {
-          setAudioInputRatio(
-            formatJSON(audioInputOption.value) || defaultAudioInputRatio
-          );
-        } else {
-          setAudioInputRatio(defaultAudioInputRatio);
-        }
-
-        const audioOutputOption = options.find(
-          (o: Option) => o.key === 'AudioOutputRatio'
-        );
-        if (audioOutputOption) {
-          setAudioOutputRatio(
-            formatJSON(audioOutputOption.value) || defaultAudioOutputRatio
-          );
-        } else {
-          setAudioOutputRatio(defaultAudioOutputRatio);
-        }
-
-        const imageInputOption = options.find(
-          (o: Option) => o.key === 'ImageInputRatio'
-        );
-        if (imageInputOption) {
-          setImageInputRatio(
-            formatJSON(imageInputOption.value) || defaultImageInputRatio
-          );
-        } else {
-          setImageInputRatio(defaultImageInputRatio);
-        }
-
-        const imageOutputOption = options.find(
-          (o: Option) => o.key === 'ImageOutputRatio'
-        );
-        if (imageOutputOption) {
-          setImageOutputRatio(
-            formatJSON(imageOutputOption.value) || defaultImageOutputRatio
-          );
-        } else {
-          setImageOutputRatio(defaultImageOutputRatio);
-        }
-      }
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to load pricing settings'
-      );
-    } finally {
-      setIsDataLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchPricingOptions();
-  }, []);
-
-  // 格式化JSON字符串为美观的多行格式
+  // 格式化JSON字符串
   const formatJSON = (jsonString: string): string => {
     try {
       const parsed = JSON.parse(jsonString);
       return JSON.stringify(parsed, null, 2);
     } catch (e) {
-      return jsonString; // 如果解析失败，返回原字符串
+      return jsonString;
     }
   };
 
@@ -192,141 +143,433 @@ export default function PricingPage() {
     }
   };
 
-  const handleSave = async () => {
+  // ==================== 获取模型倍率设置数据 ====================
+  const fetchPricingOptions = async () => {
+    try {
+      setIsDataLoading(true);
+      const response = await fetch('/api/option');
+      if (!response.ok) throw new Error('Failed to fetch pricing options');
+      const result = await response.json();
+      if (result.success && result.data) {
+        const options = result.data;
+
+        const perCallOption = options.find(
+          (o: Option) => o.key === 'PerCallPricing'
+        );
+        setPerCallPricing(
+          formatJSON(perCallOption?.value) || defaultPerCallPricing
+        );
+
+        const modelRatioOption = options.find(
+          (o: Option) => o.key === 'ModelRatio'
+        );
+        setModelRatio(formatJSON(modelRatioOption?.value) || defaultModelRatio);
+
+        const completionOption = options.find(
+          (o: Option) => o.key === 'CompletionRatio'
+        );
+        setCompletionRatio(
+          formatJSON(completionOption?.value) || defaultCompletionRatio
+        );
+
+        const audioInputOption = options.find(
+          (o: Option) => o.key === 'AudioInputRatio'
+        );
+        setAudioInputRatio(formatJSON(audioInputOption?.value) || '{}');
+
+        const audioOutputOption = options.find(
+          (o: Option) => o.key === 'AudioOutputRatio'
+        );
+        setAudioOutputRatio(formatJSON(audioOutputOption?.value) || '{}');
+
+        const imageInputOption = options.find(
+          (o: Option) => o.key === 'ImageInputRatio'
+        );
+        setImageInputRatio(formatJSON(imageInputOption?.value) || '{}');
+
+        const imageOutputOption = options.find(
+          (o: Option) => o.key === 'ImageOutputRatio'
+        );
+        setImageOutputRatio(formatJSON(imageOutputOption?.value) || '{}');
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Failed to load pricing settings'
+      );
+    } finally {
+      setIsDataLoading(false);
+    }
+  };
+
+  // ==================== 获取已配置倍率的模型 ====================
+  const fetchConfiguredModels = useCallback(async () => {
+    try {
+      setIsConfiguredLoading(true);
+      const params = new URLSearchParams({
+        page: configuredPage.toString(),
+        pagesize: configuredPageSize.toString(),
+        keyword: configuredKeyword
+      });
+      const response = await fetch(`/api/pricing/models?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch models');
+      const result = await response.json();
+      if (result.success) {
+        setConfiguredModels(result.data.list || []);
+        setConfiguredTotal(result.data.total || 0);
+      }
+    } catch (error) {
+      console.error('Fetch configured models error:', error);
+    } finally {
+      setIsConfiguredLoading(false);
+    }
+  }, [configuredPage, configuredPageSize, configuredKeyword]);
+
+  // ==================== 获取未配置倍率的模型 ====================
+  const fetchUnsetModels = useCallback(async () => {
+    try {
+      setIsUnsetLoading(true);
+      const params = new URLSearchParams({
+        page: unsetPage.toString(),
+        pagesize: unsetPageSize.toString(),
+        keyword: unsetKeyword
+      });
+      const response = await fetch(`/api/pricing/unset?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch unset models');
+      const result = await response.json();
+      if (result.success) {
+        setUnsetModels(result.data.list || []);
+        setUnsetTotal(result.data.total || 0);
+        // 初始化编辑数据
+        const editData: Record<string, UnsetModelEditData> = {};
+        (result.data.list || []).forEach((m: ModelPriceInfo) => {
+          editData[m.model_name] = {
+            input_price: '',
+            model_ratio: '',
+            output_price: '',
+            completion_ratio: '',
+            image_input_ratio: '',
+            image_output_ratio: '',
+            audio_input_ratio: '',
+            audio_output_ratio: ''
+          };
+        });
+        setUnsetEditData(editData);
+      }
+    } catch (error) {
+      console.error('Fetch unset models error:', error);
+    } finally {
+      setIsUnsetLoading(false);
+    }
+  }, [unsetPage, unsetPageSize, unsetKeyword]);
+
+  useEffect(() => {
+    fetchPricingOptions();
+  }, []);
+
+  useEffect(() => {
+    fetchConfiguredModels();
+  }, [fetchConfiguredModels]);
+
+  useEffect(() => {
+    fetchUnsetModels();
+  }, [fetchUnsetModels]);
+
+  // ==================== 保存模型倍率设置 ====================
+  const handleSaveRatioSettings = async () => {
     setIsLoading(true);
     try {
       // 验证JSON格式
       if (
-        !validateJSON(perCallPricing, '按次计费价格') ||
-        !validateJSON(inputVolumePrice, '模型基础价格倍率') ||
-        !validateJSON(outputVolumePrice, '输出token价格倍率') ||
-        !validateJSON(audioInputRatio, '音频输入token倍率') ||
-        !validateJSON(audioOutputRatio, '音频输出token倍率') ||
-        !validateJSON(imageInputRatio, '图片输入token倍率') ||
-        !validateJSON(imageOutputRatio, '图片输出token倍率')
+        !validateJSON(perCallPricing, '模型固定价格') ||
+        !validateJSON(modelRatio, '模型倍率') ||
+        !validateJSON(completionRatio, '模型补全倍率') ||
+        !validateJSON(audioInputRatio, '音频输入倍率') ||
+        !validateJSON(audioOutputRatio, '音频输出倍率') ||
+        !validateJSON(imageInputRatio, '图片输入倍率') ||
+        !validateJSON(imageOutputRatio, '图片输出倍率')
       ) {
+        setIsLoading(false);
         return;
       }
 
-      // 保存按次计费价格
-      const perCallResponse = await fetch('/api/option', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          key: 'PerCallPricing',
-          value: perCallPricing
-        })
-      });
+      const saveOption = async (key: string, value: string) => {
+        const response = await fetch('/api/option', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key, value })
+        });
+        if (!response.ok) throw new Error(`Failed to save ${key}`);
+      };
 
-      if (!perCallResponse.ok) {
-        throw new Error('Failed to save per call pricing');
-      }
+      await saveOption('PerCallPricing', perCallPricing);
+      await saveOption('ModelRatio', modelRatio);
+      await saveOption('CompletionRatio', completionRatio);
+      await saveOption('AudioInputRatio', audioInputRatio);
+      await saveOption('AudioOutputRatio', audioOutputRatio);
+      await saveOption('ImageInputRatio', imageInputRatio);
+      await saveOption('ImageOutputRatio', imageOutputRatio);
 
-      // 保存模型基础价格倍率
-      const inputVolumeResponse = await fetch('/api/option', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          key: 'ModelRatio',
-          value: inputVolumePrice
-        })
-      });
-
-      if (!inputVolumeResponse.ok) {
-        throw new Error('Failed to save model ratio pricing');
-      }
-
-      // 保存输出token价格倍率
-      const outputVolumeResponse = await fetch('/api/option', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          key: 'CompletionRatio',
-          value: outputVolumePrice
-        })
-      });
-
-      if (!outputVolumeResponse.ok) {
-        throw new Error('Failed to save completion ratio pricing');
-      }
-
-      // 保存音频输入token倍率
-      const audioInputResponse = await fetch('/api/option', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          key: 'AudioInputRatio',
-          value: audioInputRatio
-        })
-      });
-
-      if (!audioInputResponse.ok) {
-        throw new Error('Failed to save audio input ratio');
-      }
-
-      // 保存音频输出token倍率
-      const audioOutputResponse = await fetch('/api/option', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          key: 'AudioOutputRatio',
-          value: audioOutputRatio
-        })
-      });
-
-      if (!audioOutputResponse.ok) {
-        throw new Error('Failed to save audio output ratio');
-      }
-
-      // 保存图片输入token倍率
-      const imageInputResponse = await fetch('/api/option', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          key: 'ImageInputRatio',
-          value: imageInputRatio
-        })
-      });
-
-      if (!imageInputResponse.ok) {
-        throw new Error('Failed to save image input ratio');
-      }
-
-      // 保存图片输出token倍率
-      const imageOutputResponse = await fetch('/api/option', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          key: 'ImageOutputRatio',
-          value: imageOutputRatio
-        })
-      });
-
-      if (!imageOutputResponse.ok) {
-        throw new Error('Failed to save image output ratio');
-      }
-
-      toast.success('价格设置保存成功！');
+      toast.success('模型倍率设置保存成功！');
+      fetchConfiguredModels();
+      fetchUnsetModels();
     } catch (error) {
       console.error('Save error:', error);
       toast.error('保存失败，请重试');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // ==================== 可视化编辑相关 ====================
+  const startEditing = (model: ModelPriceInfo) => {
+    setEditingRow({
+      model_name: model.model_name,
+      model_ratio: model.model_ratio.toString(),
+      completion_ratio: model.completion_ratio.toString(),
+      fixed_price: model.fixed_price.toString()
+    });
+  };
+
+  const cancelEditing = () => {
+    setEditingRow(null);
+  };
+
+  const saveEditing = async () => {
+    if (!editingRow) return;
+
+    try {
+      setIsLoading(true);
+      const payload: any = { model_name: editingRow.model_name };
+
+      if (editingRow.model_ratio) {
+        payload.model_ratio = parseFloat(editingRow.model_ratio);
+      }
+      if (editingRow.completion_ratio) {
+        payload.completion_ratio = parseFloat(editingRow.completion_ratio);
+      }
+      if (editingRow.fixed_price && parseFloat(editingRow.fixed_price) > 0) {
+        payload.fixed_price = parseFloat(editingRow.fixed_price);
+      }
+
+      const response = await fetch('/api/pricing/model', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        toast.success('保存成功');
+        setEditingRow(null);
+        fetchConfiguredModels();
+        fetchUnsetModels();
+        fetchPricingOptions();
+      } else {
+        toast.error(result.message || '保存失败');
+      }
+    } catch (error) {
+      console.error('Save error:', error);
+      toast.error('保存失败');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 更新未设置模型的编辑数据
+  const updateUnsetEditData = (
+    modelName: string,
+    field: keyof UnsetModelEditData,
+    value: string
+  ) => {
+    setUnsetEditData((prev) => ({
+      ...prev,
+      [modelName]: {
+        ...prev[modelName],
+        [field]: value
+      }
+    }));
+  };
+
+  // 保存所有已填写数据的未配置模型
+  const saveAllUnsetModels = async () => {
+    // 找出所有已填写模型倍率的模型
+    const modelsToSave = Object.entries(unsetEditData)
+      .filter(([_, data]) => data.model_ratio || data.completion_ratio)
+      .map(([modelName, editData]) => {
+        const modelData: any = {
+          model_name: modelName,
+          model_ratio: editData.model_ratio
+            ? parseFloat(editData.model_ratio)
+            : 1,
+          completion_ratio: editData.completion_ratio
+            ? parseFloat(editData.completion_ratio)
+            : 1
+        };
+
+        if (editData.image_input_ratio) {
+          modelData.image_input_ratio = parseFloat(editData.image_input_ratio);
+        }
+        if (editData.image_output_ratio) {
+          modelData.image_output_ratio = parseFloat(
+            editData.image_output_ratio
+          );
+        }
+        if (editData.audio_input_ratio) {
+          modelData.audio_input_ratio = parseFloat(editData.audio_input_ratio);
+        }
+        if (editData.audio_output_ratio) {
+          modelData.audio_output_ratio = parseFloat(
+            editData.audio_output_ratio
+          );
+        }
+
+        return modelData;
+      });
+
+    if (modelsToSave.length === 0) {
+      toast.error('请至少填写一个模型的倍率');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/pricing/batch', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ models: modelsToSave })
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        toast.success(`成功配置 ${modelsToSave.length} 个模型`);
+        setSelectedModels(new Set());
+        fetchConfiguredModels();
+        fetchUnsetModels();
+        fetchPricingOptions();
+      } else {
+        toast.error(result.message || '保存失败');
+      }
+    } catch (error) {
+      console.error('Save error:', error);
+      toast.error('保存失败');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 批量设置选中模型的默认倍率（1.0）
+  const batchSetDefaultRatio = async () => {
+    if (selectedModels.size === 0) {
+      toast.error('请先选择要配置的模型');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const models = Array.from(selectedModels).map((modelName) => ({
+        model_name: modelName,
+        model_ratio: 1,
+        completion_ratio: 1
+      }));
+
+      const response = await fetch('/api/pricing/batch', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ models })
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        toast.success(`成功配置 ${selectedModels.size} 个模型为默认倍率`);
+        setSelectedModels(new Set());
+        fetchConfiguredModels();
+        fetchUnsetModels();
+        fetchPricingOptions();
+      } else {
+        toast.error(result.message || '批量保存失败');
+      }
+    } catch (error) {
+      console.error('Batch save error:', error);
+      toast.error('批量保存失败');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 计算已填写数据的模型数量
+  const filledModelsCount = Object.values(unsetEditData).filter(
+    (data) => data.model_ratio || data.completion_ratio
+  ).length;
+
+  // ==================== 分页组件 ====================
+  const renderPagination = (
+    page: number,
+    pageSize: number,
+    total: number,
+    setPage: (p: number) => void,
+    setPageSize: (s: number) => void
+  ) => {
+    const totalPages = Math.ceil(total / pageSize) || 1;
+    return (
+      <div className="flex items-center justify-between px-2 py-4">
+        <div className="text-sm text-muted-foreground">
+          显示第 {Math.min((page - 1) * pageSize + 1, total)} 条-第{' '}
+          {Math.min(page * pageSize, total)} 条，共 {total} 条
+        </div>
+        <div className="flex items-center space-x-2">
+          <span className="text-sm text-muted-foreground">每页条数:</span>
+          <Select
+            value={pageSize.toString()}
+            onValueChange={(v) => {
+              setPageSize(parseInt(v));
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="h-8 w-[70px]">
+              <SelectValue placeholder={pageSize} />
+            </SelectTrigger>
+            <SelectContent side="top">
+              {[10, 20, 50, 100].map((size) => (
+                <SelectItem key={size} value={size.toString()}>
+                  {size}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <div className="flex items-center space-x-1">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setPage(Math.max(1, page - 1))}
+              disabled={page <= 1}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="px-2 text-sm">
+              {page} / {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setPage(Math.min(totalPages, page + 1))}
+              disabled={page >= totalPages}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const formatPrice = (price: number) => {
+    if (price === 0) return '-';
+    if (price < 0.01) return price.toFixed(6);
+    if (price < 1) return price.toFixed(4);
+    return price.toFixed(2);
   };
 
   if (error)
@@ -339,194 +582,559 @@ export default function PricingPage() {
         <Breadcrumbs items={breadcrumbItems} />
 
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold tracking-tight">价格设置</h2>
-          <div className="flex items-center space-x-2">
-            <Button onClick={handleSave} disabled={isLoading}>
-              <Save className="mr-2 h-4 w-4" />
-              {isLoading ? '保存中...' : '保存设置'}
-            </Button>
-          </div>
+          <h2 className="text-2xl font-bold tracking-tight">模型定价设置</h2>
         </div>
         <Separator />
 
-        <div className="grid gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>按次计费价格</CardTitle>
-              <CardDescription>
-                一次调用消耗多少元，优先级大于模型倍率
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid w-full items-center gap-1.5">
-                <Label htmlFor="per-call-pricing">按次计费价格配置</Label>
-                <Textarea
-                  id="per-call-pricing"
-                  value={perCallPricing}
-                  onChange={(e) => setPerCallPricing(e.target.value)}
-                  placeholder="请输入JSON格式的按次计费价格配置"
-                  className="h-60 font-mono text-sm"
-                />
-                <p className="text-sm text-muted-foreground">
-                  JSON格式，key为模型名称，value为每次调用的价格（元）
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+        <Tabs defaultValue="ratio-settings" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-3 lg:inline-flex lg:w-auto">
+            <TabsTrigger value="ratio-settings">模型倍率设置</TabsTrigger>
+            <TabsTrigger value="visual-pricing">可视化倍率设置</TabsTrigger>
+            <TabsTrigger value="unset-models">未设置倍率模型</TabsTrigger>
+          </TabsList>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>模型基础价格倍率</CardTitle>
-              <CardDescription>
-                设置各模型的基础价格倍率，用于token计费的基础价格
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid w-full items-center gap-1.5">
-                <Label htmlFor="input-volume-pricing">
-                  模型基础价格倍率配置
-                </Label>
-                <Textarea
-                  id="input-volume-pricing"
-                  value={inputVolumePrice}
-                  onChange={(e) => setInputVolumePrice(e.target.value)}
-                  placeholder="请输入JSON格式的模型基础价格倍率配置"
-                  className="h-60 font-mono text-sm"
-                />
-                <p className="text-sm text-muted-foreground">
-                  JSON格式，key为模型名称，value为基础价格倍率（如：0.0025表示2.5/1M
-                  tokens）
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          {/* ==================== 模型倍率设置 Tab ==================== */}
+          <TabsContent value="ratio-settings" className="space-y-6">
+            <div className="flex justify-end">
+              <Button onClick={handleSaveRatioSettings} disabled={isLoading}>
+                <Save className="mr-2 h-4 w-4" />
+                {isLoading ? '保存中...' : '保存设置'}
+              </Button>
+            </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>输出token价格倍率</CardTitle>
-              <CardDescription>
-                设置输出token相对于输入token的价格倍率
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid w-full items-center gap-1.5">
-                <Label htmlFor="output-volume-pricing">
-                  输出token价格倍率配置
-                </Label>
-                <Textarea
-                  id="output-volume-pricing"
-                  value={outputVolumePrice}
-                  onChange={(e) => setOutputVolumePrice(e.target.value)}
-                  placeholder="请输入JSON格式的输出token价格倍率配置"
-                  className="h-60 font-mono text-sm"
-                />
-                <p className="text-sm text-muted-foreground">
-                  JSON格式，key为模型名称，value为输出token相对输入token的倍率（如：8表示输出token是输入token价格的8倍）
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+            {/* 模型固定价格 */}
+            <div className="space-y-2">
+              <Label className="text-base font-semibold">模型固定价格</Label>
+              <Textarea
+                value={perCallPricing}
+                onChange={(e) => setPerCallPricing(e.target.value)}
+                placeholder="{}"
+                className="h-32 font-mono text-sm"
+              />
+              <p className="text-sm text-muted-foreground">
+                一次调用消耗多少刀，优先级大于模型倍率
+              </p>
+            </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>音频输入token倍率</CardTitle>
-              <CardDescription>
-                设置音频输入token相对于文本输入token的价格倍率
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid w-full items-center gap-1.5">
-                <Label htmlFor="audio-input-ratio">音频输入token倍率配置</Label>
-                <Textarea
-                  id="audio-input-ratio"
-                  value={audioInputRatio}
-                  onChange={(e) => setAudioInputRatio(e.target.value)}
-                  placeholder="请输入JSON格式的音频输入token倍率配置"
-                  className="h-60 font-mono text-sm"
-                />
-                <p className="text-sm text-muted-foreground">
-                  JSON格式，key为模型名称，value为音频输入token相对文本输入token的倍率（如：100表示音频输入token是文本输入token价格的100倍）
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+            {/* 模型倍率 */}
+            <div className="space-y-2">
+              <Label className="text-base font-semibold">模型倍率</Label>
+              <Textarea
+                value={modelRatio}
+                onChange={(e) => setModelRatio(e.target.value)}
+                placeholder="{}"
+                className="h-60 font-mono text-sm"
+              />
+            </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>音频输出token倍率</CardTitle>
-              <CardDescription>
-                设置音频输出token相对于文本输出token的价格倍率
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid w-full items-center gap-1.5">
-                <Label htmlFor="audio-output-ratio">
-                  音频输出token倍率配置
-                </Label>
-                <Textarea
-                  id="audio-output-ratio"
-                  value={audioOutputRatio}
-                  onChange={(e) => setAudioOutputRatio(e.target.value)}
-                  placeholder="请输入JSON格式的音频输出token倍率配置"
-                  className="h-60 font-mono text-sm"
-                />
-                <p className="text-sm text-muted-foreground">
-                  JSON格式，key为模型名称，value为音频输出token相对文本输出token的倍率（如：200表示音频输出token是文本输出token价格的200倍）
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+            {/* 提示缓存倍率 - 暂时留空 */}
+            <div className="space-y-2">
+              <Label className="text-base font-semibold">提示缓存倍率</Label>
+              <Textarea
+                value="{}"
+                disabled
+                placeholder="{}"
+                className="h-32 bg-muted font-mono text-sm"
+              />
+            </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>图片输入token倍率</CardTitle>
-              <CardDescription>
-                设置图片输入token相对于文本输入token的价格倍率
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid w-full items-center gap-1.5">
-                <Label htmlFor="image-input-ratio">图片输入token倍率配置</Label>
-                <Textarea
-                  id="image-input-ratio"
-                  value={imageInputRatio}
-                  onChange={(e) => setImageInputRatio(e.target.value)}
-                  placeholder="请输入JSON格式的图片输入token倍率配置"
-                  className="h-60 font-mono text-sm"
-                />
-                <p className="text-sm text-muted-foreground">
-                  JSON格式，key为模型名称，value为图片输入token相对文本输入token的倍率（如：50表示图片输入token是文本输入token价格的50倍）
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+            {/* 模型补全倍率 */}
+            <div className="space-y-2">
+              <Label className="text-base font-semibold">
+                模型补全倍率（仅对自定义模型有效）
+              </Label>
+              <Textarea
+                value={completionRatio}
+                onChange={(e) => setCompletionRatio(e.target.value)}
+                placeholder="{}"
+                className="h-60 font-mono text-sm"
+              />
+              <p className="text-sm text-muted-foreground">
+                仅对自定义模型有效
+              </p>
+            </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>图片输出token倍率</CardTitle>
-              <CardDescription>
-                设置图片输出token相对于文本输出token的价格倍率
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid w-full items-center gap-1.5">
-                <Label htmlFor="image-output-ratio">
-                  图片输出token倍率配置
-                </Label>
-                <Textarea
-                  id="image-output-ratio"
-                  value={imageOutputRatio}
-                  onChange={(e) => setImageOutputRatio(e.target.value)}
-                  placeholder="请输入JSON格式的图片输出token倍率配置"
-                  className="h-60 font-mono text-sm"
+            {/* 图片输入倍率 */}
+            <div className="space-y-2">
+              <Label className="text-base font-semibold">
+                图片输入倍率（仅部分模型支持该计费）
+              </Label>
+              <Textarea
+                value={imageInputRatio}
+                onChange={(e) => setImageInputRatio(e.target.value)}
+                placeholder="{}"
+                className="h-32 font-mono text-sm"
+              />
+            </div>
+
+            {/* 图片输出倍率 */}
+            <div className="space-y-2">
+              <Label className="text-base font-semibold">
+                图片输出倍率（仅部分模型支持该计费）
+              </Label>
+              <Textarea
+                value={imageOutputRatio}
+                onChange={(e) => setImageOutputRatio(e.target.value)}
+                placeholder="{}"
+                className="h-32 font-mono text-sm"
+              />
+            </div>
+
+            {/* 音频输入倍率 */}
+            <div className="space-y-2">
+              <Label className="text-base font-semibold">
+                音频输入倍率（仅部分模型支持该计费）
+              </Label>
+              <Textarea
+                value={audioInputRatio}
+                onChange={(e) => setAudioInputRatio(e.target.value)}
+                placeholder="{}"
+                className="h-32 font-mono text-sm"
+              />
+            </div>
+
+            {/* 音频输出倍率 */}
+            <div className="space-y-2">
+              <Label className="text-base font-semibold">
+                音频输出倍率（仅部分模型支持该计费）
+              </Label>
+              <Textarea
+                value={audioOutputRatio}
+                onChange={(e) => setAudioOutputRatio(e.target.value)}
+                placeholder="{}"
+                className="h-32 font-mono text-sm"
+              />
+            </div>
+          </TabsContent>
+
+          {/* ==================== 可视化倍率设置 Tab ==================== */}
+          <TabsContent value="visual-pricing" className="space-y-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="relative max-w-sm flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="搜索模型名称..."
+                  value={configuredKeyword}
+                  onChange={(e) => {
+                    setConfiguredKeyword(e.target.value);
+                    setConfiguredPage(1);
+                  }}
+                  className="pl-10"
                 />
-                <p className="text-sm text-muted-foreground">
-                  JSON格式，key为模型名称，value为图片输出token相对文本输出token的倍率（如：100表示图片输出token是文本输出token价格的100倍）
-                </p>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  fetchConfiguredModels();
+                  fetchPricingOptions();
+                }}
+                disabled={isLoading}
+              >
+                <RefreshCcw className="mr-2 h-4 w-4" />
+                刷新
+              </Button>
+            </div>
+
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[280px]">模型名称</TableHead>
+                    <TableHead className="w-[100px]">模型倍率</TableHead>
+                    <TableHead className="w-[100px]">补全倍率</TableHead>
+                    <TableHead className="w-[120px]">按次计费(元)</TableHead>
+                    <TableHead className="w-[130px]">输入价格($/1M)</TableHead>
+                    <TableHead className="w-[130px]">输出价格($/1M)</TableHead>
+                    <TableHead className="w-[100px]">计费类型</TableHead>
+                    <TableHead className="w-[80px]">操作</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isConfiguredLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="h-24 text-center">
+                        加载中...
+                      </TableCell>
+                    </TableRow>
+                  ) : configuredModels.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="h-24 text-center">
+                        暂无数据
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    configuredModels.map((model) => (
+                      <TableRow key={model.model_name}>
+                        <TableCell className="font-mono text-xs">
+                          {model.model_name}
+                        </TableCell>
+                        <TableCell>
+                          {editingRow?.model_name === model.model_name ? (
+                            <Input
+                              type="number"
+                              step="0.001"
+                              value={editingRow.model_ratio}
+                              onChange={(e) =>
+                                setEditingRow({
+                                  ...editingRow,
+                                  model_ratio: e.target.value
+                                })
+                              }
+                              className="h-8 w-20"
+                            />
+                          ) : (
+                            formatPrice(model.model_ratio)
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {editingRow?.model_name === model.model_name ? (
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={editingRow.completion_ratio}
+                              onChange={(e) =>
+                                setEditingRow({
+                                  ...editingRow,
+                                  completion_ratio: e.target.value
+                                })
+                              }
+                              className="h-8 w-20"
+                            />
+                          ) : (
+                            formatPrice(model.completion_ratio)
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {editingRow?.model_name === model.model_name ? (
+                            <Input
+                              type="number"
+                              step="0.001"
+                              value={editingRow.fixed_price}
+                              onChange={(e) =>
+                                setEditingRow({
+                                  ...editingRow,
+                                  fixed_price: e.target.value
+                                })
+                              }
+                              className="h-8 w-24"
+                            />
+                          ) : model.fixed_price > 0 ? (
+                            formatPrice(model.fixed_price)
+                          ) : (
+                            '-'
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {model.input_price > 0
+                            ? `$${formatPrice(model.input_price)}`
+                            : '-'}
+                        </TableCell>
+                        <TableCell>
+                          {model.output_price > 0
+                            ? `$${formatPrice(model.output_price)}`
+                            : '-'}
+                        </TableCell>
+                        <TableCell>
+                          <span
+                            className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                              model.price_type === 'fixed'
+                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                                : 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+                            }`}
+                          >
+                            {model.price_type === 'fixed'
+                              ? '按次计费'
+                              : '按量计费'}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          {editingRow?.model_name === model.model_name ? (
+                            <div className="flex items-center space-x-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={saveEditing}
+                                disabled={isLoading}
+                              >
+                                <Check className="h-4 w-4 text-green-600" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={cancelEditing}
+                              >
+                                <X className="h-4 w-4 text-red-600" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => startEditing(model)}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            {renderPagination(
+              configuredPage,
+              configuredPageSize,
+              configuredTotal,
+              setConfiguredPage,
+              setConfiguredPageSize
+            )}
+          </TabsContent>
+
+          {/* ==================== 未设置倍率模型 Tab ==================== */}
+          <TabsContent value="unset-models" className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              此页面仅显示未设置默认价格或倍率的模型。设置后将自动从列表中移除。
+            </p>
+
+            <div className="flex items-center justify-between gap-4">
+              <div className="relative max-w-sm flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="搜索模型名称..."
+                  value={unsetKeyword}
+                  onChange={(e) => {
+                    setUnsetKeyword(e.target.value);
+                    setUnsetPage(1);
+                  }}
+                  className="pl-10"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={batchSetDefaultRatio}
+                  disabled={isLoading || selectedModels.size === 0}
+                >
+                  批量设为1.0 ({selectedModels.size})
+                </Button>
+                <Button
+                  onClick={saveAllUnsetModels}
+                  disabled={isLoading || filledModelsCount === 0}
+                >
+                  <Save className="mr-2 h-4 w-4" />
+                  保存已填写 ({filledModelsCount})
+                </Button>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto rounded-md border">
+              <Table className="w-full min-w-[800px] table-fixed">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-10 px-2">
+                      <Checkbox
+                        checked={
+                          unsetModels.length > 0 &&
+                          unsetModels.every((m) =>
+                            selectedModels.has(m.model_name)
+                          )
+                        }
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedModels(
+                              new Set(unsetModels.map((m) => m.model_name))
+                            );
+                          } else {
+                            setSelectedModels(new Set());
+                          }
+                        }}
+                      />
+                    </TableHead>
+                    <TableHead className="w-[220px] px-2">模型名称</TableHead>
+                    <TableHead className="w-[85px] px-1 text-center text-xs">
+                      模型倍率
+                    </TableHead>
+                    <TableHead className="w-[85px] px-1 text-center text-xs">
+                      补全倍率
+                    </TableHead>
+                    <TableHead className="w-[85px] px-1 text-center text-xs">
+                      图片输入
+                    </TableHead>
+                    <TableHead className="w-[85px] px-1 text-center text-xs">
+                      图片输出
+                    </TableHead>
+                    <TableHead className="w-[85px] px-1 text-center text-xs">
+                      音频输入
+                    </TableHead>
+                    <TableHead className="w-[85px] px-1 text-center text-xs">
+                      音频输出
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isUnsetLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="h-24 text-center">
+                        加载中...
+                      </TableCell>
+                    </TableRow>
+                  ) : unsetModels.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="h-24 text-center">
+                        🎉 太棒了！所有模型都已配置倍率
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    unsetModels.map((model) => (
+                      <TableRow key={model.model_name}>
+                        <TableCell className="px-2">
+                          <Checkbox
+                            checked={selectedModels.has(model.model_name)}
+                            onCheckedChange={(checked) => {
+                              const newSet = new Set(selectedModels);
+                              if (checked) {
+                                newSet.add(model.model_name);
+                              } else {
+                                newSet.delete(model.model_name);
+                              }
+                              setSelectedModels(newSet);
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell
+                          className="truncate px-2 font-mono text-xs"
+                          title={model.model_name}
+                        >
+                          {model.model_name}
+                        </TableCell>
+                        <TableCell className="px-1">
+                          <Input
+                            type="text"
+                            placeholder="1.0"
+                            value={
+                              unsetEditData[model.model_name]?.model_ratio || ''
+                            }
+                            onChange={(e) =>
+                              updateUnsetEditData(
+                                model.model_name,
+                                'model_ratio',
+                                e.target.value
+                              )
+                            }
+                            className="h-7 px-1.5 text-center text-xs"
+                          />
+                        </TableCell>
+                        <TableCell className="px-1">
+                          <Input
+                            type="text"
+                            placeholder="1.0"
+                            value={
+                              unsetEditData[model.model_name]
+                                ?.completion_ratio || ''
+                            }
+                            onChange={(e) =>
+                              updateUnsetEditData(
+                                model.model_name,
+                                'completion_ratio',
+                                e.target.value
+                              )
+                            }
+                            className="h-7 px-1.5 text-center text-xs"
+                          />
+                        </TableCell>
+                        <TableCell className="px-1">
+                          <Input
+                            type="text"
+                            placeholder="倍率"
+                            value={
+                              unsetEditData[model.model_name]
+                                ?.image_input_ratio || ''
+                            }
+                            onChange={(e) =>
+                              updateUnsetEditData(
+                                model.model_name,
+                                'image_input_ratio',
+                                e.target.value
+                              )
+                            }
+                            className="h-7 px-1.5 text-center text-xs"
+                          />
+                        </TableCell>
+                        <TableCell className="px-1">
+                          <Input
+                            type="text"
+                            placeholder="倍率"
+                            value={
+                              unsetEditData[model.model_name]
+                                ?.image_output_ratio || ''
+                            }
+                            onChange={(e) =>
+                              updateUnsetEditData(
+                                model.model_name,
+                                'image_output_ratio',
+                                e.target.value
+                              )
+                            }
+                            className="h-7 px-1.5 text-center text-xs"
+                          />
+                        </TableCell>
+                        <TableCell className="px-1">
+                          <Input
+                            type="text"
+                            placeholder="倍率"
+                            value={
+                              unsetEditData[model.model_name]
+                                ?.audio_input_ratio || ''
+                            }
+                            onChange={(e) =>
+                              updateUnsetEditData(
+                                model.model_name,
+                                'audio_input_ratio',
+                                e.target.value
+                              )
+                            }
+                            className="h-7 px-1.5 text-center text-xs"
+                          />
+                        </TableCell>
+                        <TableCell className="px-1">
+                          <Input
+                            type="text"
+                            placeholder="倍率"
+                            value={
+                              unsetEditData[model.model_name]
+                                ?.audio_output_ratio || ''
+                            }
+                            onChange={(e) =>
+                              updateUnsetEditData(
+                                model.model_name,
+                                'audio_output_ratio',
+                                e.target.value
+                              )
+                            }
+                            className="h-7 px-1.5 text-center text-xs"
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            {renderPagination(
+              unsetPage,
+              unsetPageSize,
+              unsetTotal,
+              setUnsetPage,
+              setUnsetPageSize
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
     </PageContainer>
   );

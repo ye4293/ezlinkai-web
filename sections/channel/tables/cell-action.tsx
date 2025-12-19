@@ -15,9 +15,9 @@ import {
   Trash,
   Ban,
   CircleSlash2,
-  Lightbulb,
   ListTree,
-  KeyRound
+  KeyRound,
+  Copy
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -34,8 +34,9 @@ export const CellAction: React.FC<CellActionProps> = ({
   onManageKeys // 接收 onManageKeys
 }) => {
   const [loading, setLoading] = useState(false);
-  const [testLoading, setTestLoading] = useState(false);
+  const [copyLoading, setCopyLoading] = useState(false);
   const [open, setOpen] = useState(false);
+  const [copyConfirmOpen, setCopyConfirmOpen] = useState(false);
   const [modelsModalOpen, setModelsModalOpen] = useState(false);
   const router = useRouter();
 
@@ -113,28 +114,30 @@ export const CellAction: React.FC<CellActionProps> = ({
     }
   };
 
-  // 测试单个渠道
-  const testChannel = async (id: number, name: string) => {
+  // 复制渠道
+  const copyChannel = async (channel: Channel) => {
     try {
-      setTestLoading(true);
-      const res = await fetch(`/api/channel/test/${id}`, {
-        method: 'GET',
+      setCopyLoading(true);
+      const res = await fetch(`/api/channel/copy/${channel.id}`, {
+        method: 'POST',
         credentials: 'include'
       });
-      const { success, message, time } = await res.json();
-      router.refresh();
+      const { success, message, data } = await res.json();
       if (success) {
-        router.refresh();
         toast.success(
-          `The channel ${name} test succeeds, taking ${time.toFixed(
-            2
-          )} seconds.`
+          `渠道 "${channel.name}" 复制成功！新渠道名称: ${
+            data?.name || channel.name + '_复制'
+          }`
         );
+        setCopyConfirmOpen(false);
+        router.refresh();
       } else {
-        toast.error(message);
+        toast.error(message || '复制渠道失败');
       }
+    } catch (error) {
+      toast.error('复制渠道时发生错误');
     } finally {
-      setTestLoading(false);
+      setCopyLoading(false);
     }
   };
 
@@ -145,6 +148,14 @@ export const CellAction: React.FC<CellActionProps> = ({
         onClose={() => setOpen(false)}
         onConfirm={() => onConfirm(data)}
         loading={loading}
+      />
+      <AlertModal
+        isOpen={copyConfirmOpen}
+        onClose={() => setCopyConfirmOpen(false)}
+        onConfirm={() => copyChannel(data)}
+        loading={copyLoading}
+        title="确认复制渠道"
+        description={`确定要复制渠道 "${data.name}" 吗？复制后的渠道将默认为禁用状态。`}
       />
       <ModelsModal
         channel={data}
@@ -179,6 +190,13 @@ export const CellAction: React.FC<CellActionProps> = ({
             <Trash className="mr-2 h-4 w-4" /> Delete
           </DropdownMenuItem>
           <DropdownMenuItem
+            onClick={() => setCopyConfirmOpen(true)}
+            disabled={copyLoading}
+          >
+            <Copy className="mr-2 h-4 w-4" />{' '}
+            {copyLoading ? '复制中...' : '复制'}
+          </DropdownMenuItem>
+          <DropdownMenuItem
             onClick={() =>
               manageChannel(
                 data.id as number,
@@ -196,13 +214,6 @@ export const CellAction: React.FC<CellActionProps> = ({
                 <CircleSlash2 className="mr-2 h-4 w-4" /> Enable
               </>
             )}
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => testChannel(data.id as number, data.name as string)}
-            disabled={testLoading}
-          >
-            <Lightbulb className="mr-2 h-4 w-4" />{' '}
-            {testLoading ? 'Testing...' : 'Test'}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setModelsModalOpen(true)}>
             <ListTree className="mr-2 h-4 w-4" /> View Models
