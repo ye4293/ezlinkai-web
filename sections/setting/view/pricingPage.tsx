@@ -33,7 +33,8 @@ import {
   Edit2,
   Check,
   X,
-  RefreshCcw
+  RefreshCcw,
+  Copy
 } from 'lucide-react';
 
 const breadcrumbItems = [
@@ -83,6 +84,19 @@ interface UnsetModelEditData {
   audio_output_ratio: string;
 }
 
+// 视频定价规则
+interface VideoPricingRule {
+  model: string; // 模型名或通配符
+  type: string; // 类型: image-to-video, text-to-video, *
+  mode: string; // 模式: standard, professional, *
+  duration: string; // 时长: 5, 10, 15, *
+  resolution: string; // 分辨率: 480P, 720P, 1080P, *
+  pricing_type: string; // per_second 或 fixed
+  price: number; // 价格
+  currency: string; // 货币: USD, CNY
+  priority: number; // 优先级
+}
+
 // 价格转倍率的换算函数
 // 所有倍率都是相对于"文字输入价格"来计算的
 // ModelRatio = 文字输入价格($/1M tokens) / 2
@@ -129,6 +143,15 @@ export default function PricingPage() {
   const [unsetEditData, setUnsetEditData] = useState<
     Record<string, UnsetModelEditData>
   >({});
+
+  // ==================== 视频模型定价状态 ====================
+  const [isVideoLoading, setIsVideoLoading] = useState(true);
+  // 视频定价规则列表（直接编辑规则，不按模型展示）
+  const [videoPricingRules, setVideoPricingRules] = useState<
+    VideoPricingRule[]
+  >([]);
+  // 搜索关键字
+  const [videoRuleKeyword, setVideoRuleKeyword] = useState('');
 
   // ==================== 加载状态 ====================
   const [isLoading, setIsLoading] = useState(false);
@@ -289,8 +312,50 @@ export default function PricingPage() {
     }
   }, [unsetPage, unsetPageSize, unsetKeyword]);
 
+  // ==================== 获取视频定价规则 ====================
+  const fetchVideoPricingRules = useCallback(async () => {
+    try {
+      setIsVideoLoading(true);
+      // 从所有 options 中获取 VideoPricingRules
+      const response = await fetch('/api/option/');
+      if (!response.ok) {
+        setVideoPricingRules([]);
+        return;
+      }
+      const result = await response.json();
+      if (result.success && Array.isArray(result.data)) {
+        // 后端返回的是数组格式 [{key: "xxx", value: "xxx"}, ...]
+        const videoPricingOption = result.data.find(
+          (opt: { key: string; value: string }) =>
+            opt.key === 'VideoPricingRules'
+        );
+        if (videoPricingOption && videoPricingOption.value) {
+          try {
+            const rules = JSON.parse(videoPricingOption.value);
+            if (Array.isArray(rules)) {
+              setVideoPricingRules(rules);
+            } else {
+              setVideoPricingRules([]);
+            }
+          } catch (e) {
+            console.error('Parse video pricing rules error:', e);
+            setVideoPricingRules([]);
+          }
+        } else {
+          setVideoPricingRules([]);
+        }
+      }
+    } catch (error) {
+      console.error('Fetch video pricing rules error:', error);
+      setVideoPricingRules([]);
+    } finally {
+      setIsVideoLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchPricingOptions();
+    fetchVideoPricingRules();
   }, []);
 
   useEffect(() => {
@@ -670,6 +735,96 @@ export default function PricingPage() {
     (data) => data.model_ratio || data.completion_ratio
   ).length;
 
+  // ==================== 视频定价相关函数 ====================
+  // 添加新规则
+  const addVideoRule = () => {
+    const newRule: VideoPricingRule = {
+      model: '',
+      type: '*',
+      mode: '*',
+      duration: '*',
+      resolution: '*',
+      pricing_type: 'fixed',
+      price: 0,
+      currency: 'USD',
+      priority: 10
+    };
+    setVideoPricingRules([...videoPricingRules, newRule]);
+  };
+
+  // 复制规则
+  const duplicateVideoRule = (index: number) => {
+    const ruleToCopy = videoPricingRules[index];
+    const newRule: VideoPricingRule = { ...ruleToCopy };
+    // 插入到原规则后面
+    const newRules = [...videoPricingRules];
+    newRules.splice(index + 1, 0, newRule);
+    setVideoPricingRules(newRules);
+  };
+
+  // 更新规则
+  const updateVideoRule = (
+    index: number,
+    field: keyof VideoPricingRule,
+    value: string | number
+  ) => {
+    const newRules = [...videoPricingRules];
+    if (field === 'price' || field === 'priority') {
+      newRules[index] = { ...newRules[index], [field]: Number(value) || 0 };
+    } else {
+      newRules[index] = { ...newRules[index], [field]: value };
+    }
+    setVideoPricingRules(newRules);
+  };
+
+  // 删除规则
+  const deleteVideoRule = (index: number) => {
+    const newRules = videoPricingRules.filter((_, i) => i !== index);
+    setVideoPricingRules(newRules);
+  };
+
+  // 过滤显示的规则（按关键字搜索）
+  const filteredVideoRules = videoPricingRules.filter(
+    (rule) =>
+      !videoRuleKeyword ||
+      rule.model.toLowerCase().includes(videoRuleKeyword.toLowerCase())
+  );
+
+  // 保存视频定价规则
+  const saveVideoPricingRules = async () => {
+    try {
+      setIsLoading(true);
+
+      // 过滤掉没有填写模型名的规则
+      const validRules = videoPricingRules.filter(
+        (r) => r.model && r.model.trim() !== ''
+      );
+
+      // 保存到后端
+      const response = await fetch('/api/option/', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          key: 'VideoPricingRules',
+          value: JSON.stringify(validRules)
+        })
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        toast.success(`成功保存 ${validRules.length} 条视频定价规则`);
+        setVideoPricingRules(validRules);
+      } else {
+        toast.error(result.message || '保存失败');
+      }
+    } catch (error) {
+      console.error('Save video pricing error:', error);
+      toast.error('保存失败');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // ==================== 分页组件 ====================
   const renderPagination = (
     page: number,
@@ -756,10 +911,11 @@ export default function PricingPage() {
         <Separator />
 
         <Tabs defaultValue="ratio-settings" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3 lg:inline-flex lg:w-auto">
+          <TabsList className="grid w-full grid-cols-4 lg:inline-flex lg:w-auto">
             <TabsTrigger value="ratio-settings">模型倍率设置</TabsTrigger>
             <TabsTrigger value="visual-pricing">可视化倍率设置</TabsTrigger>
             <TabsTrigger value="unset-models">未设置倍率模型</TabsTrigger>
+            <TabsTrigger value="video-pricing">视频模型定价</TabsTrigger>
           </TabsList>
 
           {/* ==================== 模型倍率设置 Tab ==================== */}
@@ -1459,6 +1615,293 @@ export default function PricingPage() {
               setUnsetPage,
               setUnsetPageSize
             )}
+          </TabsContent>
+
+          {/* ==================== 视频模型定价 Tab ==================== */}
+          <TabsContent value="video-pricing" className="space-y-4">
+            <div className="rounded-lg border border-purple-200 bg-purple-50 p-3 dark:border-purple-800 dark:bg-purple-950">
+              <p className="text-sm text-purple-800 dark:text-purple-200">
+                <strong>💡 提示：</strong>配置视频生成模型的定价规则。
+                同一模型可以有多条规则（不同的 type/mode/duration/resolution
+                组合）。
+              </p>
+              <ul className="mt-2 list-inside list-disc text-xs text-purple-700 dark:text-purple-300">
+                <li>
+                  <strong>通配符 *</strong>：匹配任意值（包括空值）
+                </li>
+                <li>
+                  <strong>前缀通配符 wan*</strong>：匹配以 wan 开头的所有模型
+                </li>
+                <li>
+                  <strong>per_second</strong>：按秒计费，最终价格 = 价格 ×
+                  视频时长
+                </li>
+                <li>
+                  <strong>fixed</strong>：固定价格，不论时长都按此价格计费
+                </li>
+                <li>
+                  <strong>priority</strong>
+                  ：优先级越高越优先匹配，精确规则应设置更高优先级（如20），兜底规则设置低优先级（如5）
+                </li>
+              </ul>
+            </div>
+
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <div className="relative max-w-sm">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="搜索模型名称..."
+                    value={videoRuleKeyword}
+                    onChange={(e) => setVideoRuleKeyword(e.target.value)}
+                    className="w-64 pl-10"
+                  />
+                </div>
+                <Button variant="outline" onClick={addVideoRule}>
+                  + 添加规则
+                </Button>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">
+                  共 {videoPricingRules.length} 条规则
+                </span>
+                <Button onClick={saveVideoPricingRules} disabled={isLoading}>
+                  <Save className="mr-2 h-4 w-4" />
+                  {isLoading ? '保存中...' : '保存规则'}
+                </Button>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto rounded-md border">
+              <Table className="w-full min-w-[1300px] table-fixed">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[150px]">模型 (model)</TableHead>
+                    <TableHead className="w-[100px]">类型 (type)</TableHead>
+                    <TableHead className="w-[100px]">模式 (mode)</TableHead>
+                    <TableHead className="w-[90px]">时长 (duration)</TableHead>
+                    <TableHead className="w-[100px]">分辨率</TableHead>
+                    <TableHead className="w-[110px]">计费类型</TableHead>
+                    <TableHead className="w-[90px]">价格</TableHead>
+                    <TableHead className="w-[80px]">货币</TableHead>
+                    <TableHead className="w-[70px]">优先级</TableHead>
+                    <TableHead className="w-[90px]">操作</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isVideoLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={10} className="py-10 text-center">
+                        加载中...
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredVideoRules.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={10}
+                        className="py-10 text-center text-muted-foreground"
+                      >
+                        暂无定价规则，点击"添加规则"创建
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredVideoRules.map((rule, index) => {
+                      // 找到原始索引（用于更新和删除）
+                      const originalIndex = videoPricingRules.indexOf(rule);
+                      return (
+                        <TableRow key={index}>
+                          <TableCell>
+                            <Input
+                              value={rule.model}
+                              onChange={(e) =>
+                                updateVideoRule(
+                                  originalIndex,
+                                  'model',
+                                  e.target.value
+                                )
+                              }
+                              placeholder="wan* 或 kling-v1"
+                              className="h-8 text-xs"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              value={rule.type}
+                              onChange={(e) =>
+                                updateVideoRule(
+                                  originalIndex,
+                                  'type',
+                                  e.target.value
+                                )
+                              }
+                              placeholder="*"
+                              className="h-8 text-xs"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              value={rule.mode}
+                              onChange={(e) =>
+                                updateVideoRule(
+                                  originalIndex,
+                                  'mode',
+                                  e.target.value
+                                )
+                              }
+                              placeholder="*"
+                              className="h-8 text-xs"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              value={rule.duration}
+                              onChange={(e) =>
+                                updateVideoRule(
+                                  originalIndex,
+                                  'duration',
+                                  e.target.value
+                                )
+                              }
+                              placeholder="*"
+                              className="h-8 text-xs"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              value={rule.resolution}
+                              onChange={(e) =>
+                                updateVideoRule(
+                                  originalIndex,
+                                  'resolution',
+                                  e.target.value
+                                )
+                              }
+                              placeholder="*"
+                              className="h-8 text-xs"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Select
+                              value={rule.pricing_type}
+                              onValueChange={(value) =>
+                                updateVideoRule(
+                                  originalIndex,
+                                  'pricing_type',
+                                  value
+                                )
+                              }
+                            >
+                              <SelectTrigger className="h-8 text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="fixed">fixed</SelectItem>
+                                <SelectItem value="per_second">
+                                  per_second
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={rule.price}
+                              onChange={(e) =>
+                                updateVideoRule(
+                                  originalIndex,
+                                  'price',
+                                  e.target.value
+                                )
+                              }
+                              placeholder="0.00"
+                              className="h-8 text-xs"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Select
+                              value={rule.currency}
+                              onValueChange={(value) =>
+                                updateVideoRule(
+                                  originalIndex,
+                                  'currency',
+                                  value
+                                )
+                              }
+                            >
+                              <SelectTrigger className="h-8 text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="USD">USD</SelectItem>
+                                <SelectItem value="CNY">CNY</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="number"
+                              value={rule.priority}
+                              onChange={(e) =>
+                                updateVideoRule(
+                                  originalIndex,
+                                  'priority',
+                                  e.target.value
+                                )
+                              }
+                              placeholder="10"
+                              className="h-8 text-xs"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground hover:bg-muted"
+                                onClick={() =>
+                                  duplicateVideoRule(originalIndex)
+                                }
+                                title="复制规则"
+                              >
+                                <Copy className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                                onClick={() => deleteVideoRule(originalIndex)}
+                                title="删除规则"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            <div className="text-xs text-muted-foreground">
+              <strong>配置示例：</strong>
+              <ul className="mt-1 list-inside list-disc space-y-1">
+                <li>
+                  阿里云按秒计费：model=wan*, resolution=720P,
+                  pricing_type=per_second, price=0.6, currency=CNY
+                </li>
+                <li>
+                  可灵固定价格：model=kling-v1, mode=standard, duration=5,
+                  pricing_type=fixed, price=3.5, currency=CNY, priority=20
+                </li>
+                <li>
+                  兜底规则：model=kling-v1, mode=*, duration=*,
+                  pricing_type=fixed, price=5.0, currency=CNY, priority=5
+                </li>
+              </ul>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
