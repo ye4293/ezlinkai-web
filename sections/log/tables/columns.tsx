@@ -55,6 +55,8 @@ const renderType = (status: number) => {
       return <span>Management</span>;
     case 4:
       return <span>System</span>;
+    case 5:
+      return <span className="font-medium text-red-500">Error</span>;
     default:
       return <span>Unknown</span>;
   }

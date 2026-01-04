@@ -346,6 +346,15 @@ const OptimizedChannelTable = memo(
       status: statusFilter
     });
 
+    // 检测刷新标记，从编辑/创建页面返回时自动刷新数据
+    useEffect(() => {
+      const refreshFlag = sessionStorage.getItem('channel_list_refresh');
+      if (refreshFlag) {
+        sessionStorage.removeItem('channel_list_refresh');
+        refetch();
+      }
+    }, [refetch]);
+
     // 使用初始数据作为后备，避免首次加载闪烁
     const displayData = useMemo(() => {
       if (loading && channels.length === 0) {

@@ -791,12 +791,20 @@ EditableNumberCell.displayName = 'EditableNumberCell';
 const ActionsCell = memo(
   ({
     row,
-    onManageKeys
+    onManageKeys,
+    onDataChange
   }: {
     row: Row<Channel>;
     onManageKeys: (channel: Channel) => void;
+    onDataChange?: () => void;
   }) => {
-    return <CellAction data={row.original} onManageKeys={onManageKeys} />;
+    return (
+      <CellAction
+        data={row.original}
+        onManageKeys={onManageKeys}
+        onDataChange={onDataChange}
+      />
+    );
   }
 );
 ActionsCell.displayName = 'ActionsCell';
@@ -967,6 +975,12 @@ export const createColumns = ({
   {
     id: 'actions',
     size: 80,
-    cell: ({ row }) => <ActionsCell row={row} onManageKeys={onManageKeys} />
+    cell: ({ row }) => (
+      <ActionsCell
+        row={row}
+        onManageKeys={onManageKeys}
+        onDataChange={onDataChange}
+      />
+    )
   }
 ];

@@ -1069,8 +1069,9 @@ export default function ChannelForm() {
         alert(
           `成功创建聚合渠道 "${values.name}"，包含 ${keys.length} 个密钥。`
         );
-        router.push('/dashboard/channel');
-        router.refresh();
+        // 设置刷新标记，返回后列表页会自动刷新
+        sessionStorage.setItem('channel_list_refresh', Date.now().toString());
+        router.back();
       } else if (isBatchCreate) {
         // --- 2. 优化后的普通批量创建模式 ---
         console.log('=== 执行路径：普通批量创建模式 ===');
@@ -1152,8 +1153,9 @@ export default function ChannelForm() {
         }`;
         alert(resultMessage);
         if (successCount > 0) {
-          router.push('/dashboard/channel');
-          router.refresh();
+          // 设置刷新标记，返回后列表页会自动刷新
+          sessionStorage.setItem('channel_list_refresh', Date.now().toString());
+          router.back();
         }
       } else {
         // --- 3. 单个创建/编辑模式 ---
@@ -1209,8 +1211,9 @@ export default function ChannelForm() {
         const result = await res.json();
         if (!result.success) throw new Error(result.message || '未知错误');
 
-        router.push('/dashboard/channel');
-        router.refresh();
+        // 设置刷新标记，返回后列表页会自动刷新
+        sessionStorage.setItem('channel_list_refresh', Date.now().toString());
+        router.back();
       }
     } catch (error) {
       console.error('提交过程中发生错误:', error);

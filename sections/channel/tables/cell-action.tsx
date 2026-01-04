@@ -27,11 +27,13 @@ import { ModelsModal } from './models-modal';
 export interface CellActionProps {
   data: Channel;
   onManageKeys: (channel: Channel) => void; // 添加 onManageKeys
+  onDataChange?: () => void; // 数据变化回调
 }
 
 export const CellAction: React.FC<CellActionProps> = ({
   data,
-  onManageKeys // 接收 onManageKeys
+  onManageKeys, // 接收 onManageKeys
+  onDataChange // 接收 onDataChange
 }) => {
   const [loading, setLoading] = useState(false);
   const [copyLoading, setCopyLoading] = useState(false);
@@ -102,12 +104,11 @@ export const CellAction: React.FC<CellActionProps> = ({
         break;
     }
     if (res) {
-      const { data, success, message } = await res.json();
-      console.log('data', data);
+      const { success, message } = await res.json();
       if (success) {
         toast.success('Operation completed successfully!');
         setOpen(false);
-        router.refresh();
+        onDataChange?.();
       } else {
         toast.error(message || 'Operation failed!');
       }
@@ -130,7 +131,8 @@ export const CellAction: React.FC<CellActionProps> = ({
           }`
         );
         setCopyConfirmOpen(false);
-        router.refresh();
+        // 直接调用数据刷新回调
+        onDataChange?.();
       } else {
         toast.error(message || '复制渠道失败');
       }

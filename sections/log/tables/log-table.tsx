@@ -66,6 +66,8 @@ const MobileLogCard = ({ row }: { row: any }) => {
         return <Badge variant="outline">Management</Badge>;
       case 4:
         return <Badge variant="outline">System</Badge>;
+      case 5:
+        return <Badge variant="destructive">Error</Badge>;
       default:
         return <Badge variant="outline">Unknown</Badge>;
     }
