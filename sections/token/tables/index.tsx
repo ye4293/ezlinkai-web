@@ -143,13 +143,13 @@ export default function TokenTable({
     searchQuery,
     setPage,
     setSearchQuery,
-    page
+    page,
+    pageSize,
+    setPageSize
   } = useTableFilters();
 
-  const pageSize = 10; // Default page size
-
   return (
-    <div className="space-y-4 ">
+    <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-4">
         <DataTableSearch
           searchKey="ID,Name,Key"
@@ -179,6 +179,7 @@ export default function TokenTable({
           currentPage={page}
           setCurrentPage={setPage}
           pageSize={pageSize}
+          setPageSize={setPageSize}
         />
       </div>
 

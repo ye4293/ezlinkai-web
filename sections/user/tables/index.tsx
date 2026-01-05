@@ -135,13 +135,13 @@ export default function UserTable({
     searchQuery,
     setPage,
     setSearchQuery,
-    page
+    page,
+    pageSize,
+    setPageSize
   } = useTableFilters();
 
-  const pageSize = 10; // Default page size
-
   return (
-    <div className="space-y-4 ">
+    <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-4">
         <DataTableSearch
           searchKey="ID,Username,Email"
@@ -166,11 +166,12 @@ export default function UserTable({
       <div className="hidden md:block">
         <DataTable
           columns={columns}
-          data={data as UserSelf[]}
+          data={data}
           totalItems={totalData}
           currentPage={page}
           setCurrentPage={setPage}
           pageSize={pageSize}
+          setPageSize={setPageSize}
         />
       </div>
 

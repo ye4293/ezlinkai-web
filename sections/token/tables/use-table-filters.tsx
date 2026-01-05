@@ -24,13 +24,17 @@ export function useTableFilters() {
 
   const [page, setPage] = useQueryState(
     'page',
-    searchParams.page.withDefault(1)
+    searchParams.page.withOptions({ shallow: false }).withDefault(1)
+  );
+
+  const [pageSize, setPageSize] = useQueryState(
+    'limit',
+    searchParams.limit.withOptions({ shallow: false }).withDefault(10)
   );
 
   const resetFilters = useCallback(() => {
     setSearchQuery(null);
     setStatusFilter(null);
-
     setPage(1);
   }, [setSearchQuery, setStatusFilter, setPage]);
 
@@ -45,6 +49,8 @@ export function useTableFilters() {
     setStatusFilter,
     page,
     setPage,
+    pageSize,
+    setPageSize,
     resetFilters,
     isAnyFilterActive
   };
