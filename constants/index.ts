@@ -68,5 +68,6 @@ export const LOG_OPTIONS = [
   { key: '1', label: 'Billing', value: '1' },
   { key: '2', label: 'Consumption', value: '2' },
   { key: '3', label: 'Management', value: '3' },
-  { key: '4', label: 'System', value: '4' }
+  { key: '4', label: 'System', value: '4' },
+  { key: '5', label: 'Error', value: '5' }
 ];

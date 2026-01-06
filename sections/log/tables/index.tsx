@@ -14,7 +14,7 @@ import { useRouter } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
 import { useScreenSize } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
-import { Download, Search, X } from 'lucide-react';
+import { Download, Search, X, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
@@ -185,6 +185,9 @@ export default function LogTable({
   const [localXRequestId, setLocalXRequestId] = useState(xRequestId || '');
   const [localXResponseId, setLocalXResponseId] = useState(xResponseId || '');
 
+  // 查询加载状态
+  const [isSearching, setIsSearching] = useState(false);
+
   // 同步 URL 参数到本地状态
   useEffect(() => {
     setLocalTokenName(tokenName || '');
@@ -207,6 +210,7 @@ export default function LogTable({
 
   // 统一搜索处理函数
   const handleSearch = () => {
+    setIsSearching(true);
     setPage(1);
     setTokenName(localTokenName || null);
     setModelName(localModelName || null);
@@ -214,6 +218,9 @@ export default function LogTable({
     setUserName(localUserName || null);
     setXRequestId(localXRequestId || null);
     setXResponseId(localXResponseId || null);
+
+    // 强制刷新数据
+    router.refresh();
   };
 
   // 处理回车键
@@ -435,6 +442,13 @@ export default function LogTable({
     return () => clearTimeout(timeoutId);
   }, [page, pageSize, router]);
 
+  // 数据变化时关闭加载状态
+  React.useEffect(() => {
+    if (isSearching) {
+      setIsSearching(false);
+    }
+  }, [data]);
+
   // 处理页面大小变化，重置到第一页
   const handlePageSizeChange = React.useCallback(
     (newPageSize: number) => {
@@ -494,9 +508,19 @@ export default function LogTable({
 
           {/* 统一查询按钮 */}
           <div className="flex-shrink-0">
-            <Button onClick={handleSearch} className="gap-2">
-              <Search className="h-4 w-4" />
-              <span className="hidden sm:inline">Search</span>
+            <Button
+              onClick={handleSearch}
+              disabled={isSearching}
+              className="gap-2"
+            >
+              {isSearching ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Search className="h-4 w-4" />
+              )}
+              <span className="hidden sm:inline">
+                {isSearching ? 'Searching...' : 'Search'}
+              </span>
             </Button>
           </div>
 
@@ -658,6 +682,19 @@ export default function LogTable({
           </div>
         </div>
       </div>
+
+      {/* 查询加载遮罩 */}
+      {isSearching && (
+        <div className="pointer-events-none fixed inset-0 z-[9999] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/20"></div>
+          <div className="relative duration-200 animate-in zoom-in-50">
+            <div className="flex items-center gap-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-3 text-white shadow-2xl">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              <span className="font-medium">正在查询...</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Desktop View */}
       <div className="hidden md:block">

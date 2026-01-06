@@ -15,10 +15,11 @@ import {
   useTableFilters
 } from './use-table-filters';
 import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, X } from 'lucide-react';
+import { Search, X, Loader2 } from 'lucide-react';
 
 export default function MidjourneyTable({
   data,
@@ -28,6 +29,7 @@ export default function MidjourneyTable({
   totalData: number;
 }) {
   const { data: session } = useSession();
+  const router = useRouter();
 
   // // 根据角色权限过滤
   // const filterColumns = columns.filter((item) => {
@@ -61,6 +63,9 @@ export default function MidjourneyTable({
   const [localChannelId, setLocalChannelId] = useState(channelId || '');
   const [localUserName, setLocalUserName] = useState(userName || '');
 
+  // 查询加载状态
+  const [isSearching, setIsSearching] = useState(false);
+
   useEffect(() => {
     setLocalMjId(mjId || '');
   }, [mjId]);
@@ -74,11 +79,22 @@ export default function MidjourneyTable({
   }, [userName]);
 
   const handleSearch = () => {
+    setIsSearching(true);
     setPage(1);
     setMjId(localMjId || null);
     setChannelId(localChannelId || null);
     setUserName(localUserName || null);
+
+    // 强制刷新数据
+    router.refresh();
   };
+
+  // 数据变化时关闭加载状态
+  React.useEffect(() => {
+    if (isSearching) {
+      setIsSearching(false);
+    }
+  }, [data]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
@@ -152,9 +168,15 @@ export default function MidjourneyTable({
           </>
         )}
 
-        <Button onClick={handleSearch} className="gap-2">
-          <Search className="h-4 w-4" />
-          <span className="hidden sm:inline">Search</span>
+        <Button onClick={handleSearch} disabled={isSearching} className="gap-2">
+          {isSearching ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Search className="h-4 w-4" />
+          )}
+          <span className="hidden sm:inline">
+            {isSearching ? 'Searching...' : 'Search'}
+          </span>
         </Button>
 
         <DataTableFilterBox
@@ -186,6 +208,20 @@ export default function MidjourneyTable({
           }}
         />
       </div>
+
+      {/* 查询加载遮罩 */}
+      {isSearching && (
+        <div className="pointer-events-none fixed inset-0 z-[9999] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/20"></div>
+          <div className="relative duration-200 animate-in zoom-in-50">
+            <div className="flex items-center gap-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-3 text-white shadow-2xl">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              <span className="font-medium">正在查询...</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       <DataTable columns={columns} data={data} totalItems={totalData} />
     </div>
   );

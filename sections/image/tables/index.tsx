@@ -13,7 +13,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Download, Search, X } from 'lucide-react';
+import { Download, Search, X, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
@@ -162,6 +162,9 @@ export default function ImageTable({
   const [localChannelId, setLocalChannelId] = useState(channelId || '');
   const [localUserName, setLocalUserName] = useState(userName || '');
 
+  // 查询加载状态
+  const [isSearching, setIsSearching] = useState(false);
+
   useEffect(() => {
     setLocalSearchQuery(searchQuery || '');
   }, [searchQuery]);
@@ -182,6 +185,7 @@ export default function ImageTable({
   }, [userName]);
 
   const handleSearch = () => {
+    setIsSearching(true);
     setPage(1);
     setSearchQuery(localSearchQuery || null);
     setTaskId(localTaskId || null);
@@ -189,7 +193,17 @@ export default function ImageTable({
     setModelName(localModelName || null);
     setChannelId(localChannelId || null);
     setUserName(localUserName || null);
+
+    // 强制刷新数据
+    router.refresh();
   };
+
+  // 数据变化时关闭加载状态
+  React.useEffect(() => {
+    if (isSearching) {
+      setIsSearching(false);
+    }
+  }, [data]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
@@ -540,9 +554,19 @@ export default function ImageTable({
           </>
         )}
         <div className="flex items-center gap-2">
-          <Button onClick={handleSearch} className="flex-1 gap-2 sm:flex-none">
-            <Search className="h-4 w-4" />
-            <span className="sm:inline">Search</span>
+          <Button
+            onClick={handleSearch}
+            disabled={isSearching}
+            className="flex-1 gap-2 sm:flex-none"
+          >
+            {isSearching ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Search className="h-4 w-4" />
+            )}
+            <span className="sm:inline">
+              {isSearching ? 'Searching...' : 'Search'}
+            </span>
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -590,6 +614,19 @@ export default function ImageTable({
           />
         </div>
       </div>
+
+      {/* 查询加载遮罩 */}
+      {isSearching && (
+        <div className="pointer-events-none fixed inset-0 z-[9999] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/20"></div>
+          <div className="relative duration-200 animate-in zoom-in-50">
+            <div className="flex items-center gap-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-3 text-white shadow-2xl">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              <span className="font-medium">正在查询...</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Desktop View */}
       <div className="hidden md:block">
