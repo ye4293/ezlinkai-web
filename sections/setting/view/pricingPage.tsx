@@ -71,6 +71,7 @@ interface UnsetModelEditData {
   // 价格输入（$/1M tokens）
   input_price: string; // 文字输入价格
   output_price: string; // 文字输出价格
+  cache_price: string; // 缓存价格
   image_input_price: string; // 图片输入价格
   image_output_price: string; // 图片输出价格
   audio_input_price: string; // 音频输入价格
@@ -78,6 +79,7 @@ interface UnsetModelEditData {
   // 计算后的倍率
   model_ratio: string;
   completion_ratio: string;
+  cache_ratio: string;
   image_input_ratio: string;
   image_output_ratio: string;
   audio_input_ratio: string;
@@ -119,6 +121,7 @@ export default function PricingPage() {
   const [perCallPricing, setPerCallPricing] = useState('');
   const [modelRatio, setModelRatio] = useState('');
   const [completionRatio, setCompletionRatio] = useState('');
+  const [cacheRatio, setCacheRatio] = useState('');
   const [audioInputRatio, setAudioInputRatio] = useState('');
   const [audioOutputRatio, setAudioOutputRatio] = useState('');
   const [imageInputRatio, setImageInputRatio] = useState('');
@@ -237,6 +240,11 @@ export default function PricingPage() {
           (o: Option) => o.key === 'ImageOutputRatio'
         );
         setImageOutputRatio(formatJSON(imageOutputOption?.value) || '{}');
+
+        const cacheRatioOption = options.find(
+          (o: Option) => o.key === 'CacheRatio'
+        );
+        setCacheRatio(formatJSON(cacheRatioOption?.value) || '{}');
       }
     } catch (err) {
       setError(
@@ -291,12 +299,14 @@ export default function PricingPage() {
           editData[m.model_name] = {
             input_price: '',
             output_price: '',
+            cache_price: '',
             image_input_price: '',
             image_output_price: '',
             audio_input_price: '',
             audio_output_price: '',
             model_ratio: '',
             completion_ratio: '',
+            cache_ratio: '',
             image_input_ratio: '',
             image_output_ratio: '',
             audio_input_ratio: '',
@@ -375,6 +385,7 @@ export default function PricingPage() {
         !validateJSON(perCallPricing, '模型固定价格') ||
         !validateJSON(modelRatio, '模型倍率') ||
         !validateJSON(completionRatio, '模型补全倍率') ||
+        !validateJSON(cacheRatio, '缓存倍率') ||
         !validateJSON(audioInputRatio, '音频输入倍率') ||
         !validateJSON(audioOutputRatio, '音频输出倍率') ||
         !validateJSON(imageInputRatio, '图片输入倍率') ||
@@ -396,6 +407,7 @@ export default function PricingPage() {
       await saveOption('PerCallPricing', perCallPricing);
       await saveOption('ModelRatio', modelRatio);
       await saveOption('CompletionRatio', completionRatio);
+      await saveOption('CacheRatio', cacheRatio);
       await saveOption('AudioInputRatio', audioInputRatio);
       await saveOption('AudioOutputRatio', audioOutputRatio);
       await saveOption('ImageInputRatio', imageInputRatio);
@@ -477,12 +489,14 @@ export default function PricingPage() {
       const currentData = prev[modelName] || {
         input_price: '',
         output_price: '',
+        cache_price: '',
         image_input_price: '',
         image_output_price: '',
         audio_input_price: '',
         audio_output_price: '',
         model_ratio: '',
         completion_ratio: '',
+        cache_ratio: '',
         image_input_ratio: '',
         image_output_ratio: '',
         audio_input_ratio: '',
@@ -517,6 +531,14 @@ export default function PricingPage() {
           if (!isNaN(outputPrice) && outputPrice > 0) {
             newData.completion_ratio = formatRatio(
               priceToRatio(outputPrice, inputPrice)
+            );
+          }
+
+          // 缓存倍率 = 缓存价格 / 文字输入价格
+          const cachePrice = parseFloat(newData.cache_price);
+          if (!isNaN(cachePrice) && cachePrice > 0) {
+            newData.cache_ratio = formatRatio(
+              priceToRatio(cachePrice, inputPrice)
             );
           }
 
@@ -566,6 +588,18 @@ export default function PricingPage() {
           );
         } else {
           newData.completion_ratio = '';
+        }
+      }
+
+      // 当缓存价格变化时，计算缓存倍率
+      if (field === 'cache_price' && baseInputPrice > 0) {
+        const cachePrice = parseFloat(value);
+        if (!isNaN(cachePrice) && cachePrice > 0) {
+          newData.cache_ratio = formatRatio(
+            priceToRatio(cachePrice, baseInputPrice)
+          );
+        } else {
+          newData.cache_ratio = '';
         }
       }
 
@@ -640,6 +674,9 @@ export default function PricingPage() {
             : 1
         };
 
+        if (editData.cache_ratio) {
+          modelData.cache_ratio = parseFloat(editData.cache_ratio);
+        }
         if (editData.image_input_ratio) {
           modelData.image_input_ratio = parseFloat(editData.image_input_ratio);
         }
@@ -952,15 +989,18 @@ export default function PricingPage() {
               />
             </div>
 
-            {/* 提示缓存倍率 - 暂时留空 */}
+            {/* 提示缓存倍率 */}
             <div className="space-y-2">
               <Label className="text-base font-semibold">提示缓存倍率</Label>
               <Textarea
-                value="{}"
-                disabled
+                value={cacheRatio}
+                onChange={(e) => setCacheRatio(e.target.value)}
                 placeholder="{}"
-                className="h-32 bg-muted font-mono text-sm"
+                className="h-32 font-mono text-sm"
               />
+              <p className="text-sm text-muted-foreground">
+                缓存读取token相对于输入token的价格倍率（如Claude缓存读取为0.1，即90%折扣）
+              </p>
             </div>
 
             {/* 模型补全倍率 */}
@@ -1230,6 +1270,7 @@ export default function PricingPage() {
               <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-blue-600 dark:text-blue-400 md:grid-cols-3">
                 <span>• 模型倍率 = 文字输入价格 / 2</span>
                 <span>• 补全倍率 = 文字输出价格 / 文字输入价格</span>
+                <span>• 缓存倍率 = 缓存价格 / 文字输入价格</span>
                 <span>• 图片输入倍率 = 图片输入价格 / 文字输入价格</span>
                 <span>• 图片输出倍率 = 图片输出价格 / 文字输入价格</span>
                 <span>• 音频输入倍率 = 音频输入价格 / 文字输入价格</span>
@@ -1272,7 +1313,7 @@ export default function PricingPage() {
             </div>
 
             <div className="overflow-x-auto rounded-md border">
-              <Table className="w-full min-w-[1400px] table-fixed">
+              <Table className="w-full min-w-[1550px] table-fixed">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-8 px-1">
@@ -1296,13 +1337,13 @@ export default function PricingPage() {
                     </TableHead>
                     <TableHead className="w-[160px] px-1">模型名称</TableHead>
                     <TableHead
-                      colSpan={6}
+                      colSpan={7}
                       className="border-l bg-blue-50/50 px-1 text-center text-xs dark:bg-blue-950/30"
                     >
                       价格输入 ($/1M tokens)
                     </TableHead>
                     <TableHead
-                      colSpan={6}
+                      colSpan={7}
                       className="border-l bg-green-50/50 px-1 text-center text-xs dark:bg-green-950/30"
                     >
                       倍率（自动计算）
@@ -1316,6 +1357,9 @@ export default function PricingPage() {
                     </TableHead>
                     <TableHead className="w-[70px] bg-blue-50/50 px-1 text-center text-xs dark:bg-blue-950/30">
                       文字输出
+                    </TableHead>
+                    <TableHead className="w-[70px] bg-blue-50/50 px-1 text-center text-xs dark:bg-blue-950/30">
+                      缓存
                     </TableHead>
                     <TableHead className="w-[70px] bg-blue-50/50 px-1 text-center text-xs dark:bg-blue-950/30">
                       图片输入
@@ -1336,6 +1380,9 @@ export default function PricingPage() {
                       补全
                     </TableHead>
                     <TableHead className="w-[65px] bg-green-50/50 px-1 text-center text-xs dark:bg-green-950/30">
+                      缓存
+                    </TableHead>
+                    <TableHead className="w-[65px] bg-green-50/50 px-1 text-center text-xs dark:bg-green-950/30">
                       图片入
                     </TableHead>
                     <TableHead className="w-[65px] bg-green-50/50 px-1 text-center text-xs dark:bg-green-950/30">
@@ -1352,13 +1399,13 @@ export default function PricingPage() {
                 <TableBody>
                   {isUnsetLoading ? (
                     <TableRow>
-                      <TableCell colSpan={14} className="h-24 text-center">
+                      <TableCell colSpan={16} className="h-24 text-center">
                         加载中...
                       </TableCell>
                     </TableRow>
                   ) : unsetModels.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={14} className="h-24 text-center">
+                      <TableCell colSpan={16} className="h-24 text-center">
                         🎉 太棒了！所有模型都已配置倍率
                       </TableCell>
                     </TableRow>
@@ -1415,6 +1462,23 @@ export default function PricingPage() {
                               updateUnsetEditData(
                                 model.model_name,
                                 'output_price',
+                                e.target.value
+                              )
+                            }
+                            className="h-7 px-1 text-center text-xs"
+                          />
+                        </TableCell>
+                        <TableCell className="bg-blue-50/30 px-0.5 dark:bg-blue-950/20">
+                          <Input
+                            type="text"
+                            placeholder="-"
+                            value={
+                              unsetEditData[model.model_name]?.cache_price || ''
+                            }
+                            onChange={(e) =>
+                              updateUnsetEditData(
+                                model.model_name,
+                                'cache_price',
                                 e.target.value
                               )
                             }
@@ -1523,6 +1587,23 @@ export default function PricingPage() {
                               updateUnsetEditData(
                                 model.model_name,
                                 'completion_ratio',
+                                e.target.value
+                              )
+                            }
+                            className="h-7 bg-muted/30 px-1 text-center text-xs"
+                          />
+                        </TableCell>
+                        <TableCell className="bg-green-50/30 px-0.5 dark:bg-green-950/20">
+                          <Input
+                            type="text"
+                            placeholder="自动"
+                            value={
+                              unsetEditData[model.model_name]?.cache_ratio || ''
+                            }
+                            onChange={(e) =>
+                              updateUnsetEditData(
+                                model.model_name,
+                                'cache_ratio',
                                 e.target.value
                               )
                             }
