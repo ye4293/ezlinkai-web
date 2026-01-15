@@ -30,6 +30,7 @@ import { FileUploader } from '@/components/file-uploader';
 import { Channel } from '@/lib/types/channel';
 import request from '@/app/lib/clientFetch';
 import JSONEditor from '@/components/json-editor';
+import { ModelSelectModal } from './model-select-modal';
 
 const formSchema = z.object({
   type: z.string().min(1, {
@@ -168,6 +169,11 @@ export default function ChannelForm() {
   const [showSearchResults, setShowSearchResults] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // 获取上游模型列表相关状态
+  const [fetchedModels, setFetchedModels] = useState<string[]>([]);
+  const [modelSelectModalOpen, setModelSelectModalOpen] = useState(false);
+  const [isFetchingModels, setIsFetchingModels] = useState(false);
+
   // 复制到剪贴板的功能
   const copyToClipboard = async (text: string) => {
     try {
@@ -238,6 +244,77 @@ export default function ChannelForm() {
       return newModels;
     }
     return currentModels;
+  };
+
+  // 获取上游模型列表
+  const fetchUpstreamModels = async () => {
+    setIsFetchingModels(true);
+    try {
+      let response;
+
+      // 编辑模式：channelId 存在且不是 'create'
+      const isEditMode = channelId && channelId !== 'create';
+
+      if (isEditMode) {
+        // 编辑模式：使用已有渠道ID获取
+        response = await fetch(`/api/channel/fetch_models/${channelId}`);
+      } else {
+        // 新建模式：使用当前表单中的 key 和 base_url
+        const key = form.getValues('key');
+        const baseUrl = form.getValues('base_url');
+        const channelType = form.getValues('type');
+
+        if (!key) {
+          const { toast } = await import('sonner');
+          toast.error('请先填写密钥');
+          setIsFetchingModels(false);
+          return;
+        }
+
+        response = await fetch('/api/channel/fetch_models', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            base_url: baseUrl,
+            type: parseInt(channelType as string),
+            key: key
+          })
+        });
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.data) {
+        const models = data.data as string[];
+        // 去重
+        const uniqueModels = Array.from(new Set(models));
+        setFetchedModels(uniqueModels);
+        setModelSelectModalOpen(true);
+
+        const { toast } = await import('sonner');
+        toast.success(`成功获取 ${uniqueModels.length} 个模型`);
+      } else {
+        const { toast } = await import('sonner');
+        toast.error(data.message || '获取模型列表失败');
+      }
+    } catch (error: any) {
+      console.error('获取上游模型列表失败:', error);
+      const { toast } = await import('sonner');
+      toast.error(error.message || '获取模型列表失败');
+    } finally {
+      setIsFetchingModels(false);
+    }
+  };
+
+  // 处理模型选择确认
+  const handleModelSelectConfirm = (selectedModels: string[]) => {
+    const currentModels = form.getValues('models') || [];
+    // 合并已有模型和新选择的模型（去重）
+    const mergedModels = Array.from(
+      new Set([...currentModels, ...selectedModels])
+    );
+    form.setValue('models', mergedModels);
+    setModelSelectModalOpen(false);
   };
 
   // 文件解析预览状态
@@ -1941,6 +2018,23 @@ export default function ChannelForm() {
                                   type="button"
                                   size="sm"
                                   variant="outline"
+                                  className="border-purple-300 text-purple-700 hover:bg-purple-50 dark:border-purple-600 dark:text-purple-300 dark:hover:bg-purple-900"
+                                  onClick={fetchUpstreamModels}
+                                  disabled={isFetchingModels}
+                                >
+                                  {isFetchingModels ? (
+                                    <>
+                                      <span className="mr-1 h-3 w-3 animate-spin rounded-full border-2 border-purple-500 border-t-transparent"></span>
+                                      获取中...
+                                    </>
+                                  ) : (
+                                    '🔄 获取模型列表'
+                                  )}
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
                                   className="border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-600 dark:text-blue-300 dark:hover:bg-blue-900"
                                   onClick={() => {
                                     const allModelIds = modelOptions.map(
@@ -3200,6 +3294,16 @@ ${type2secretPrompt(form.watch('type'))}`}
           </Form>
         </CardContent>
       </Card>
+
+      {/* 获取上游模型列表弹窗 */}
+      <ModelSelectModal
+        open={modelSelectModalOpen}
+        models={fetchedModels}
+        selected={form.getValues('models') || []}
+        loading={isFetchingModels}
+        onConfirm={handleModelSelectConfirm}
+        onCancel={() => setModelSelectModalOpen(false)}
+      />
     </div>
   );
 }

@@ -30,6 +30,7 @@ interface Option {
 
 export default function SettingPage() {
   const [retryCount, setRetryCount] = useState(0);
+  const [autoDisableEnabled, setAutoDisableEnabled] = useState(false);
   const [autoDisableKeywords, setAutoDisableKeywords] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isDataLoading, setIsDataLoading] = useState(true);
@@ -67,6 +68,16 @@ export default function SettingPage() {
         );
         if (retryCountOption) {
           setRetryCount(parseInt(retryCountOption.value) || 0);
+        }
+
+        const autoDisableEnabledOption = options.find(
+          (o: Option) => o.key === 'AutomaticDisableChannelEnabled'
+        );
+        if (autoDisableEnabledOption) {
+          setAutoDisableEnabled(
+            autoDisableEnabledOption.value === 'true' ||
+              autoDisableEnabledOption.value === true
+          );
         }
 
         const autoDisableKeywordsOption = options.find(
@@ -151,6 +162,22 @@ export default function SettingPage() {
 
       if (!retryResponse.ok) {
         throw new Error('Failed to save retry count');
+      }
+
+      // 保存自动禁用开关
+      const autoDisableEnabledResponse = await fetch('/api/option', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          key: 'AutomaticDisableChannelEnabled',
+          value: autoDisableEnabled.toString()
+        })
+      });
+
+      if (!autoDisableEnabledResponse.ok) {
+        throw new Error('Failed to save auto disable enabled setting');
       }
 
       // 保存自动禁用关键词
@@ -380,6 +407,26 @@ export default function SettingPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* 自动禁用开关 */}
+              <div className="flex items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <Label
+                    htmlFor="auto-disable-enabled"
+                    className="text-base font-medium"
+                  >
+                    启用自动禁用
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    开启后，当渠道返回包含特定关键词的错误时，系统将自动禁用该渠道
+                  </p>
+                </div>
+                <Switch
+                  id="auto-disable-enabled"
+                  checked={autoDisableEnabled}
+                  onCheckedChange={setAutoDisableEnabled}
+                />
+              </div>
+
               <div className="grid w-full items-center gap-1.5">
                 <Label htmlFor="auto-disable-keywords">自动禁用关键词</Label>
                 <Textarea
