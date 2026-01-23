@@ -16,7 +16,13 @@ import {
   CardTitle
 } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Save, Mail, MessageSquare, SendHorizontal } from 'lucide-react';
+import {
+  Save,
+  Mail,
+  MessageSquare,
+  SendHorizontal,
+  HardDrive
+} from 'lucide-react';
 
 const breadcrumbItems = [
   { title: 'Dashboard', link: '/dashboard' },
@@ -47,6 +53,13 @@ export default function SettingPage() {
 
   // 飞书 Webhook 配置（支持多个，每行一个）
   const [feishuWebhookUrls, setFeishuWebhookUrls] = useState('');
+
+  // ==================== S3/R2 存储配置状态 ====================
+  const [cfR2storeEnabled, setCfR2storeEnabled] = useState(false);
+  const [cfBucketFileName, setCfBucketFileName] = useState('');
+  const [cfFileAccessKey, setCfFileAccessKey] = useState('');
+  const [cfFileSecretKey, setCfFileSecretKey] = useState('');
+  const [cfFileEndpoint, setCfFileEndpoint] = useState('');
 
   // 测试相关状态
   const [testEmail, setTestEmail] = useState('');
@@ -132,6 +145,38 @@ export default function SettingPage() {
         );
         if (feishuWebhookOption) {
           setFeishuWebhookUrls(feishuWebhookOption.value || '');
+        }
+
+        // ==================== 加载 S3/R2 存储配置 ====================
+        const cfR2storeEnabledOption = options.find(
+          (o: Option) => o.key === 'CfR2storeEnabled'
+        );
+        if (cfR2storeEnabledOption) {
+          setCfR2storeEnabled(
+            cfR2storeEnabledOption.value === 'true' ||
+              cfR2storeEnabledOption.value === true
+          );
+        }
+
+        const cfBucketFileNameOption = options.find(
+          (o: Option) => o.key === 'CfBucketFileName'
+        );
+        if (cfBucketFileNameOption) {
+          setCfBucketFileName(cfBucketFileNameOption.value || '');
+        }
+
+        const cfFileAccessKeyOption = options.find(
+          (o: Option) => o.key === 'CfFileAccessKey'
+        );
+        if (cfFileAccessKeyOption) {
+          setCfFileAccessKey(cfFileAccessKeyOption.value || '');
+        }
+
+        const cfFileEndpointOption = options.find(
+          (o: Option) => o.key === 'CfFileEndpoint'
+        );
+        if (cfFileEndpointOption) {
+          setCfFileEndpoint(cfFileEndpointOption.value || '');
         }
       }
     } catch (err) {
@@ -271,6 +316,48 @@ export default function SettingPage() {
     } catch (error) {
       console.error('Save Feishu error:', error);
       toast.error('保存飞书设置失败');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ==================== 保存 S3/R2 存储设置 ====================
+  const handleSaveStorage = async () => {
+    setIsLoading(true);
+    try {
+      const storageOptions = [
+        { key: 'CfR2storeEnabled', value: cfR2storeEnabled.toString() },
+        { key: 'CfBucketFileName', value: cfBucketFileName },
+        { key: 'CfFileEndpoint', value: cfFileEndpoint }
+      ];
+
+      // 只有当 AccessKey 不为空时才更新（敏感信息）
+      if (cfFileAccessKey) {
+        storageOptions.push({ key: 'CfFileAccessKey', value: cfFileAccessKey });
+      }
+
+      // 只有当 SecretKey 不为空时才更新（敏感信息）
+      if (cfFileSecretKey) {
+        storageOptions.push({ key: 'CfFileSecretKey', value: cfFileSecretKey });
+      }
+
+      for (const option of storageOptions) {
+        const response = await fetch('/api/option', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(option)
+        });
+        if (!response.ok) {
+          throw new Error(`Failed to save ${option.key}`);
+        }
+      }
+
+      toast.success('S3/R2 存储设置保存成功！');
+      setCfFileAccessKey(''); // 清空密钥输入框
+      setCfFileSecretKey('');
+    } catch (error) {
+      console.error('Save Storage error:', error);
+      toast.error('保存存储设置失败');
     } finally {
       setIsLoading(false);
     }
@@ -590,6 +677,115 @@ export default function SettingPage() {
                   {isTesting ? '发送中...' : '发送测试消息'}
                 </Button>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* ==================== 存储设置 ==================== */}
+          <Separator className="my-6" />
+          <h3 className="text-xl font-semibold tracking-tight">存储设置</h3>
+
+          {/* S3/R2 存储配置 */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <HardDrive className="h-5 w-5" />
+                配置 S3/R2 存储
+              </CardTitle>
+              <CardDescription>
+                配置 S3 兼容的对象存储服务（如 Cloudflare R2、阿里云 OSS、AWS
+                S3），用于存储生成的图片和视频文件
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* 启用开关 */}
+              <div className="flex items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <Label
+                    htmlFor="cf-r2store-enabled"
+                    className="text-base font-medium"
+                  >
+                    启用 S3/R2 存储
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    开启后，生成的图片和视频将上传到 S3 兼容存储并返回 URL
+                  </p>
+                </div>
+                <Switch
+                  id="cf-r2store-enabled"
+                  checked={cfR2storeEnabled}
+                  onCheckedChange={setCfR2storeEnabled}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="cf-file-endpoint">S3 端点 (Endpoint)</Label>
+                  <Input
+                    id="cf-file-endpoint"
+                    value={cfFileEndpoint}
+                    onChange={(e) => setCfFileEndpoint(e.target.value)}
+                    placeholder="例如：https://xxx.r2.cloudflarestorage.com"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    S3 兼容服务的端点 URL
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="cf-bucket-filename">
+                    存储桶名称 (Bucket)
+                  </Label>
+                  <Input
+                    id="cf-bucket-filename"
+                    value={cfBucketFileName}
+                    onChange={(e) => setCfBucketFileName(e.target.value)}
+                    placeholder="例如：my-bucket"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    存储文件的桶名称
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="cf-file-accesskey">Access Key ID</Label>
+                  <Input
+                    id="cf-file-accesskey"
+                    type="password"
+                    value={cfFileAccessKey}
+                    onChange={(e) => setCfFileAccessKey(e.target.value)}
+                    placeholder="敏感信息不会发送到前端显示"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="cf-file-secretkey">Secret Access Key</Label>
+                  <Input
+                    id="cf-file-secretkey"
+                    type="password"
+                    value={cfFileSecretKey}
+                    onChange={(e) => setCfFileSecretKey(e.target.value)}
+                    placeholder="敏感信息不会发送到前端显示"
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-lg bg-muted p-4">
+                <p className="text-sm text-muted-foreground">
+                  <strong>支持的 S3 兼容服务：</strong>
+                </p>
+                <ul className="mt-2 list-inside list-disc text-sm text-muted-foreground">
+                  <li>Cloudflare R2</li>
+                  <li>阿里云 OSS（使用 S3 兼容端点）</li>
+                  <li>AWS S3</li>
+                  <li>MinIO</li>
+                  <li>其他 S3 兼容服务</li>
+                </ul>
+              </div>
+
+              <Button onClick={handleSaveStorage} disabled={isLoading}>
+                <Save className="mr-2 h-4 w-4" />
+                保存存储设置
+              </Button>
             </CardContent>
           </Card>
         </div>
