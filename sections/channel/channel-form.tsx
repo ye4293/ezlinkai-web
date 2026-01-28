@@ -78,12 +78,6 @@ const formSchema = z.object({
     required_error: 'Please select at least one model.'
   }),
   customModelName: z.string().optional(),
-  channel_ratio: z
-    .number()
-    .min(0.1, {
-      message: '渠道倍率必须大于0.1'
-    })
-    .optional(),
   priority: z
     .number()
     .min(0, {
@@ -124,7 +118,6 @@ interface ParamsOption extends Omit<Channel, 'type'> {
   groups?: string[];
   models?: string;
   config?: string;
-  channel_ratio?: number;
   priority?: number;
   weight?: number;
   batch_create?: boolean;
@@ -487,7 +480,6 @@ export default function ChannelForm() {
             model_mapping: channelData.model_mapping || '',
             models: channelData.models?.split(',') || [],
             customModelName: channelData.customModelName,
-            channel_ratio: channelData.channel_ratio || 1,
             priority: channelData.priority || 0,
             weight: channelData.weight || 0,
             auto_disabled: autoDisabledValue,
@@ -556,7 +548,6 @@ export default function ChannelForm() {
       model_mapping: undefined,
       models: undefined,
       customModelName: undefined,
-      channel_ratio: 1,
       priority: 0,
       weight: 0,
       auto_disabled: true
@@ -1102,7 +1093,6 @@ export default function ChannelForm() {
         other: values.other || '',
         config: buildConfig(),
         model_mapping: values.model_mapping || '',
-        channel_ratio: values.channel_ratio || 1,
         priority: values.priority || 0,
         weight: values.weight || 0,
         auto_disabled: values.auto_disabled ?? true,
@@ -1257,7 +1247,6 @@ export default function ChannelForm() {
           config: buildConfig(),
           model_mapping: values.model_mapping || '',
           customModelName: values.customModelName || '',
-          channel_ratio: values.channel_ratio || 1,
           priority: values.priority || 0,
           weight: values.weight || 0,
           auto_disabled: values.auto_disabled ?? true,
@@ -1511,39 +1500,7 @@ export default function ChannelForm() {
                       <span>🔑</span> 性能配置
                     </h3>
                     <div className="space-y-4">
-                      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                        <FormField
-                          control={form.control}
-                          name="channel_ratio"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="font-medium text-gray-700 dark:text-gray-300">
-                                渠道倍率
-                              </FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  step="0.1"
-                                  min="0.1"
-                                  className="border-gray-300 focus:border-gray-500 focus:ring-gray-200"
-                                  placeholder="1.0"
-                                  {...field}
-                                  value={field.value || ''}
-                                  onChange={(e) => {
-                                    const value = e.target.value;
-                                    field.onChange(
-                                      value === ''
-                                        ? undefined
-                                        : parseFloat(value)
-                                    );
-                                  }}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <FormField
                           control={form.control}
                           name="priority"
@@ -3044,33 +3001,6 @@ ${type2secretPrompt(form.watch('type'))}`}
                   )}
                 />
               )}
-
-              <FormField
-                control={form.control}
-                name="channel_ratio"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>渠道倍率</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        step="0.1"
-                        min="0.1"
-                        placeholder="请输入渠道倍率，默认为1"
-                        {...field}
-                        value={field.value || ''}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          field.onChange(
-                            value === '' ? undefined : parseFloat(value)
-                          );
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
 
               <FormField
                 control={form.control}

@@ -234,6 +234,13 @@ export const navItems: NavItem[] = [
         icon: 'billing',
         label: 'pricing-setting',
         roles: [100]
+      },
+      {
+        title: '模型设置',
+        href: '/dashboard/setting/model',
+        icon: 'channel',
+        label: 'model-setting',
+        roles: [100]
       }
     ]
   }

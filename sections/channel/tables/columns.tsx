@@ -16,7 +16,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { Channel } from '@/lib/types/channel';
 import { CellAction } from './cell-action';
-import { renderNumber } from '@/utils/render';
 import { toast } from 'sonner';
 import React from 'react';
 import { Input } from '@/components/ui/input';
@@ -99,72 +98,6 @@ const formatDisableReason = (reason: string) => {
     };
   } catch (e) {
     return { display: reason, tooltip: reason };
-  }
-};
-
-const renderBalance = (type: number, balance: number) => {
-  // 数据验证
-  if (!isValidNumber(balance)) {
-    return <span className="text-gray-500">无效数据</span>;
-  }
-
-  // 处理负数余额
-  const isNegative = balance < 0;
-  const absBalance = Math.abs(balance);
-  const negativeClass = isNegative ? 'text-red-600' : '';
-
-  switch (type) {
-    case 1: // OpenAI
-      return (
-        <span className={negativeClass}>
-          ${absBalance.toFixed(2)}
-          {isNegative ? ' (负数)' : ''}
-        </span>
-      );
-    case 4: // CloseAI
-      return (
-        <span className={negativeClass}>
-          ¥{absBalance.toFixed(2)}
-          {isNegative ? ' (负数)' : ''}
-        </span>
-      );
-    case 8: // 自定义
-      return (
-        <span className={negativeClass}>
-          ${absBalance.toFixed(2)}
-          {isNegative ? ' (负数)' : ''}
-        </span>
-      );
-    case 5: // OpenAI-SB
-      return (
-        <span className={negativeClass}>
-          ¥{(absBalance / 10000).toFixed(2)}
-          {isNegative ? ' (负数)' : ''}
-        </span>
-      );
-    case 10: // AI Proxy
-      return (
-        <span className={negativeClass}>
-          {renderNumber(absBalance)}
-          {isNegative ? ' (负数)' : ''}
-        </span>
-      );
-    case 12: // API2GPT
-      return (
-        <span className={negativeClass}>
-          ¥{absBalance.toFixed(2)}
-          {isNegative ? ' (负数)' : ''}
-        </span>
-      );
-    case 13: // AIGC2D
-      return (
-        <span className={negativeClass}>
-          {renderNumber(absBalance)}
-          {isNegative ? ' (负数)' : ''}
-        </span>
-      );
-    default:
-      return <span className="text-yellow-600">不支持的类型 ({type})</span>;
   }
 };
 
@@ -577,64 +510,6 @@ const UsedQuotaCell = memo(
 );
 UsedQuotaCell.displayName = 'UsedQuotaCell';
 
-const BalanceCell = memo(
-  ({ row, onDataChange }: { row: Row<Channel>; onDataChange?: () => void }) => {
-    const [isUpdating, setIsUpdating] = React.useState(false);
-    const channel = row.original;
-
-    const updateBalance = async () => {
-      if (isUpdating) return; // 防止重复点击
-
-      setIsUpdating(true);
-      try {
-        const { success, message } = await safeApiCall(
-          `/api/channel/update_balance/${channel.id}`,
-          {
-            method: 'GET'
-          }
-        );
-
-        if (!success) {
-          toast.error(message || '余额更新失败');
-        } else {
-          toast.success('余额更新成功');
-          onDataChange?.(); // 使用 refetch 函数刷新数据
-        }
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : '余额更新失败';
-        toast.error(`余额更新失败: ${errorMessage}`);
-      } finally {
-        setIsUpdating(false);
-      }
-    };
-
-    return (
-      <TooltipProvider disableHoverableContent>
-        <Tooltip delayDuration={100}>
-          <TooltipTrigger asChild>
-            <div
-              className={`cursor-pointer text-center ${
-                isUpdating ? 'cursor-not-allowed opacity-50' : ''
-              }`}
-              onClick={updateBalance}
-              aria-label={`更新渠道 ${channel.name} 的余额`}
-            >
-              {isUpdating
-                ? '更新中...'
-                : renderBalance(row.getValue('type'), row.getValue('balance'))}
-            </div>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">
-            {isUpdating ? '正在更新余额...' : '点击更新余额'}
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    );
-  }
-);
-BalanceCell.displayName = 'BalanceCell';
-
 // 可编辑数字单元格组件
 const EditableNumberCell = memo(
   ({
@@ -718,8 +593,7 @@ const EditableNumberCell = memo(
         if (result.success) {
           const fieldNames = {
             priority: '优先级',
-            weight: '权重',
-            channel_ratio: '渠道倍率'
+            weight: '权重'
           };
           const fieldName =
             fieldNames[field as keyof typeof fieldNames] || field;
@@ -932,23 +806,6 @@ export const createColumns = ({
     )
   },
   {
-    accessorKey: 'channel_ratio',
-    header: () => <div className="text-center">Channel Ratio</div>,
-    size: 120,
-    cell: ({ row }) => (
-      <EditableNumberCell
-        row={row}
-        field="channel_ratio"
-        onDataChange={onDataChange}
-        placeholder="渠道倍率"
-        min={0.1}
-        max={100}
-        step={0.1}
-        decimalPlaces={1}
-      />
-    )
-  },
-  {
     accessorKey: 'status',
     header: () => <div className="text-center">Status</div>,
     size: 150,
@@ -965,12 +822,6 @@ export const createColumns = ({
     header: () => <div className="text-center">Used Quota</div>,
     size: 150,
     cell: ({ row }) => <UsedQuotaCell row={row} onDataChange={onDataChange} />
-  },
-  {
-    accessorKey: 'balance',
-    header: 'Balance',
-    size: 120,
-    cell: ({ row }) => <BalanceCell row={row} onDataChange={onDataChange} />
   },
   {
     id: 'actions',

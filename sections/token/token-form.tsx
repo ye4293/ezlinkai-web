@@ -373,7 +373,7 @@ export default function TokenForm() {
                 >
                   {form.getValues('unlimited_quota')
                     ? 'Cancel Unlimited Quota'
-                    : 'Set to Limited Quota'}
+                    : 'Set to Unlimited Quota'}
                 </Button>
               </div>
             </div>
