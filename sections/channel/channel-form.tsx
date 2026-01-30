@@ -90,7 +90,9 @@ const formSchema = z.object({
       message: '权重必须大于等于0'
     })
     .optional(),
-  auto_disabled: z.boolean().default(true)
+  auto_disabled: z.boolean().default(true),
+  // 新增：支持 Token 计数功能（仅 Anthropic 和 AWS Claude 渠道）
+  support_count_tokens: z.boolean().default(false)
 
   // company: z.string().min(1, {
   //   message: 'Company name is required.'
@@ -483,6 +485,8 @@ export default function ChannelForm() {
             priority: channelData.priority || 0,
             weight: channelData.weight || 0,
             auto_disabled: autoDisabledValue,
+            // 新增：支持 Token 计数配置
+            support_count_tokens: config.support_count_tokens || false,
             aggregate_mode: channelData.aggregate_mode || false,
             key_selection_mode:
               (channelData as any).multi_key_info?.key_selection_mode ?? 1,
@@ -550,7 +554,8 @@ export default function ChannelForm() {
       customModelName: undefined,
       priority: 0,
       weight: 0,
-      auto_disabled: true
+      auto_disabled: true,
+      support_count_tokens: false
     }
   });
 
@@ -1081,6 +1086,14 @@ export default function ChannelForm() {
             // 如果解析失败，存储原始字符串
             config.vertex_model_region = values.vertex_model_region;
           }
+        }
+        // 新增：支持 Token 计数配置（仅 Anthropic=14 和 AWS Claude=33 渠道）
+        const channelType = Number(values.type);
+        if (
+          (channelType === 14 || channelType === 33) &&
+          values.support_count_tokens
+        ) {
+          config.support_count_tokens = values.support_count_tokens;
         }
         return Object.keys(config).length > 0 ? JSON.stringify(config) : '';
       };
@@ -3074,6 +3087,33 @@ ${type2secretPrompt(form.watch('type'))}`}
                   </FormItem>
                 )}
               />
+
+              {/* 支持 Token 计数 - 仅 Anthropic (14) 和 AWS Claude (33) 渠道显示 */}
+              {(form.watch('type') === '14' || form.watch('type') === '33') && (
+                <FormField
+                  control={form.control}
+                  name="support_count_tokens"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border border-blue-200 bg-blue-50/50 p-4 dark:border-blue-800 dark:bg-blue-950/30">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-base">
+                          支持 Token 计数
+                        </FormLabel>
+                        <div className="text-[0.8rem] text-muted-foreground">
+                          开启后，该渠道可用于处理 /v1/messages/count_tokens
+                          请求。需要确保上游 API 支持此功能。
+                        </div>
+                      </div>
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              )}
 
               {/* 多密钥配置选项 - 只在多密钥渠道时显示 */}
               {((channelData as any)?.multi_key_info?.is_multi_key ||
