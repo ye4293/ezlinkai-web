@@ -1263,6 +1263,7 @@ export default function ChannelForm() {
           other: values.other || '',
           config: buildConfig(),
           model_mapping: values.model_mapping || '',
+          header_override: values.header_override || '',
           customModelName: values.customModelName || '',
           priority: values.priority || 0,
           weight: values.weight || 0,
