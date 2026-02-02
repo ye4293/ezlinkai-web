@@ -14,6 +14,8 @@ export interface ChannelForm {
 
   /** 模型重定向 */
   model_mapping: string;
+  /** 自定义请求头覆盖 */
+  header_override: string;
   /** 模型 */
   models: Array<string>;
   /** 分组 */
@@ -37,6 +39,8 @@ export interface Channel {
   other?: string;
   /** 模型重定向 */
   model_mapping?: string;
+  /** 自定义请求头覆盖 */
+  header_override?: string;
   /** 模型 */
   models?: string;
   /** 分组 */

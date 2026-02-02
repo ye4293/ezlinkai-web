@@ -74,6 +74,7 @@ const formSchema = z.object({
   vertex_model_region: z.string().optional(), // 模型专用区域 JSON
   user_id: z.string().optional(),
   model_mapping: z.string().optional(),
+  header_override: z.string().optional(), // 自定义请求头覆盖
   models: z.array(z.string(), {
     required_error: 'Please select at least one model.'
   }),
@@ -480,6 +481,7 @@ export default function ChannelForm() {
                 : config.vertex_model_region
               : '',
             model_mapping: channelData.model_mapping || '',
+            header_override: channelData.header_override || '',
             models: channelData.models?.split(',') || [],
             customModelName: channelData.customModelName,
             priority: channelData.priority || 0,
@@ -550,6 +552,7 @@ export default function ChannelForm() {
       vertex_model_region: undefined,
       user_id: undefined,
       model_mapping: undefined,
+      header_override: undefined,
       models: undefined,
       customModelName: undefined,
       priority: 0,
@@ -1106,6 +1109,7 @@ export default function ChannelForm() {
         other: values.other || '',
         config: buildConfig(),
         model_mapping: values.model_mapping || '',
+        header_override: values.header_override || '',
         priority: values.priority || 0,
         weight: values.weight || 0,
         auto_disabled: values.auto_disabled ?? true,
@@ -2173,6 +2177,39 @@ export default function ChannelForm() {
                               keyPlaceholder="请求的模型名称"
                               valuePlaceholder="实际发送的模型名称"
                               extraText="键为请求中的模型名称，值为要替换的模型名称"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="header_override"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <JSONEditor
+                              label="自定义请求头"
+                              value={field.value || ''}
+                              onChange={field.onChange}
+                              placeholder={`可选配置，用于添加或覆盖转发请求的HTTP头，格式为 JSON 字符串\n示例：\n${JSON.stringify(
+                                {
+                                  'X-Custom-Header': 'custom-value',
+                                  Authorization: 'Bearer {api_key}'
+                                },
+                                null,
+                                2
+                              )}\n\n支持变量: {api_key} 会被替换为实际的API Key`}
+                              template={{
+                                'X-Custom-Header': 'custom-value',
+                                Authorization: 'Bearer {api_key}'
+                              }}
+                              templateLabel="填入模板"
+                              keyPlaceholder="请求头名称"
+                              valuePlaceholder="请求头值"
+                              extraText="渠道配置的请求头优先级最高，会覆盖用户传递的同名请求头"
                             />
                           </FormControl>
                           <FormMessage />
