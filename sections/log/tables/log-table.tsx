@@ -570,7 +570,9 @@ export function LogTable<TData, TValue>({
         {table.getRowModel().rows?.length ? (
           table
             .getRowModel()
-            .rows.map((row) => <MobileLogCard key={row.id} row={row} />)
+            .rows.map((row) => (
+              <MobileLogCard key={row.id} row={row as Row<LogStat>} />
+            ))
         ) : (
           <div className="py-10 text-center text-muted-foreground">
             No results.
