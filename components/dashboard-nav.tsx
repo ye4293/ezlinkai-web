@@ -8,6 +8,7 @@ import { NavItem } from '@/types';
 import { ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   DropdownMenu,
@@ -113,6 +114,20 @@ export function DashboardNav({
   const { isMinimized } = useSidebar();
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const { isAboveLg } = useBreakpoint('lg');
+  const { data: session } = useSession();
+  const userRole = (session?.user as any)?.role as number;
+
+  // 过滤子菜单项，只显示用户有权限访问的项
+  const filterChildren = useCallback(
+    (children: NavItem[] | undefined): NavItem[] => {
+      if (!children) return [];
+      return children.filter((child) => {
+        if (!child.roles) return true;
+        return child.roles.includes(userRole);
+      });
+    },
+    [userRole]
+  );
 
   const toggleExpand = useCallback((title: string) => {
     setExpandedItems((prev) => {
@@ -145,6 +160,8 @@ export function DashboardNav({
       );
 
       if (hasChildren && isAboveLg && isMinimized) {
+        const filteredChildren = filterChildren(item.children);
+        if (filteredChildren.length === 0) return null;
         return (
           <DropdownMenu key={item.title}>
             <DropdownMenuTrigger>{content}</DropdownMenuTrigger>
@@ -155,24 +172,27 @@ export function DashboardNav({
               sideOffset={20}
             >
               <DropdownMenuLabel>{item.title}</DropdownMenuLabel>
-              {item.children &&
-                item.children.map((child) => (
-                  <DropdownMenuItem key={child.title} asChild>
-                    {child.href && (
-                      <Link
-                        href={child.href}
-                        onClick={handleSetOpen}
-                        className="cursor-pointer"
-                      >
-                        {child.title}
-                      </Link>
-                    )}
-                  </DropdownMenuItem>
-                ))}
+              {filteredChildren.map((child) => (
+                <DropdownMenuItem key={child.title} asChild>
+                  {child.href && (
+                    <Link
+                      href={child.href}
+                      onClick={handleSetOpen}
+                      className="cursor-pointer"
+                    >
+                      {child.title}
+                    </Link>
+                  )}
+                </DropdownMenuItem>
+              ))}
             </DropdownMenuContent>
           </DropdownMenu>
         );
       }
+
+      const filteredChildrenExpanded = filterChildren(item.children);
+      // 如果有子菜单但过滤后为空，不显示该父菜单项
+      if (hasChildren && filteredChildrenExpanded.length === 0) return null;
 
       return (
         <div key={item.title}>
@@ -187,14 +207,23 @@ export function DashboardNav({
           )}
           {hasChildren && !isMinimized && isExpanded && (
             <div className="ml-4 mt-1 space-y-1">
-              {item.children &&
-                item.children.map((child) => renderNavItem(child, depth + 1))}
+              {filteredChildrenExpanded.map((child) =>
+                renderNavItem(child, depth + 1)
+              )}
             </div>
           )}
         </div>
       );
     },
-    [expandedItems, isMinimized, isAboveLg, path, handleSetOpen, toggleExpand]
+    [
+      expandedItems,
+      isMinimized,
+      isAboveLg,
+      path,
+      handleSetOpen,
+      toggleExpand,
+      filterChildren
+    ]
   );
 
   const memoizedItems = useMemo(() => items, [items]);

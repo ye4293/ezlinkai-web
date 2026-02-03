@@ -222,6 +222,13 @@ export const navItems: NavItem[] = [
     roles: [1, 10, 100],
     children: [
       {
+        title: '个人设置',
+        href: '/dashboard/setting/updateUser',
+        icon: 'user',
+        label: 'personal-setting',
+        roles: [1, 10, 100]
+      },
+      {
         title: '系统设置',
         href: '/dashboard/setting',
         icon: 'setting',
