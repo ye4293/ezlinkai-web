@@ -60,6 +60,7 @@ export default function SettingPage() {
   const [cfFileAccessKey, setCfFileAccessKey] = useState('');
   const [cfFileSecretKey, setCfFileSecretKey] = useState('');
   const [cfFileEndpoint, setCfFileEndpoint] = useState('');
+  const [cfFilePublicUrl, setCfFilePublicUrl] = useState('');
 
   // 测试相关状态
   const [testEmail, setTestEmail] = useState('');
@@ -177,6 +178,13 @@ export default function SettingPage() {
         );
         if (cfFileEndpointOption) {
           setCfFileEndpoint(cfFileEndpointOption.value || '');
+        }
+
+        const cfFilePublicUrlOption = options.find(
+          (o: Option) => o.key === 'CfFilePublicUrl'
+        );
+        if (cfFilePublicUrlOption) {
+          setCfFilePublicUrl(cfFilePublicUrlOption.value || '');
         }
       }
     } catch (err) {
@@ -328,7 +336,8 @@ export default function SettingPage() {
       const storageOptions = [
         { key: 'CfR2storeEnabled', value: cfR2storeEnabled.toString() },
         { key: 'CfBucketFileName', value: cfBucketFileName },
-        { key: 'CfFileEndpoint', value: cfFileEndpoint }
+        { key: 'CfFileEndpoint', value: cfFileEndpoint },
+        { key: 'CfFilePublicUrl', value: cfFilePublicUrl }
       ];
 
       // 只有当 AccessKey 不为空时才更新（敏感信息）
@@ -744,6 +753,20 @@ export default function SettingPage() {
                     存储文件的桶名称
                   </p>
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="cf-file-publicurl">公共访问 URL (可选)</Label>
+                <Input
+                  id="cf-file-publicurl"
+                  value={cfFilePublicUrl}
+                  onChange={(e) => setCfFilePublicUrl(e.target.value)}
+                  placeholder="例如：https://file.example.com"
+                />
+                <p className="text-xs text-muted-foreground">
+                  用于生成可公开访问的文件链接。Cloudflare R2 需配置自定义域；若
+                  S3 端点本身支持公开访问（如 Rains3），可留空。
+                </p>
               </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

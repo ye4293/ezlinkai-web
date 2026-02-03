@@ -22,14 +22,22 @@ import {
 import {
   ColumnDef,
   PaginationState,
+  ExpandedState,
   getCoreRowModel,
   getPaginationRowModel,
+  getExpandedRowModel,
   useReactTable,
   flexRender,
   RowSelectionState,
-  VisibilityState
+  VisibilityState,
+  Row
 } from '@tanstack/react-table';
-import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ChevronDown,
+  ChevronRight
+} from 'lucide-react';
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { DataTableViewOptions } from './data-table-column-toggle';
 
@@ -47,6 +55,9 @@ interface DataTableProps<TData, TValue> {
   showColumnToggle?: boolean;
   initialColumnVisibility?: VisibilityState;
   minWidth?: string; // 添加 minWidth 属性
+  // 展开行功能
+  renderExpandedRow?: (row: Row<TData>) => React.ReactNode;
+  expandAllByDefault?: boolean;
 }
 
 export function DataTable<TData, TValue>({
@@ -62,12 +73,20 @@ export function DataTable<TData, TValue>({
   pageSizeOptions = [10, 50, 100, 500],
   showColumnToggle = false,
   initialColumnVisibility,
-  minWidth = '100%' // 默认为 100%
+  minWidth = '100%', // 默认为 100%
+  renderExpandedRow,
+  expandAllByDefault = false
 }: DataTableProps<TData, TValue>) {
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(
     initialColumnVisibility || {}
   );
+  const [expanded, setExpanded] = useState<ExpandedState>(
+    expandAllByDefault ? true : {}
+  );
+
+  // 是否启用展开功能
+  const enableExpanding = !!renderExpandedRow;
 
   // 内部分页状态（用于向下兼容）
   const [internalCurrentPage, setInternalCurrentPage] = useState(1);
@@ -117,18 +136,33 @@ export function DataTable<TData, TValue>({
       state: {
         pagination,
         rowSelection,
-        columnVisibility
+        columnVisibility,
+        ...(enableExpanding ? { expanded } : {})
       },
       pageCount,
       getCoreRowModel: getCoreRowModel(),
       getPaginationRowModel: getPaginationRowModel(),
+      ...(enableExpanding
+        ? { getExpandedRowModel: getExpandedRowModel() }
+        : {}),
       onRowSelectionChange: setRowSelection,
       onColumnVisibilityChange: setColumnVisibility,
+      ...(enableExpanding ? { onExpandedChange: setExpanded } : {}),
       enableRowSelection: true,
       enableHiding: true,
-      manualPagination: true
+      manualPagination: true,
+      ...(enableExpanding ? { getRowCanExpand: () => true } : {})
     }),
-    [data, columns, pagination, rowSelection, columnVisibility, pageCount]
+    [
+      data,
+      columns,
+      pagination,
+      rowSelection,
+      columnVisibility,
+      pageCount,
+      enableExpanding,
+      expanded
+    ]
   );
 
   const table = useReactTable(tableConfig);
@@ -176,6 +210,8 @@ export function DataTable<TData, TValue>({
                 key={headerGroup.id}
                 className="border-b border-border hover:bg-transparent"
               >
+                {/* 展开按钮列头 */}
+                {enableExpanding && <TableHead className="w-[40px] px-2" />}
                 {headerGroup.headers.map((header) => (
                   <TableHead
                     key={header.id}
@@ -199,33 +235,69 @@ export function DataTable<TData, TValue>({
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && 'selected'}
-                  className="touch-manipulation border-b border-border/50 last:border-0 hover:bg-muted/50"
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell
-                      key={cell.id}
-                      className="whitespace-nowrap px-4 py-3"
-                      style={{
-                        maxWidth: '300px', // 限制单元格最大宽度，防止内容过长撑开太宽
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis'
-                      }}
-                    >
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
-                  ))}
-                </TableRow>
+                <React.Fragment key={row.id}>
+                  <TableRow
+                    data-state={row.getIsSelected() && 'selected'}
+                    className={`touch-manipulation border-b border-border/50 last:border-0 hover:bg-muted/50 ${
+                      enableExpanding ? 'cursor-pointer' : ''
+                    }`}
+                    onClick={
+                      enableExpanding ? () => row.toggleExpanded() : undefined
+                    }
+                  >
+                    {/* 展开/折叠按钮 */}
+                    {enableExpanding && (
+                      <TableCell className="w-[40px] px-2 py-3">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            row.toggleExpanded();
+                          }}
+                        >
+                          {row.getIsExpanded() ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </TableCell>
+                    )}
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell
+                        key={cell.id}
+                        className="whitespace-nowrap px-4 py-3"
+                        style={{
+                          maxWidth: '300px', // 限制单元格最大宽度，防止内容过长撑开太宽
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis'
+                        }}
+                      >
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                  {/* 展开的详情行 */}
+                  {enableExpanding &&
+                    row.getIsExpanded() &&
+                    renderExpandedRow && (
+                      <TableRow className="bg-muted/30 hover:bg-muted/30">
+                        <TableCell colSpan={columns.length + 1} className="p-0">
+                          {renderExpandedRow(row)}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                </React.Fragment>
               ))
             ) : (
               <TableRow>
                 <TableCell
-                  colSpan={columns.length}
+                  colSpan={columns.length + (enableExpanding ? 1 : 0)}
                   className="h-24 text-center text-muted-foreground"
                 >
                   No results found.

@@ -2,11 +2,14 @@
 import {
   ColumnDef,
   PaginationState,
+  ExpandedState,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
-  useReactTable
+  getExpandedRowModel,
+  useReactTable,
+  Row
 } from '@tanstack/react-table';
 import React from 'react';
 
@@ -31,13 +34,24 @@ import {
   DoubleArrowLeftIcon,
   DoubleArrowRightIcon
 } from '@radix-ui/react-icons';
-import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ChevronDown,
+  ChevronRight
+} from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { LogStat } from '@/lib/types/log';
 import dayjs from 'dayjs';
+import { parseUsageDetails, usageDetailsLabels, UsageDetails } from './columns';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger
+} from '@/components/ui/collapsible';
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -52,9 +66,147 @@ interface DataTableProps<TData, TValue> {
   };
 }
 
+// 解析 adminInfo 获取渠道信息
+const parseAdminInfo = (other: string): number[] | null => {
+  if (!other) return null;
+  const adminInfoMatch = other.match(/adminInfo:\s*(\[.*?\])/);
+  if (!adminInfoMatch) return null;
+  try {
+    return JSON.parse(adminInfoMatch[1]);
+  } catch {
+    return null;
+  }
+};
+
+// 展开行详情组件
+const ExpandedRowContent = ({ row }: { row: Row<LogStat> }) => {
+  const log = row.original;
+  const usageDetails = parseUsageDetails(log.other || '');
+  const channelIds = parseAdminInfo(log.other || '');
+
+  // 处理配额
+  const processQuota = (quota: number) => {
+    const processedQuota = (quota / 500000).toFixed(6);
+    return `$${parseFloat(processedQuota)}`;
+  };
+
+  // 获取有效的 usageDetails 条目（值大于0的）
+  const getUsageEntries = (details: UsageDetails | null) => {
+    if (!details) return [];
+    return Object.entries(details)
+      .filter(([_, value]) => value !== undefined && value > 0)
+      .map(([key, value]) => ({
+        key,
+        label: usageDetailsLabels[key] || key,
+        value: value as number
+      }));
+  };
+
+  const usageEntries = getUsageEntries(usageDetails);
+  const hasUsageDetails = usageEntries.length > 0;
+  const hasChannelInfo = channelIds && channelIds.length > 0;
+
+  // 如果没有任何可展示的内容，返回简单提示
+  if (!hasUsageDetails && !hasChannelInfo) {
+    return (
+      <div className="bg-muted/30 px-6 py-4 text-sm text-muted-foreground">
+        暂无详细信息
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-muted/30 px-6 py-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {/* 渠道信息 */}
+        {hasChannelInfo && (
+          <div className="space-y-1">
+            <span className="text-xs font-medium text-muted-foreground">
+              渠道信息
+            </span>
+            <p className="text-sm font-medium">
+              {channelIds!.length === 1
+                ? `${channelIds![0]}`
+                : channelIds!.join(' → ')}
+            </p>
+          </div>
+        )}
+
+        {/* 基础 Token 信息 */}
+        <div className="space-y-1">
+          <span className="text-xs font-medium text-muted-foreground">
+            提示Token
+          </span>
+          <p className="text-sm font-medium">{log.prompt_tokens} tokens</p>
+        </div>
+
+        <div className="space-y-1">
+          <span className="text-xs font-medium text-muted-foreground">
+            补全Token
+          </span>
+          <p className="text-sm font-medium">{log.completion_tokens} tokens</p>
+        </div>
+
+        {/* usageDetails 详细信息 */}
+        {usageEntries.map(({ key, label, value }) => (
+          <div key={key} className="space-y-1">
+            <span className="text-xs font-medium text-muted-foreground">
+              {label}
+            </span>
+            <p className="text-sm font-medium">
+              {value.toLocaleString()} tokens
+            </p>
+          </div>
+        ))}
+
+        {/* 配额信息 */}
+        <div className="space-y-1">
+          <span className="text-xs font-medium text-muted-foreground">
+            花费
+          </span>
+          <p className="text-sm font-medium text-blue-600">
+            {processQuota(log.quota)}
+          </p>
+        </div>
+
+        {/* 请求相关信息 */}
+        {log.x_request_id && (
+          <div className="space-y-1">
+            <span className="text-xs font-medium text-muted-foreground">
+              X-Request-ID
+            </span>
+            <p className="break-all font-mono text-xs">{log.x_request_id}</p>
+          </div>
+        )}
+
+        {log.x_response_id && (
+          <div className="space-y-1">
+            <span className="text-xs font-medium text-muted-foreground">
+              X-Response-ID
+            </span>
+            <p className="break-all font-mono text-xs">{log.x_response_id}</p>
+          </div>
+        )}
+      </div>
+
+      {/* 详情内容 */}
+      {log.content && (
+        <div className="mt-4 border-t pt-4">
+          <span className="text-xs font-medium text-muted-foreground">
+            日志详情
+          </span>
+          <p className="mt-1 whitespace-pre-wrap text-sm">{log.content}</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // 移动端卡片组件
-const MobileLogCard = ({ row }: { row: any }) => {
-  const log = row.original as LogStat;
+const MobileLogCard = ({ row }: { row: Row<LogStat> }) => {
+  const log = row.original;
+  const [isExpanded, setIsExpanded] = React.useState(false);
+  const usageDetails = parseUsageDetails(log.other || '');
 
   const renderType = (status: number) => {
     switch (status) {
@@ -72,6 +224,21 @@ const MobileLogCard = ({ row }: { row: any }) => {
         return <Badge variant="outline">Unknown</Badge>;
     }
   };
+
+  // 获取有效的 usageDetails 条目
+  const getUsageEntries = (details: UsageDetails | null) => {
+    if (!details) return [];
+    return Object.entries(details)
+      .filter(([_, value]) => value !== undefined && value > 0)
+      .map(([key, value]) => ({
+        key,
+        label: usageDetailsLabels[key] || key,
+        value: value as number
+      }));
+  };
+
+  const usageEntries = getUsageEntries(usageDetails);
+  const hasUsageDetails = usageEntries.length > 0;
 
   return (
     <Card className="mb-4 overflow-hidden text-sm">
@@ -130,12 +297,50 @@ const MobileLogCard = ({ row }: { row: any }) => {
           </div>
         </div>
 
-        {log.content && (
-          <div className="break-all border-t pt-2 text-xs text-muted-foreground">
-            {log.content.length > 100
-              ? log.content.substring(0, 100) + '...'
-              : log.content}
-          </div>
+        {/* 可展开的详细信息 */}
+        {(hasUsageDetails || log.content) && (
+          <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
+            <CollapsibleTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-between"
+              >
+                <span className="text-xs">
+                  {isExpanded ? '收起详情' : '展开详情'}
+                </span>
+                {isExpanded ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-3 pt-2">
+              {/* usageDetails 详细信息 */}
+              {hasUsageDetails && (
+                <div className="grid grid-cols-2 gap-2 rounded bg-muted/50 p-3">
+                  {usageEntries.map(({ key, label, value }) => (
+                    <div key={key} className="flex flex-col">
+                      <span className="text-xs text-muted-foreground">
+                        {label}
+                      </span>
+                      <span className="font-mono text-sm">
+                        {value.toLocaleString()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* 日志内容 */}
+              {log.content && (
+                <div className="break-all border-t pt-2 text-xs text-muted-foreground">
+                  {log.content}
+                </div>
+              )}
+            </CollapsibleContent>
+          </Collapsible>
         )}
       </CardContent>
     </Card>
@@ -191,6 +396,9 @@ export function LogTable<TData, TValue>({
       pageSize: fallbackPerPage
     });
 
+  // 展开状态管理
+  const [expanded, setExpanded] = React.useState<ExpandedState>({});
+
   React.useEffect(() => {
     router.push(
       `${pathname}?${createQueryString({
@@ -211,13 +419,17 @@ export function LogTable<TData, TValue>({
     pageCount: pageCount ?? -1,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    getExpandedRowModel: getExpandedRowModel(),
     state: {
-      pagination: { pageIndex, pageSize }
+      pagination: { pageIndex, pageSize },
+      expanded
     },
     onPaginationChange: setPagination,
+    onExpandedChange: setExpanded,
     getPaginationRowModel: getPaginationRowModel(),
     manualPagination: true,
-    manualFiltering: true
+    manualFiltering: true,
+    getRowCanExpand: () => true
   });
 
   const searchValue = table.getColumn(searchKey)?.getFilterValue() as string;
@@ -271,6 +483,8 @@ export function LogTable<TData, TValue>({
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
+                  {/* 展开按钮列头 */}
+                  <TableHead className="w-[40px]" />
                   {headerGroup.headers.map((header) => {
                     return (
                       <TableHead key={header.id} className="whitespace-nowrap">
@@ -289,27 +503,56 @@ export function LogTable<TData, TValue>({
             <TableBody>
               {table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    data-state={row.getIsSelected() && 'selected'}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell
-                        key={cell.id}
-                        className="max-w-[300px] overflow-hidden text-ellipsis whitespace-nowrap"
-                      >
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
+                  <React.Fragment key={row.id}>
+                    <TableRow
+                      data-state={row.getIsSelected() && 'selected'}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => row.toggleExpanded()}
+                    >
+                      {/* 展开/折叠按钮 */}
+                      <TableCell className="w-[40px] p-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            row.toggleExpanded();
+                          }}
+                        >
+                          {row.getIsExpanded() ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
+                        </Button>
                       </TableCell>
-                    ))}
-                  </TableRow>
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell
+                          key={cell.id}
+                          className="max-w-[300px] overflow-hidden text-ellipsis whitespace-nowrap"
+                        >
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                    {/* 展开的详情行 */}
+                    {row.getIsExpanded() && (
+                      <TableRow>
+                        <TableCell colSpan={columns.length + 1} className="p-0">
+                          <ExpandedRowContent row={row as Row<LogStat>} />
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </React.Fragment>
                 ))
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={columns.length}
+                    colSpan={columns.length + 1}
                     className="h-24 text-center"
                   >
                     No results.

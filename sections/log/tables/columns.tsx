@@ -12,6 +12,80 @@ import { LogStat } from '@/lib/types/log';
 import { ColumnDef } from '@tanstack/react-table';
 import { CopyableCell } from '@/components/ui/copyable-cell';
 
+// usageDetails 字段的类型定义
+export interface UsageDetails {
+  // 基础 token 计数
+  input_tokens?: number;
+  output_tokens?: number;
+  // 文本/图片分类
+  input_text?: number;
+  input_image?: number;
+  output_text?: number;
+  output_image?: number;
+  // 推理相关
+  output_reasoning?: number;
+  // 缓存相关
+  cache_read_input_tokens?: number;
+  cache_creation_input_tokens?: number;
+  claude_cache_creation_5_m_tokens?: number;
+  // 其他可能的字段
+  [key: string]: number | undefined;
+}
+
+// usageDetails 字段名称映射（用于展示）
+export const usageDetailsLabels: Record<string, string> = {
+  input_tokens: '输入 Tokens',
+  output_tokens: '输出 Tokens',
+  input_text: '文本输入',
+  input_image: '图片输入',
+  output_text: '文本输出',
+  output_image: '图片输出',
+  output_reasoning: '推理输出',
+  cache_read_input_tokens: '缓存读取',
+  cache_creation_input_tokens: '缓存创建',
+  claude_cache_creation_5_m_tokens: 'Claude 5分钟缓存创建'
+};
+
+// 解析 other 字段中的 usageDetails
+export const parseUsageDetails = (other: string): UsageDetails | null => {
+  if (!other) return null;
+
+  // 查找 usageDetails: 的位置
+  const usageDetailsIndex = other.indexOf('usageDetails:');
+  if (usageDetailsIndex === -1) return null;
+
+  // 从 usageDetails: 后面开始查找 JSON 对象
+  const startIndex = other.indexOf('{', usageDetailsIndex);
+  if (startIndex === -1) return null;
+
+  // 使用括号匹配来找到完整的 JSON 对象
+  let braceCount = 0;
+  let endIndex = startIndex;
+
+  for (let i = startIndex; i < other.length; i++) {
+    if (other[i] === '{') {
+      braceCount++;
+    } else if (other[i] === '}') {
+      braceCount--;
+      if (braceCount === 0) {
+        endIndex = i;
+        break;
+      }
+    }
+  }
+
+  if (braceCount !== 0) return null;
+
+  try {
+    const jsonStr = other.substring(startIndex, endIndex + 1);
+    const usageDetails = JSON.parse(jsonStr);
+    return usageDetails;
+  } catch (error) {
+    console.error('解析usageDetails失败:', error);
+    return null;
+  }
+};
+
 // 解析重试序列的辅助函数
 const parseRetrySequence = (
   other: string
@@ -22,7 +96,7 @@ const parseRetrySequence = (
 } | null => {
   if (!other) return null;
 
-  const adminInfoMatch = other.match(/adminInfo:(\[.*?\])/);
+  const adminInfoMatch = other.match(/adminInfo:\s*(\[.*?\])/);
   if (!adminInfoMatch) return null;
 
   try {
