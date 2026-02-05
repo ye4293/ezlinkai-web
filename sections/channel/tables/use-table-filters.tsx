@@ -23,6 +23,11 @@ export function useTableFilters() {
     searchParams.status.withOptions({ shallow: false }).withDefault('')
   );
 
+  const [typeFilter, setTypeFilter] = useQueryState(
+    'type',
+    searchParams.type.withOptions({ shallow: false }).withDefault('')
+  );
+
   const [page, setPage] = useQueryState(
     'page',
     searchParams.page.withOptions({ shallow: false }).withDefault(1) // 添加immediate选项
@@ -36,18 +41,21 @@ export function useTableFilters() {
   const resetFilters = useCallback(() => {
     setSearchQuery(null);
     setStatusFilter(null);
+    setTypeFilter(null);
     setPage(1);
-  }, [setSearchQuery, setStatusFilter, setPage]);
+  }, [setSearchQuery, setStatusFilter, setTypeFilter, setPage]);
 
   const isAnyFilterActive = useMemo(() => {
-    return !!searchQuery || !!statusFilter;
-  }, [searchQuery, statusFilter]);
+    return !!searchQuery || !!statusFilter || !!typeFilter;
+  }, [searchQuery, statusFilter, typeFilter]);
 
   return {
     searchQuery,
     setSearchQuery,
     statusFilter,
     setStatusFilter,
+    typeFilter,
+    setTypeFilter,
     page,
     setPage,
     pageSize,

@@ -8,24 +8,25 @@ import * as z from 'zod';
 import { getSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger
-} from '@/components/ui/popover';
-import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { UserSelf } from '@/lib/types/user';
 import { toast } from 'sonner';
+import { SystemTokenCard } from '@/sections/profile/system-token-card';
 
 const formSchema = z.object({
   username: z.string().min(1, {
@@ -117,25 +118,62 @@ export default function UpdateUserForm() {
 
   if (isLoading) {
     return (
-      <Card className="mx-auto w-full">
-        <CardHeader>
-          <CardTitle className="text-left text-2xl font-bold">
-            <Skeleton className="h-8 w-48" />
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-8">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="space-y-2">
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-10 w-full" />
-            </div>
-          ))}
-          <div className="flex gap-4">
-            <Skeleton className="h-10 w-24" />
-            <Skeleton className="h-10 w-24" />
-          </div>
-        </CardContent>
-      </Card>
+      <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-12">
+        <div className="lg:col-span-8">
+          <Card className="rounded-xl border bg-card">
+            <CardHeader className="pb-4">
+              <Skeleton className="h-6 w-32" />
+              <Skeleton className="mt-2 h-4 w-64" />
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid gap-6 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-16" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-16" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+              <div className="grid gap-6 border-t pt-6 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        <div className="lg:col-span-4">
+          <Card className="rounded-xl border bg-card">
+            <CardHeader className="pb-3">
+              <div className="flex items-start gap-3">
+                <Skeleton className="h-10 w-10 rounded-lg" />
+                <div className="flex-1">
+                  <Skeleton className="h-5 w-24" />
+                  <Skeleton className="mt-2 h-10 w-full" />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-9 w-full" />
+              <div className="mt-2 flex gap-2">
+                <Skeleton className="h-8 w-16" />
+                <Skeleton className="h-8 w-24" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     );
   }
 
@@ -145,11 +183,6 @@ export default function UpdateUserForm() {
       ...values
     };
     if (!params.password) delete params.password;
-    // if (!session?.user?.id) {
-    //   delete params.github_id;
-    //   delete params.google_id;
-    //   delete params.email;
-    // }
     const res = await fetch(`/api/user/self`, {
       method: 'PUT',
       body: JSON.stringify(params),
@@ -159,127 +192,148 @@ export default function UpdateUserForm() {
     if (success) {
       router.push('/dashboard/setting');
       router.refresh();
+      toast.success('更新成功');
     } else {
       toast.error(message);
     }
   }
 
   return (
-    <Card className="mx-auto w-full">
-      <CardHeader>
-        <CardTitle className="text-left text-2xl font-bold">
-          User Information
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <div className="grid grid-cols-1 gap-6">
-              <FormField
-                control={form.control}
-                name="username"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Username</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter your username" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="grid grid-cols-1 gap-6">
-              <FormField
-                control={form.control}
-                name="display_name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Display name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter your display name" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="grid grid-cols-1 gap-6">
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="password"
-                        placeholder="Enter your password"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="grid grid-cols-1 gap-6">
-              <FormField
-                control={form.control}
-                name="github_id"
-                disabled
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>GitHub ID</FormLabel>
-                    <FormControl>
-                      <Input placeholder="This is read-only" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="grid grid-cols-1 gap-6">
-              <FormField
-                control={form.control}
-                name="google_id"
-                disabled
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Google ID</FormLabel>
-                    <FormControl>
-                      <Input placeholder="This is read-only" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="grid grid-cols-1 gap-6">
-              <FormField
-                control={form.control}
-                name="email"
-                disabled
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input placeholder="This is read-only" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="flex gap-4">
-              <Button type="button" onClick={() => window.history.back()}>
-                Go Back
-              </Button>
-              <Button type="submit">Submit</Button>
-            </div>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+    <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-12">
+      <div className="lg:col-span-8">
+        <Card className="rounded-xl border bg-card">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg font-semibold">用户信息</CardTitle>
+            <CardDescription className="text-sm text-muted-foreground">
+              管理您的账户基本信息与登录凭证
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-6"
+              >
+                <div className="grid gap-6 sm:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="username"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>用户名</FormLabel>
+                        <FormControl>
+                          <Input placeholder="请输入用户名" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="display_name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>显示名称</FormLabel>
+                        <FormControl>
+                          <Input placeholder="请输入显示名称" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>密码</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="password"
+                          placeholder="留空则不修改密码"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="grid gap-6 border-t pt-6 sm:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="github_id"
+                    disabled
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>GitHub ID</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="未绑定"
+                            className="bg-muted/50"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="google_id"
+                    disabled
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Google ID</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="未绑定"
+                            className="bg-muted/50"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    disabled
+                    render={({ field }) => (
+                      <FormItem className="sm:col-span-2">
+                        <FormLabel>邮箱</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="未绑定"
+                            className="bg-muted/50"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="flex flex-col-reverse gap-3 border-t pt-6 sm:flex-row sm:justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => window.history.back()}
+                  >
+                    返回
+                  </Button>
+                  <Button type="submit">保存更改</Button>
+                </div>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="space-y-6 lg:col-span-4">
+        <SystemTokenCard />
+      </div>
+    </div>
   );
 }

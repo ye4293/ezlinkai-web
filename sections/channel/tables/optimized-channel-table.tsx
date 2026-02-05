@@ -280,12 +280,14 @@ const OptimizedChannelTable = memo(
     const {
       searchQuery,
       statusFilter,
+      typeFilter,
       page,
       pageSize,
       setPage,
       setPageSize,
       setSearchQuery,
       setStatusFilter,
+      setTypeFilter,
       resetFilters,
       isAnyFilterActive
     } = useTableFilters();
@@ -336,6 +338,7 @@ const OptimizedChannelTable = memo(
     const {
       data: channels,
       total,
+      typeCounts,
       loading,
       error,
       refetch
@@ -343,8 +346,21 @@ const OptimizedChannelTable = memo(
       page,
       pageSize,
       keyword: searchQuery,
-      status: statusFilter
+      status: statusFilter,
+      type: typeFilter
     });
+
+    // 计算总数和可用的类型
+    const totalAllChannels = useMemo(() => {
+      return Object.values(typeCounts).reduce((sum, count) => sum + count, 0);
+    }, [typeCounts]);
+
+    // 只保留有渠道的类型
+    const availableChannelTypes = useMemo(() => {
+      return channelTypes.filter(
+        (ct) => typeCounts[ct.value] && typeCounts[ct.value] > 0
+      );
+    }, [channelTypes, typeCounts]);
 
     // 检测刷新标记，从编辑/创建页面返回时自动刷新数据
     useEffect(() => {
@@ -582,6 +598,81 @@ const OptimizedChannelTable = memo(
           onConfirm={deleteChannel ? handleDeleteOne : handleDeleteBatch}
           loading={batchLoading}
         />
+
+        {/* 渠道类型标签页 - 只显示有渠道的类型 */}
+        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+          <div className="flex min-w-max flex-wrap gap-1.5 border-b border-border/50 pb-3">
+            {/* 全部标签 */}
+            <button
+              onClick={() => {
+                setTypeFilter('');
+                setPage(1);
+              }}
+              className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
+                !typeFilter
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
+              }`}
+            >
+              全部
+              <span
+                className={`rounded-full px-1.5 py-0.5 text-xs font-normal ${
+                  !typeFilter
+                    ? 'bg-primary-foreground/20'
+                    : 'bg-muted-foreground/20'
+                }`}
+              >
+                {totalAllChannels}
+              </span>
+            </button>
+
+            {/* 只渲染有渠道的类型 */}
+            {availableChannelTypes.map((channelType) => {
+              const isActive = typeFilter === String(channelType.value);
+              const count = typeCounts[channelType.value] || 0;
+              const colorMap: { [key: string]: string } = {
+                green: 'bg-green-500 hover:bg-green-600',
+                blue: 'bg-blue-500 hover:bg-blue-600',
+                orange: 'bg-orange-500 hover:bg-orange-600',
+                black: 'bg-gray-800 hover:bg-gray-900',
+                olive: 'bg-lime-600 hover:bg-lime-700',
+                brown: 'bg-amber-700 hover:bg-amber-800',
+                violet: 'bg-violet-500 hover:bg-violet-600',
+                purple: 'bg-purple-500 hover:bg-purple-600',
+                teal: 'bg-teal-500 hover:bg-teal-600',
+                red: 'bg-red-500 hover:bg-red-600',
+                pink: 'bg-pink-500 hover:bg-pink-600',
+                yellow: 'bg-yellow-500 hover:bg-yellow-600',
+                gray: 'bg-gray-400 hover:bg-gray-500'
+              };
+              const bgColor = colorMap[channelType.color] || colorMap.gray;
+
+              return (
+                <button
+                  key={channelType.value}
+                  onClick={() => {
+                    setTypeFilter(String(channelType.value));
+                    setPage(1);
+                  }}
+                  className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
+                    isActive
+                      ? `${bgColor} text-white shadow-sm`
+                      : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
+                  }`}
+                >
+                  {channelType.text}
+                  <span
+                    className={`rounded-full px-1.5 py-0.5 text-xs font-normal ${
+                      isActive ? 'bg-white/20' : 'bg-muted-foreground/20'
+                    }`}
+                  >
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
         {/* 搜索和筛选区域 */}
         <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

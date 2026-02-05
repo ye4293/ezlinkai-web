@@ -58,13 +58,15 @@ export default async function ChannelListingPage({}: TChannelListingPage) {
   const page = searchParamsCache.get('page');
   const search = searchParamsCache.get('q');
   const status = searchParamsCache.get('status');
+  const type = searchParamsCache.get('type');
   const pageLimit = searchParamsCache.get('limit');
 
   const params = new URLSearchParams({
     page: String(page),
     pagesize: String(pageLimit),
     ...(search && { keyword: search }),
-    ...(status && { status: status })
+    ...(status && { status: status }),
+    ...(type && { type: type })
   });
 
   const session = await auth();

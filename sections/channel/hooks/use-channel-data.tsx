@@ -13,6 +13,7 @@ interface ChannelListResponse {
   list: Channel[];
   total: number;
   currentPage: number;
+  type_counts?: Record<number, number>;
 }
 
 interface UseChannelDataParams {
@@ -20,11 +21,13 @@ interface UseChannelDataParams {
   pageSize: number;
   keyword?: string;
   status?: string;
+  type?: string;
 }
 
 interface UseChannelDataReturn {
   data: Channel[];
   total: number;
+  typeCounts: Record<number, number>;
   loading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
@@ -34,10 +37,12 @@ export const useChannelData = ({
   page,
   pageSize,
   keyword,
-  status
+  status,
+  type
 }: UseChannelDataParams): UseChannelDataReturn => {
   const [data, setData] = useState<Channel[]>([]);
   const [total, setTotal] = useState(0);
+  const [typeCounts, setTypeCounts] = useState<Record<number, number>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,14 +55,16 @@ export const useChannelData = ({
         page: String(page),
         pagesize: String(pageSize),
         ...(keyword && { keyword }),
-        ...(status && { status })
+        ...(status && { status }),
+        ...(type && { type })
       });
 
       const cacheKey = generateCacheKey('channels', {
         page,
         pageSize,
         keyword,
-        status
+        status,
+        type
       });
 
       const response = await fetchWithCache(
@@ -69,12 +76,16 @@ export const useChannelData = ({
         2 * 60 * 1000 // 2分钟缓存
       );
 
-      // response 是从 clientFetch 返回的，结构是 { data: { list: [], total: 0 } }
+      // response 是从 clientFetch 返回的，结构是 { data: { list: [], total: 0, type_counts: {} } }
       const data = response as unknown as { data: ChannelListResponse };
 
       if (data?.data?.list) {
         setData(data.data.list);
         setTotal(data.data.total || 0);
+        // 保存类型统计数据
+        if (data.data.type_counts) {
+          setTypeCounts(data.data.type_counts);
+        }
       } else {
         setData([]);
         setTotal(0);
@@ -86,7 +97,7 @@ export const useChannelData = ({
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, keyword, status]);
+  }, [page, pageSize, keyword, status, type]);
 
   const refetch = useCallback(async () => {
     // 清除相关缓存，确保获取最新数据
@@ -101,6 +112,7 @@ export const useChannelData = ({
   return {
     data,
     total,
+    typeCounts,
     loading,
     error,
     refetch
