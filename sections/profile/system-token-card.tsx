@@ -12,11 +12,13 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
 import { Copy, Key, Loader2 } from 'lucide-react';
 import { useState } from 'react';
+import { useSession } from 'next-auth/react';
 
 export function SystemTokenCard() {
   const [systemToken, setSystemToken] = useState('');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { update: updateSession } = useSession();
 
   const generateAccessToken = async () => {
     try {
@@ -26,6 +28,10 @@ export function SystemTokenCard() {
       if (json.success && json.data) {
         setSystemToken(json.data);
         await navigator.clipboard.writeText(json.data);
+
+        // 更新 NextAuth session 中的 accessToken，避免权限失效
+        await updateSession({ accessToken: json.data });
+
         toast({
           title: '令牌已重置',
           description: '新令牌已复制到剪贴板，请妥善保管'

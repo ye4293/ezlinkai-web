@@ -282,7 +282,13 @@ const authConfig = {
       // return 'http://localhost:3001'; // 替换为您需要的端口
       return params.url; // 替换为您需要的端口
     },
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, trigger, session }) {
+      // 处理 session 更新（如重新生成 accessToken）
+      if (trigger === 'update' && session?.accessToken) {
+        token.accessToken = session.accessToken;
+        return token;
+      }
+
       if (user) {
         console.log('user******', user, account);
         token.id = String(

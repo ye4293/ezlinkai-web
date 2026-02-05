@@ -35,6 +35,8 @@ interface Option {
 }
 
 export default function SettingPage() {
+  // ==================== 通用设置状态 ====================
+  const [systemName, setSystemName] = useState('');
   const [retryCount, setRetryCount] = useState(0);
   const [autoDisableEnabled, setAutoDisableEnabled] = useState(false);
   const [autoDisableKeywords, setAutoDisableKeywords] = useState('');
@@ -77,6 +79,15 @@ export default function SettingPage() {
       const result = await response.json();
       if (result.success && result.data) {
         const options = result.data;
+
+        // 加载系统名称
+        const systemNameOption = options.find(
+          (o: Option) => o.key === 'SystemName'
+        );
+        if (systemNameOption) {
+          setSystemName(systemNameOption.value || '');
+        }
+
         const retryCountOption = options.find(
           (o: Option) => o.key === 'RetryTimes'
         );
@@ -201,6 +212,22 @@ export default function SettingPage() {
   const handleSave = async () => {
     setIsLoading(true);
     try {
+      // 保存系统名称
+      const systemNameResponse = await fetch('/api/option', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          key: 'SystemName',
+          value: systemName
+        })
+      });
+
+      if (!systemNameResponse.ok) {
+        throw new Error('Failed to save system name');
+      }
+
       // 保存重试次数
       const retryResponse = await fetch('/api/option', {
         method: 'PUT',
@@ -476,6 +503,19 @@ export default function SettingPage() {
               <CardTitle>通用设置</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="grid w-full max-w-sm items-center gap-1.5">
+                <Label htmlFor="system-name">系统名称</Label>
+                <Input
+                  id="system-name"
+                  type="text"
+                  value={systemName}
+                  onChange={(e) => setSystemName(e.target.value)}
+                  placeholder="例如：生产环境、客户A站点"
+                />
+                <p className="text-sm text-muted-foreground">
+                  设置系统名称后，所有推送消息（邮件、飞书等）都会带上此名称前缀，方便区分不同站点
+                </p>
+              </div>
               <div className="grid w-full max-w-sm items-center gap-1.5">
                 <Label htmlFor="retry-count">失败重试次数</Label>
                 <Input
