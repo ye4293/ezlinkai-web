@@ -2178,6 +2178,15 @@ export default function ChannelForm() {
                               keyPlaceholder="请求的模型名称"
                               valuePlaceholder="实际发送的模型名称"
                               extraText="键为请求中的模型名称，值为要替换的模型名称"
+                              channelModels={form.watch('models') || []}
+                              onAddModels={(models) => {
+                                const currentModels =
+                                  form.getValues('models') || [];
+                                const merged = Array.from(
+                                  new Set([...currentModels, ...models])
+                                );
+                                form.setValue('models', merged);
+                              }}
                             />
                           </FormControl>
                           <FormMessage />

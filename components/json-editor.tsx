@@ -30,6 +30,8 @@ interface JSONEditorProps {
   templateLabel?: string;
   keyPlaceholder?: string;
   valuePlaceholder?: string;
+  channelModels?: string[];
+  onAddModels?: (models: string[]) => void;
 }
 
 // 唯一 ID 生成器
@@ -45,7 +47,9 @@ export default function JSONEditor({
   template,
   templateLabel = '填入模板',
   keyPlaceholder = '键名（请求的模型）',
-  valuePlaceholder = '值（实际发送的模型）'
+  valuePlaceholder = '值（实际发送的模型）',
+  channelModels,
+  onAddModels
 }: JSONEditorProps) {
   // 将对象转换为键值对数组
   const objectToKeyValueArray = useCallback(
@@ -125,6 +129,20 @@ export default function JSONEditor({
 
     return duplicates;
   }, [keyValuePairs]);
+
+  const missingModels = useMemo(() => {
+    if (!channelModels || !onAddModels) return [];
+    const missing = new Set<string>();
+    keyValuePairs.forEach((pair) => {
+      if (pair.key && !channelModels.includes(pair.key)) {
+        missing.add(pair.key);
+      }
+      if (pair.value && !channelModels.includes(pair.value)) {
+        missing.add(pair.value);
+      }
+    });
+    return Array.from(missing);
+  }, [keyValuePairs, channelModels, onAddModels]);
 
   // 数据同步 - 当value变化时更新键值对数组
   useEffect(() => {
@@ -333,6 +351,41 @@ export default function JSONEditor({
             </div>
             <div className="mt-1 text-xs opacity-80">
               注意：JSON中重复的键只会保留最后一个同名键的值
+            </div>
+          </div>
+        )}
+
+        {/* 未加入渠道的模型提示 */}
+        {missingModels.length > 0 && onAddModels && (
+          <div className="mb-3 rounded-md bg-blue-50 p-3 text-sm text-blue-700 dark:bg-blue-900/20 dark:text-blue-400">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <Plus className="h-4 w-4 shrink-0" />
+                  <span className="font-medium">
+                    发现 {missingModels.length} 个模型未加入渠道：
+                  </span>
+                </div>
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {missingModels.map((model) => (
+                    <span
+                      key={model}
+                      className="inline-block rounded bg-blue-100 px-1.5 py-0.5 text-xs dark:bg-blue-800/40"
+                    >
+                      {model}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="shrink-0 border-blue-300 text-blue-700 hover:bg-blue-100 dark:border-blue-600 dark:text-blue-400 dark:hover:bg-blue-900/40"
+                onClick={() => onAddModels(missingModels)}
+              >
+                全部加入渠道
+              </Button>
             </div>
           </div>
         )}
