@@ -24,7 +24,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { apiKey: _, ...payload } = requestBody;
+    const payload = { ...(requestBody as Record<string, unknown>) };
+    delete payload.apiKey;
     const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
     const response = await fetch(`${baseUrl}/v1/chat/completions`, {

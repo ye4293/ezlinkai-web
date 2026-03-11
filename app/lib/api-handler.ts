@@ -105,7 +105,13 @@ export class ApiHandler {
       });
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
-        console.error('API Handler Error:', error);
+        process.stderr.write(
+          `API Handler Error: ${
+            error instanceof Error
+              ? error.stack ?? error.message
+              : String(error)
+          }\n`
+        );
       }
       return new Response(
         JSON.stringify({

@@ -98,22 +98,21 @@ const DEFAULT_SYSTEM_PROMPT = 'You are a helpful assistant.';
 
 function normalizeModelOptions(data: unknown): ModelOption[] {
   if (Array.isArray(data)) {
-    return data
-      .map((item) => {
-        if (typeof item === 'string') {
-          return { id: item, object: 'model' as const };
-        }
-        if (
-          item &&
-          typeof item === 'object' &&
-          'id' in item &&
-          typeof item.id === 'string'
-        ) {
-          return { id: item.id, object: 'model' as const };
-        }
-        return null;
-      })
-      .filter((item): item is ModelOption => item !== null);
+    return data.reduce<ModelOption[]>((models, item) => {
+      if (typeof item === 'string') {
+        models.push({ id: item, object: 'model' });
+        return models;
+      }
+      if (
+        item &&
+        typeof item === 'object' &&
+        'id' in item &&
+        typeof item.id === 'string'
+      ) {
+        models.push({ id: item.id, object: 'model' });
+      }
+      return models;
+    }, []);
   }
 
   if (!data || typeof data !== 'object') {
