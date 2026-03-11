@@ -1,4 +1,3 @@
-import { cookies } from 'next/headers';
 import { auth } from '@/auth';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import { Separator } from '@/components/ui/separator';
@@ -31,28 +30,6 @@ export default async function TopupPage() {
   );
   const { data: userData } = await userRes.json();
 
-  // Fetch crypto payment info
-  let topUpLink = '';
-  let paymentUri = '';
-  try {
-    const payRes = await fetch(
-      process.env.NEXT_PUBLIC_API_BASE_URL + `/api/pay/get_qrcode`,
-      {
-        credentials: 'include',
-        headers: {
-          Authorization: `Bearer ${session?.user?.accessToken}`
-        }
-      }
-    );
-    const upLinkData = await payRes.json();
-    if (upLinkData?.data?.qr_code) {
-      topUpLink = `data:image/png;base64,${upLinkData.data.qr_code}`;
-    }
-    paymentUri = upLinkData?.data?.payment_uri || '';
-  } catch (e) {
-    console.error('Failed to fetch payment QR code');
-  }
-
   return (
     <PageContainer scrollable>
       <div className="space-y-6 pb-8">
@@ -82,7 +59,7 @@ export default async function TopupPage() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
           {/* Left Column: Topup & Payment */}
           <div className="flex flex-col gap-6 lg:col-span-7">
-            <PaymentSection topUpLink={topUpLink} paymentUri={paymentUri} />
+            <PaymentSection />
           </div>
 
           {/* Right Column: Invite & Rewards */}
