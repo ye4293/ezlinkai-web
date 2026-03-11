@@ -12,16 +12,7 @@ import { useTableFilters, STATUS_OPTIONS } from './use-table-filters';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import {
-  Trash,
-  Ban,
-  CircleSlash2,
-  Edit,
-  MoreHorizontal,
-  Lightbulb,
-  ListTree,
-  KeyRound
-} from 'lucide-react';
+import { Trash, Ban, CircleSlash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AlertModal } from '@/components/modal/alert-modal';
 import { useRouter } from 'next/navigation';
@@ -29,14 +20,8 @@ import MultiKeyManagementModal from '../multi-key-modal';
 import { useSession } from 'next-auth/react';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu';
 import { ModelsModal } from './models-modal';
+import type { CSSProperties } from 'react';
 
 interface OptimizedChannelTableProps {
   initialData?: Channel[];
@@ -61,6 +46,38 @@ const MobileChannelCard = memo(
     const router = useRouter();
     const [testLoading, setTestLoading] = useState(false);
     const [modelsModalOpen, setModelsModalOpen] = useState(false);
+    const mobileActionButtonClass =
+      'h-9 w-full rounded-md border transition-colors disabled:cursor-not-allowed disabled:opacity-50';
+    const mobileDangerButtonClass =
+      'h-10 w-full rounded-md transition-colors disabled:cursor-not-allowed disabled:opacity-50';
+    const mobileActionButtonStyle: CSSProperties = {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: '100%',
+      height: '36px',
+      padding: '0 12px',
+      borderRadius: '8px',
+      border: '1px solid hsl(var(--border))',
+      backgroundColor: 'hsl(var(--background))',
+      color: 'hsl(var(--foreground))',
+      fontSize: '12px',
+      fontWeight: 500
+    };
+    const mobileDangerButtonStyle: CSSProperties = {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: '100%',
+      height: '40px',
+      padding: '0 12px',
+      borderRadius: '8px',
+      border: 'none',
+      backgroundColor: '#dc2626',
+      color: '#ffffff',
+      fontSize: '14px',
+      fontWeight: 600
+    };
 
     // 获取状态文本和颜色
     const statusMap = {
@@ -122,41 +139,13 @@ const MobileChannelCard = memo(
     return (
       <Card className="mb-4 overflow-hidden">
         <CardContent className="p-4">
-          <div className="mb-3 flex items-center justify-between border-b pb-3">
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-sm text-muted-foreground">
+          <div className="mb-3 border-b pb-3">
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="shrink-0 font-mono text-sm text-muted-foreground">
                 ID: {channel.id}
               </span>
-              <div className="font-medium">{channel.name}</div>
+              <div className="truncate font-medium">{channel.name}</div>
             </div>
-            <DropdownMenu modal={false}>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>操作</DropdownMenuLabel>
-                {channel.multi_key_info?.is_multi_key && (
-                  <DropdownMenuItem onClick={() => onManageKeys(channel)}>
-                    <KeyRound className="mr-2 h-4 w-4" /> 多密钥管理
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuItem
-                  onClick={() =>
-                    router.push(`/dashboard/channel/${channel.id}`)
-                  }
-                >
-                  <Edit className="mr-2 h-4 w-4" /> 编辑
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onDelete(channel)}>
-                  <Trash className="mr-2 h-4 w-4" /> 删除
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setModelsModalOpen(true)}>
-                  <ListTree className="mr-2 h-4 w-4" /> 查看模型
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
 
           <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
@@ -234,33 +223,72 @@ const MobileChannelCard = memo(
             </div>
           </div>
 
-          <div className="mt-4 flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 flex-1 text-xs"
-              onClick={testChannel}
-              disabled={testLoading}
-            >
-              <Lightbulb className="mr-2 h-3 w-3" />
-              {testLoading ? '测试中...' : '测试'}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 flex-1 text-xs"
-              onClick={() => handleStatusChange(channel.status === 1 ? 2 : 1)}
-            >
-              {channel.status === 1 ? (
-                <>
-                  <Ban className="mr-2 h-3 w-3" /> 禁用
-                </>
-              ) : (
-                <>
-                  <CircleSlash2 className="mr-2 h-3 w-3" /> 启用
-                </>
+          <div className="notranslate mt-4 border-t pt-4" translate="no">
+            <div className="space-y-2" translate="no">
+              <button
+                type="button"
+                className={mobileActionButtonClass}
+                style={mobileActionButtonStyle}
+                translate="no"
+                onClick={testChannel}
+                disabled={testLoading}
+              >
+                {testLoading ? '测试中...' : '测试'}
+              </button>
+              <button
+                type="button"
+                className={mobileActionButtonClass}
+                style={mobileActionButtonStyle}
+                translate="no"
+                onClick={() => handleStatusChange(channel.status === 1 ? 2 : 1)}
+              >
+                {channel.status === 1 ? '禁用' : '启用'}
+              </button>
+              <button
+                type="button"
+                className={mobileActionButtonClass}
+                style={mobileActionButtonStyle}
+                translate="no"
+                onClick={() => router.push(`/dashboard/channel/${channel.id}`)}
+              >
+                编辑
+              </button>
+              <button
+                type="button"
+                className={mobileActionButtonClass}
+                style={mobileActionButtonStyle}
+                translate="no"
+                onClick={() => setModelsModalOpen(true)}
+              >
+                查看模型
+              </button>
+              {channel.multi_key_info?.is_multi_key && (
+                <button
+                  type="button"
+                  className={mobileActionButtonClass}
+                  style={mobileActionButtonStyle}
+                  translate="no"
+                  onClick={() => onManageKeys(channel)}
+                >
+                  多密钥管理
+                </button>
               )}
-            </Button>
+            </div>
+
+            <div className="mt-3 rounded-lg border border-red-500/20 bg-red-500/5 p-2">
+              <button
+                type="button"
+                className={mobileDangerButtonClass}
+                style={mobileDangerButtonStyle}
+                translate="no"
+                onClick={() => onDelete(channel)}
+              >
+                删除渠道
+              </button>
+              <p className="mt-1 text-center text-[11px] text-muted-foreground">
+                删除后不可恢复
+              </p>
+            </div>
           </div>
         </CardContent>
 
@@ -600,8 +628,8 @@ const OptimizedChannelTable = memo(
         />
 
         {/* 渠道类型标签页 - 只显示有渠道的类型 */}
-        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <div className="flex min-w-max flex-wrap gap-1.5 border-b border-border/50 pb-3">
+        <div className="overflow-x-auto">
+          <div className="flex w-max gap-1.5 border-b border-border/50 pb-3">
             {/* 全部标签 */}
             <button
               onClick={() => {
@@ -744,9 +772,9 @@ const OptimizedChannelTable = memo(
             <div className="absolute inset-0 bg-black bg-opacity-20"></div>
             {/* 加载提示 */}
             <div className="relative duration-300 animate-in zoom-in-50">
-              <div className="inline-flex items-center rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-4 text-lg font-bold text-white shadow-2xl ring-4 ring-white ring-opacity-50">
+              <div className="inline-flex items-center rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-3 text-base font-bold text-white shadow-2xl ring-4 ring-white ring-opacity-50 sm:px-8 sm:py-4 sm:text-lg">
                 <svg
-                  className="-ml-1 mr-4 h-8 w-8 animate-spin"
+                  className="-ml-1 mr-3 h-6 w-6 animate-spin sm:mr-4 sm:h-8 sm:w-8"
                   fill="none"
                   viewBox="0 0 24 24"
                 >
@@ -764,8 +792,8 @@ const OptimizedChannelTable = memo(
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   />
                 </svg>
-                <span className="text-xl">正在处理...</span>
-                <div className="ml-4 flex space-x-2">
+                <span className="text-base sm:text-xl">正在处理...</span>
+                <div className="ml-2 flex space-x-2 sm:ml-4">
                   <div className="h-3 w-3 animate-bounce rounded-full bg-white"></div>
                   <div
                     className="h-3 w-3 animate-bounce rounded-full bg-white"
@@ -797,11 +825,11 @@ const OptimizedChannelTable = memo(
             />
           ))}
           {/* 移动端分页控制 */}
-          <div className="flex items-center justify-between border-t pt-4">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-t pt-4">
             <span className="text-sm text-muted-foreground">
               共 {displayTotal} 条
             </span>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"

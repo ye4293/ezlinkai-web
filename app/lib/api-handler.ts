@@ -22,9 +22,14 @@ export class ApiHandler {
 
   private async getAuthHeaders() {
     const session = await auth();
-    return session?.user?.accessToken
-      ? { Authorization: `Bearer ${session.user.accessToken}` }
-      : {};
+    if (!session?.user?.accessToken) return {};
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${session.user.accessToken}`
+    };
+    if (session.user.id) {
+      headers['Ezlinkai-User'] = String(session.user.id);
+    }
+    return headers;
   }
 
   private async handleRequest(req: NextRequest, method: string) {

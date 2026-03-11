@@ -91,15 +91,17 @@ export default async function ChannelListingPage({}: TChannelListingPage) {
       <div className="space-y-4">
         <Breadcrumbs items={breadcrumbItems} />
 
-        <div className="flex items-start justify-between">
-          <Heading
-            title={`Channels (${totalData})`}
-            description="Manage channels (Server side table functionalities.)"
-          />
+        <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+          <div className="min-w-0 flex-1">
+            <Heading
+              title={`Channels (${totalData})`}
+              description="Manage channels (Server side table functionalities.)"
+            />
+          </div>
 
           <Link
             href={'/dashboard/channel/create'}
-            className={cn(buttonVariants({ variant: 'default' }))}
+            className={cn(buttonVariants({ variant: 'default' }), 'shrink-0')}
           >
             <Plus className="mr-2 h-4 w-4" /> Add New
           </Link>

@@ -1,81 +1,29 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import React from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
-import { Toaster, toast } from 'sonner';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger
-} from '@/components/ui/popover';
+import { toast } from 'sonner';
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
-import { CalendarIcon } from '@radix-ui/react-icons';
-import { addDays, format, addMonths, addHours, addMinutes } from 'date-fns';
-import { renderQuotaWithPrompt } from '@/utils/render';
+import { KeyRound } from 'lucide-react';
 
 const formSchema = z.object({
   redemptionCode: z.string().min(1, {
-    message: 'Name is required.'
+    message: 'Code is required.'
   })
 });
 
 export default function TopupForm() {
-  // const { tokenId } = useParams();
-
-  const [isExpired, setIsExpired] = useState<Boolean | null>(null);
-  const [tokenData, setTokenData] = useState<Object | null>(null);
-
-  // useEffect(() => {
-  //   // 获取令牌详情
-  //   const getTokenDetail = async () => {
-  //     if (!tokenId || tokenId === 'create') return;
-
-  //     const res = await fetch(`/api/token/${tokenId}`, {
-  //       credentials: 'include'
-  //     });
-  //     const { data } = await res.json();
-  //     console.log('---data---', data);
-  //     setTokenData(data);
-  //     setIsExpired(data.expired_time === -1 ? true : false);
-
-  //     // 填充表单数据
-  //     form.reset({
-  //       /** 名称 */
-  //       name: data.name,
-  //       /** 过期时间 */
-  //       expired_time:
-  //         data.expired_time === -1
-  //           ? undefined
-  //           : new Date(data.expired_time * 1000),
-  //       /** 过期时间显示 */
-  //       // expired_time_show: data.expired_time === -1 ? true : undefined,
-  //       /** 额度 */
-  //       remain_quota: data.remain_quota,
-  //       /** 是否是无限额度 */
-  //       unlimited_quota: data.unlimited_quota
-  //       /** token_remind_threshold */
-  //       // token_remind_threshold: data.token_remind_threshold
-  //     });
-  //   };
-
-  //   getTokenDetail();
-  // }, [tokenId]);
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -84,66 +32,57 @@ export default function TopupForm() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values);
     const params = {
       key: values.redemptionCode
-      // group: values.groups.join(','),
-      // models: values.models.join(',')
     };
-    console.log('params', params);
-    // delete params.expired_time_show
-    // params.type = Number(params.type);
-    // delete params.id;
-    // delete params.groups;
 
-    const res = await fetch(`/api/user/topup`, {
-      method: 'POST',
-      body: JSON.stringify(params),
-      credentials: 'include'
-    });
-    const { message, success } = await res.json();
-    if (success) {
-      toast.success(message || 'Successful redemption!');
-      // window.location.href = '/dashboard/token';
-    } else {
-      toast.error(message || 'Failure to redeem!');
+    try {
+      const res = await fetch(`/api/user/topup`, {
+        method: 'POST',
+        body: JSON.stringify(params),
+        credentials: 'include'
+      });
+      const { message, success } = await res.json();
+      if (success) {
+        toast.success(message || 'Successful redemption!');
+        form.reset();
+      } else {
+        toast.error(message || 'Failure to redeem!');
+      }
+    } catch (error) {
+      toast.error('An error occurred during redemption.');
     }
   }
 
   return (
-    <Card className="mx-auto w-full">
-      <CardHeader>
-        <CardTitle className="text-left text-2xl font-bold">
-          redemption
+    <Card className="mt-0">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+          <KeyRound className="h-5 w-5 text-muted-foreground" />
+          Redeem Code
         </CardTitle>
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="redemptionCode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Redemption code</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Enter your redemption code"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="flex items-end">
-                <Button type="submit" disabled={!form.formState.isValid}>
-                  Redeem
-                </Button>
-                <Toaster position="top-center" />
-              </div>
-            </div>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex gap-3">
+            <FormField
+              control={form.control}
+              name="redemptionCode"
+              render={({ field }) => (
+                <FormItem className="flex-1 space-y-0">
+                  <FormControl>
+                    <Input
+                      placeholder="Enter your redemption code"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage className="mt-1" />
+                </FormItem>
+              )}
+            />
+            <Button type="submit" disabled={!form.formState.isValid}>
+              Redeem
+            </Button>
           </form>
         </Form>
       </CardContent>

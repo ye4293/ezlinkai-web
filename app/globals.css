@@ -127,9 +127,16 @@
   * {
     @apply border-border;
   }
+  html,
   body {
     @apply box-border bg-background text-foreground;
+    overflow-x: hidden !important;
+    max-width: 100vw;
   }
+}
+
+[data-radix-scroll-area-viewport] {
+  overflow-x: hidden !important;
 }
 
 @layer utilities {
