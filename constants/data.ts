@@ -243,6 +243,13 @@ export const navItems: NavItem[] = [
         roles: [100]
       },
       {
+        title: '支付设置',
+        href: '/dashboard/setting/payment',
+        icon: 'billing',
+        label: 'payment-setting',
+        roles: [100]
+      },
+      {
         title: '分组与模型定价设置',
         href: '/dashboard/setting/pricing',
         icon: 'billing',

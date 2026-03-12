@@ -1,32 +1,122 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
-import Image from 'next/image';
 import { CreditCard, Wallet, QrCode } from 'lucide-react';
 import { toast } from 'sonner';
 
 const FIXED_AMOUNTS = [10, 20, 50, 100, 200, 500];
 
-export default function PaymentSection({
-  topUpLink,
-  paymentUri
-}: {
-  topUpLink: string;
-  paymentUri: string;
-}) {
+interface TopupInfo {
+  enable_online_topup: boolean;
+  min_topup: number;
+  price: number;
+  quota_per_unit: number;
+}
+
+const submitEpayForm = (
+  actionUrl: string,
+  params: Record<string, string>,
+  useSameWindow: boolean
+) => {
+  const form = document.createElement('form');
+  form.action = actionUrl;
+  form.method = 'POST';
+  form.target = useSameWindow ? '_self' : '_blank';
+
+  Object.entries(params).forEach(([key, value]) => {
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = key;
+    input.value = value;
+    form.appendChild(input);
+  });
+
+  document.body.appendChild(form);
+  form.submit();
+  document.body.removeChild(form);
+};
+
+export default function PaymentSection() {
   const [amount, setAmount] = useState<number | ''>('');
-  const [paymentMethod, setPaymentMethod] = useState('stripe');
+  const [paymentMethod, setPaymentMethod] = useState('wxpay');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [topupInfo, setTopupInfo] = useState<TopupInfo | null>(null);
+  const [payAmount, setPayAmount] = useState('');
+
+  const isEpayMethod = paymentMethod === 'wxpay' || paymentMethod === 'alipay';
+
+  useEffect(() => {
+    const fetchTopupInfo = async () => {
+      try {
+        const res = await fetch('/api/user/topup/info', {
+          credentials: 'include'
+        });
+        const result = await res.json();
+        if (res.ok && result.success && result.data) {
+          setTopupInfo(result.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch topup info', error);
+      }
+    };
+
+    fetchTopupInfo();
+  }, []);
+
+  useEffect(() => {
+    if (!isEpayMethod || !amount || amount <= 0) {
+      setPayAmount('');
+      return;
+    }
+
+    let cancelled = false;
+
+    const fetchPayAmount = async () => {
+      try {
+        const res = await fetch('/api/user/amount', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            amount: Number(amount)
+          })
+        });
+        const result = await res.json();
+        if (!cancelled) {
+          if (res.ok && result.success) {
+            setPayAmount(String(result.data || ''));
+          } else {
+            setPayAmount('');
+          }
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setPayAmount('');
+        }
+      }
+    };
+
+    fetchPayAmount();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [amount, isEpayMethod]);
 
   const handlePay = async () => {
     if (!amount || amount <= 0) {
-      toast.error('Please select or enter a valid amount.');
+      toast.error('请选择或输入正确的充值数量');
       return;
     }
+
+    setIsSubmitting(true);
 
     if (paymentMethod === 'stripe') {
       // Map known amounts to charge IDs based on previous StripePage logic
@@ -36,42 +126,92 @@ export default function PaymentSection({
       else if (amount === 50) chargeId = 3;
 
       if (chargeId === 0) {
-        toast.info(
-          `Custom amount $${amount} via Stripe is not fully supported by backend yet. Mocking request...`
-        );
+        toast.info(`当前仅支持部分固定 Stripe 面额，暂不支持该金额`);
+        setIsSubmitting(false);
         return;
       }
 
       try {
         const res = await fetch(`/api/charge/create_order`, {
           method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
           body: JSON.stringify({ charge_id: chargeId }),
           credentials: 'include'
         });
         const { data, success } = await res.json();
         if (success && data?.charge_url) {
-          window.open(data.charge_url);
+          window.open(data.charge_url, '_blank');
         } else {
-          toast.error('Failed to create Stripe order.');
+          toast.error('创建 Stripe 订单失败');
         }
       } catch (e) {
-        toast.error('Error creating order.');
+        toast.error('创建 Stripe 订单时出错');
+      } finally {
+        setIsSubmitting(false);
       }
     } else {
-      toast.info(
-        `Payment via ${paymentMethod} for $${amount} initiated (Mock).`
-      );
+      if (!topupInfo?.enable_online_topup) {
+        toast.error('管理员尚未开启易支付');
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (topupInfo?.min_topup && Number(amount) < topupInfo.min_topup) {
+        toast.error(`充值数量不能小于 ${topupInfo.min_topup}`);
+        setIsSubmitting(false);
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/user/pay', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            amount: Number(amount),
+            payment_method: paymentMethod,
+            return_url: `${window.location.origin}/dashboard/topup`
+          })
+        });
+
+        const result = await res.json();
+        if (!res.ok || !result.success) {
+          toast.error(result.message || '创建易支付订单失败');
+          return;
+        }
+
+        if (!result.url || !result.data) {
+          toast.error('易支付返回参数不完整');
+          return;
+        }
+
+        const useSameWindow = window.matchMedia('(max-width: 768px)').matches;
+        submitEpayForm(
+          result.url,
+          result.data as Record<string, string>,
+          useSameWindow
+        );
+      } catch (error) {
+        console.error('Create epay order failed', error);
+        toast.error('发起易支付订单失败');
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
   return (
     <Card className="h-full">
       <CardHeader>
-        <CardTitle>Account Top-up</CardTitle>
+        <CardTitle>账户充值</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-3">
-          <Label>Select Amount ($)</Label>
+          <Label>{isEpayMethod ? '充值数量' : '选择金额 ($)'}</Label>
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-3">
             {FIXED_AMOUNTS.map((val) => (
               <Button
@@ -80,16 +220,18 @@ export default function PaymentSection({
                 className="w-full"
                 onClick={() => setAmount(val)}
               >
-                ${val}
+                {isEpayMethod ? val : `$${val}`}
               </Button>
             ))}
           </div>
           <div className="mt-4 flex items-center gap-3">
-            <Label className="w-32 whitespace-nowrap">Custom Amount:</Label>
+            <Label className="w-32 whitespace-nowrap">
+              {isEpayMethod ? '自定义数量:' : '自定义金额:'}
+            </Label>
             <Input
               type="number"
               min="1"
-              placeholder="Enter amount"
+              placeholder={isEpayMethod ? '输入充值数量' : '输入金额'}
               value={amount}
               onChange={(e) =>
                 setAmount(e.target.value ? Number(e.target.value) : '')
@@ -97,10 +239,23 @@ export default function PaymentSection({
               className="flex-1"
             />
           </div>
+          {isEpayMethod && (
+            <div className="rounded-lg border bg-muted/20 p-4 text-sm text-muted-foreground">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                <span>最低充值：{topupInfo?.min_topup ?? '-'}</span>
+                <span>
+                  单价：{topupInfo?.price ? `¥${topupInfo.price}` : '-'}
+                </span>
+              </div>
+              <div className="mt-2 font-medium text-foreground">
+                应付金额：{payAmount ? `¥${payAmount}` : '--'}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="space-y-3">
-          <Label>Payment Method</Label>
+          <Label>支付方式</Label>
           <Tabs
             value={paymentMethod}
             onValueChange={setPaymentMethod}
@@ -111,13 +266,13 @@ export default function PaymentSection({
                 <CreditCard className="h-4 w-4 text-blue-500" />
                 <span className="hidden sm:inline">Stripe</span>
               </TabsTrigger>
-              <TabsTrigger value="wechat" className="flex items-center gap-2">
+              <TabsTrigger value="wxpay" className="flex items-center gap-2">
                 <QrCode className="h-4 w-4 text-green-500" />
-                <span className="hidden sm:inline">WeChat</span>
+                <span className="hidden sm:inline">微信</span>
               </TabsTrigger>
               <TabsTrigger value="alipay" className="flex items-center gap-2">
                 <Wallet className="h-4 w-4 text-blue-400" />
-                <span className="hidden sm:inline">Alipay</span>
+                <span className="hidden sm:inline">支付宝</span>
               </TabsTrigger>
             </TabsList>
 
@@ -126,16 +281,16 @@ export default function PaymentSection({
               className="mt-4 rounded-lg border bg-muted/20 p-4"
             >
               <p className="text-center text-sm text-muted-foreground">
-                Pay securely with your credit card via Stripe.
+                使用 Stripe 进行信用卡支付。
               </p>
             </TabsContent>
 
             <TabsContent
-              value="wechat"
+              value="wxpay"
               className="mt-4 rounded-lg border bg-muted/20 p-4"
             >
               <p className="text-center text-sm text-muted-foreground">
-                Pay easily using WeChat Pay.
+                通过易支付拉起微信支付。
               </p>
             </TabsContent>
 
@@ -144,47 +299,24 @@ export default function PaymentSection({
               className="mt-4 rounded-lg border bg-muted/20 p-4"
             >
               <p className="text-center text-sm text-muted-foreground">
-                Pay easily using Alipay.
+                通过易支付拉起支付宝支付。
               </p>
             </TabsContent>
           </Tabs>
         </div>
 
-        <Button className="w-full" size="lg" onClick={handlePay}>
-          Pay Now {amount ? `($${amount})` : ''}
+        <Button
+          className="w-full"
+          size="lg"
+          onClick={handlePay}
+          disabled={isSubmitting}
+        >
+          {isSubmitting
+            ? '提交中...'
+            : isEpayMethod
+            ? `立即支付${payAmount ? ` (¥${payAmount})` : ''}`
+            : `Pay Now${amount ? ` ($${amount})` : ''}`}
         </Button>
-
-        {/* Crypto Option (Legacy) - Hidden per request */}
-        {/*
-        <div className="pt-6 border-t mt-6">
-          <Label className="mb-3 block">Pay with Crypto (USDT Polygon)</Label>
-          <div className="flex flex-col sm:flex-row items-center gap-4 bg-muted/30 p-4 rounded-lg">
-            {topUpLink ? (
-              <Image
-                src={topUpLink}
-                alt="Crypto QR Code"
-                width={120}
-                height={120}
-                unoptimized
-                className="rounded-md"
-              />
-            ) : (
-              <div className="w-[120px] h-[120px] bg-muted flex items-center justify-center rounded-md">
-                <span className="text-xs text-muted-foreground">No QR</span>
-              </div>
-            )}
-            <div className="text-sm space-y-1 overflow-hidden w-full">
-              <p className="font-medium">Network: Polygon</p>
-              <p className="text-muted-foreground truncate" title="0x3C034A1Cf6A3eBe386b51327F5f8d9A06057821B">
-                Address: 0x3C034A1Cf6A3eBe386b51327F5f8d9A06057821B
-              </p>
-              <p className="text-xs text-muted-foreground mt-2">
-                * Please only send USDT on Polygon network.
-              </p>
-            </div>
-          </div>
-        </div>
-        */}
       </CardContent>
     </Card>
   );
