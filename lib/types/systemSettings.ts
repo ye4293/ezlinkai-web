@@ -1,6 +1,8 @@
 export interface CommonSystemSettings {
-  /** 服务器地址 */
+  /** 后端服务地址 */
   ServerAddress: string;
+  /** 前端服务地址 */
+  FrontendServerAddress: string;
   /** 允许的邮箱域名 */
   // EmailDomainWhitelist: Array<string>;
   /** 新的允许的邮箱域名 */

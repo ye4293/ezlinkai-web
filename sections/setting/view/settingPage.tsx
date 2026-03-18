@@ -37,6 +37,8 @@ interface Option {
 export default function SettingPage() {
   // ==================== 通用设置状态 ====================
   const [systemName, setSystemName] = useState('');
+  const [frontendServerAddress, setFrontendServerAddress] = useState('');
+  const [serverAddress, setServerAddress] = useState('');
   const [retryCount, setRetryCount] = useState(0);
   const [autoDisableEnabled, setAutoDisableEnabled] = useState(false);
   const [autoDisableKeywords, setAutoDisableKeywords] = useState('');
@@ -86,6 +88,20 @@ export default function SettingPage() {
         );
         if (systemNameOption) {
           setSystemName(systemNameOption.value || '');
+        }
+
+        const frontendServerAddressOption = options.find(
+          (o: Option) => o.key === 'FrontendServerAddress'
+        );
+        if (frontendServerAddressOption) {
+          setFrontendServerAddress(frontendServerAddressOption.value || '');
+        }
+
+        const serverAddressOption = options.find(
+          (o: Option) => o.key === 'ServerAddress'
+        );
+        if (serverAddressOption) {
+          setServerAddress(serverAddressOption.value || '');
         }
 
         const retryCountOption = options.find(
@@ -212,68 +228,33 @@ export default function SettingPage() {
   const handleSave = async () => {
     setIsLoading(true);
     try {
-      // 保存系统名称
-      const systemNameResponse = await fetch('/api/option', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
+      const generalOptions = [
+        { key: 'SystemName', value: systemName },
+        {
+          key: 'FrontendServerAddress',
+          value: frontendServerAddress.trim()
         },
-        body: JSON.stringify({
-          key: 'SystemName',
-          value: systemName
-        })
-      });
-
-      if (!systemNameResponse.ok) {
-        throw new Error('Failed to save system name');
-      }
-
-      // 保存重试次数
-      const retryResponse = await fetch('/api/option', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          key: 'RetryTimes',
-          value: retryCount.toString()
-        })
-      });
-
-      if (!retryResponse.ok) {
-        throw new Error('Failed to save retry count');
-      }
-
-      // 保存自动禁用开关
-      const autoDisableEnabledResponse = await fetch('/api/option', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
+        { key: 'ServerAddress', value: serverAddress.trim() },
+        { key: 'RetryTimes', value: retryCount.toString() },
+        {
           key: 'AutomaticDisableChannelEnabled',
           value: autoDisableEnabled.toString()
-        })
-      });
-
-      if (!autoDisableEnabledResponse.ok) {
-        throw new Error('Failed to save auto disable enabled setting');
-      }
-
-      // 保存自动禁用关键词
-      const keywordResponse = await fetch('/api/option', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          key: 'AutoDisableKeywords',
-          value: autoDisableKeywords
-        })
-      });
+        { key: 'AutoDisableKeywords', value: autoDisableKeywords }
+      ];
 
-      if (!keywordResponse.ok) {
-        throw new Error('Failed to save auto disable keywords');
+      for (const option of generalOptions) {
+        const response = await fetch('/api/option', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(option)
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to save ${option.key}`);
+        }
       }
 
       toast.success('设置保存成功！');
@@ -514,6 +495,34 @@ export default function SettingPage() {
                 />
                 <p className="text-sm text-muted-foreground">
                   设置系统名称后，所有推送消息（邮件、飞书等）都会带上此名称前缀，方便区分不同站点
+                </p>
+              </div>
+              <div className="grid w-full max-w-2xl items-center gap-1.5">
+                <Label htmlFor="frontend-server-address">前端服务地址</Label>
+                <Input
+                  id="frontend-server-address"
+                  type="text"
+                  value={frontendServerAddress}
+                  onChange={(e) => setFrontendServerAddress(e.target.value)}
+                  placeholder="例如：https://web.example.com"
+                />
+                <p className="text-sm text-muted-foreground">
+                  对应配置项
+                  FrontendServerAddress，用于前端页面访问地址和浏览器回跳地址
+                </p>
+              </div>
+              <div className="grid w-full max-w-2xl items-center gap-1.5">
+                <Label htmlFor="server-address">后端服务地址</Label>
+                <Input
+                  id="server-address"
+                  type="text"
+                  value={serverAddress}
+                  onChange={(e) => setServerAddress(e.target.value)}
+                  placeholder="例如：https://api.example.com"
+                />
+                <p className="text-sm text-muted-foreground">
+                  对应配置项 ServerAddress，用于 API
+                  对外地址、回调地址和资源访问地址
                 </p>
               </div>
               <div className="grid w-full max-w-sm items-center gap-1.5">

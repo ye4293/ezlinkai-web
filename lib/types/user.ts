@@ -51,6 +51,7 @@ export interface SystemStatus {
   display_in_currency: boolean;
   email_verification: boolean;
   footer_html: string;
+  frontend_server_address: string;
   github_client_id: string;
   github_oauth: boolean;
   logo: string;

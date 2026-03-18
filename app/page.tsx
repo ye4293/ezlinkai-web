@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useLocale } from '@/components/providers/locale-provider';
 import ThemeToggle from '@/components/layout/ThemeToggle/theme-toggle';
 import LanguageToggle from '@/components/layout/language-toggle';
+import ModelMarquee from '@/components/landing/model-marquee';
 
 export default function HomePage() {
   const { t } = useLocale();
@@ -105,27 +106,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 支持的模型 */}
-      <section className="border-y bg-muted/30 py-8">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-wrap items-center justify-center gap-8 text-muted-foreground">
-            {[
-              'OpenAI',
-              'Claude',
-              'Gemini',
-              'DeepSeek',
-              'GLM',
-              'Midjourney',
-              'Stable Diffusion',
-              'Llama'
-            ].map((model) => (
-              <span key={model} className="text-sm font-medium">
-                {model}
-              </span>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* 支持的模型 - 动态滚动 */}
+      <ModelMarquee />
 
       {/* 特性展示 */}
       <section id="features" className="py-24">
