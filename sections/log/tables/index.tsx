@@ -9,6 +9,8 @@ import { LogStat } from '@/lib/types/log';
 import { LOG_OPTIONS } from '@/constants';
 import {
   columns,
+  formatTokenSpeed,
+  getTokenSpeedValue,
   parseUsageDetails,
   usageDetailsLabels,
   UsageDetails
@@ -122,6 +124,15 @@ const ExpandedRowContent = ({ row }: { row: Row<LogStat> }) => {
           <p className="text-sm font-medium">{log.completion_tokens} tokens</p>
         </div>
 
+        <div className="space-y-1">
+          <span className="text-xs font-medium text-muted-foreground">
+            生成速率
+          </span>
+          <p className="font-mono text-sm font-medium text-violet-600">
+            {formatTokenSpeed(log)}
+          </p>
+        </div>
+
         {/* usageDetails 详细信息 */}
         {usageEntries.map(({ key, label, value }) => (
           <div key={key} className="space-y-1">
@@ -230,7 +241,7 @@ const MobileLogCard = ({ row }: { row: LogStat }) => {
           <span className="break-all font-medium">{log.model_name}</span>
         </div>
 
-        <div className="grid grid-cols-3 gap-2 rounded bg-muted/30 p-2">
+        <div className="grid grid-cols-2 gap-2 rounded bg-muted/30 p-2">
           <div className="flex flex-col items-center">
             <span className="text-xs text-muted-foreground">Prompt</span>
             <span className="font-mono">{log.prompt_tokens}</span>
@@ -238,6 +249,12 @@ const MobileLogCard = ({ row }: { row: LogStat }) => {
           <div className="flex flex-col items-center">
             <span className="text-xs text-muted-foreground">Completion</span>
             <span className="font-mono">{log.completion_tokens}</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="text-xs text-muted-foreground">Speed</span>
+            <span className="font-mono text-violet-600">
+              {formatTokenSpeed(log)}
+            </span>
           </div>
           <div className="flex flex-col items-center">
             <span className="text-xs text-muted-foreground">Quota</span>
@@ -428,6 +445,7 @@ export default function LogTable({
       'Model',
       'Prompt Tokens',
       'Completion Tokens',
+      'Speed (t/s)',
       'Quota',
       'Duration',
       'X-Request-ID',
@@ -437,8 +455,10 @@ export default function LogTable({
 
     const csvContent = [
       headers.join(','),
-      ...data.map((row) =>
-        [
+      ...data.map((row) => {
+        const tokenSpeed = getTokenSpeedValue(row);
+
+        return [
           new Date(row.created_at * 1000).toISOString(),
           row.channel || '',
           row.username || '',
@@ -447,13 +467,14 @@ export default function LogTable({
           row.model_name || '',
           row.prompt_tokens,
           row.completion_tokens,
+          tokenSpeed > 0 ? tokenSpeed.toFixed(2) : '',
           row.quota,
           row.duration,
           row.x_request_id || '',
           row.x_response_id || '',
           `"${(row.content || '').replace(/"/g, '""')}"`
-        ].join(',')
-      )
+        ].join(',');
+      })
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });

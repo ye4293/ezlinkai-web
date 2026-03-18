@@ -13,10 +13,33 @@ const FIXED_AMOUNTS = [10, 20, 50, 100, 200, 500];
 
 interface TopupInfo {
   enable_online_topup: boolean;
+  enable_reason?: string;
   min_topup: number;
   price: number;
   quota_per_unit: number;
 }
+
+const extractApiErrorMessage = (result: any, fallback: string) => {
+  if (typeof result?.message === 'string' && result.message) {
+    return result.message;
+  }
+  if (typeof result?.details === 'string' && result.details) {
+    return result.details;
+  }
+  if (typeof result?.error === 'string' && result.error) {
+    return result.error;
+  }
+  if (typeof result?.error?.message === 'string' && result.error.message) {
+    return result.error.message;
+  }
+  if (
+    typeof result?.error?.error?.message === 'string' &&
+    result.error.error.message
+  ) {
+    return result.error.error.message;
+  }
+  return fallback;
+};
 
 const submitEpayForm = (
   actionUrl: string,
@@ -46,6 +69,7 @@ export default function PaymentSection() {
   const [paymentMethod, setPaymentMethod] = useState('wxpay');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [topupInfo, setTopupInfo] = useState<TopupInfo | null>(null);
+  const [topupInfoError, setTopupInfoError] = useState('');
   const [payAmount, setPayAmount] = useState('');
 
   const isEpayMethod = paymentMethod === 'wxpay' || paymentMethod === 'alipay';
@@ -56,11 +80,19 @@ export default function PaymentSection() {
         const res = await fetch('/api/user/topup/info', {
           credentials: 'include'
         });
-        const result = await res.json();
-        if (res.ok && result.success && result.data) {
+        const result = await res.json().catch(() => null);
+        if (res.ok && result?.success && result.data) {
           setTopupInfo(result.data);
+          setTopupInfoError('');
+          return;
         }
+        setTopupInfo(null);
+        setTopupInfoError(
+          extractApiErrorMessage(result, '充值配置获取失败，请稍后重试')
+        );
       } catch (error) {
+        setTopupInfo(null);
+        setTopupInfoError('充值配置获取失败，请稍后重试');
         console.error('Failed to fetch topup info', error);
       }
     };
@@ -88,9 +120,9 @@ export default function PaymentSection() {
             amount: Number(amount)
           })
         });
-        const result = await res.json();
+        const result = await res.json().catch(() => null);
         if (!cancelled) {
-          if (res.ok && result.success) {
+          if (res.ok && result?.success) {
             setPayAmount(String(result.data || ''));
           } else {
             setPayAmount('');
@@ -152,8 +184,8 @@ export default function PaymentSection() {
         setIsSubmitting(false);
       }
     } else {
-      if (!topupInfo?.enable_online_topup) {
-        toast.error('管理员尚未开启易支付');
+      if (topupInfo && !topupInfo.enable_online_topup) {
+        toast.error(topupInfo.enable_reason || '管理员尚未开启易支付');
         setIsSubmitting(false);
         return;
       }
@@ -178,9 +210,9 @@ export default function PaymentSection() {
           })
         });
 
-        const result = await res.json();
-        if (!res.ok || !result.success) {
-          toast.error(result.message || '创建易支付订单失败');
+        const result = await res.json().catch(() => null);
+        if (!res.ok || !result?.success) {
+          toast.error(extractApiErrorMessage(result, '创建易支付订单失败'));
           return;
         }
 
@@ -244,9 +276,22 @@ export default function PaymentSection() {
               <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                 <span>最低充值：{topupInfo?.min_topup ?? '-'}</span>
                 <span>
-                  单价：{topupInfo?.price ? `¥${topupInfo.price}` : '-'}
+                  单价：
+                  {typeof topupInfo?.price === 'number'
+                    ? `¥${topupInfo.price}`
+                    : '-'}
                 </span>
               </div>
+              {topupInfoError && (
+                <div className="mt-2 text-xs text-destructive">
+                  {topupInfoError}
+                </div>
+              )}
+              {topupInfo?.enable_reason && !topupInfo.enable_online_topup && (
+                <div className="mt-2 text-xs text-destructive">
+                  {topupInfo.enable_reason}
+                </div>
+              )}
               <div className="mt-2 font-medium text-foreground">
                 应付金额：{payAmount ? `¥${payAmount}` : '--'}
               </div>

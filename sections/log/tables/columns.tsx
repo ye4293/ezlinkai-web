@@ -143,6 +143,31 @@ const processQuota = (quota: number) => {
   return `$${parseFloat(processedQuota)}`;
 };
 
+export const getTokenSpeedValue = (
+  log: Pick<LogStat, 'speed' | 'completion_tokens' | 'duration'>
+) => {
+  if (
+    typeof log.speed === 'number' &&
+    Number.isFinite(log.speed) &&
+    log.speed > 0
+  ) {
+    return log.speed;
+  }
+
+  if (log.duration > 0 && log.completion_tokens > 0) {
+    return log.completion_tokens / log.duration;
+  }
+
+  return 0;
+};
+
+export const formatTokenSpeed = (
+  log: Pick<LogStat, 'speed' | 'completion_tokens' | 'duration'>
+) => {
+  const speed = getTokenSpeedValue(log);
+  return speed > 0 ? `${speed.toFixed(2)} t/s` : '-';
+};
+
 export const columns: ColumnDef<LogStat>[] = [
   {
     id: 'select',
@@ -311,6 +336,28 @@ export const columns: ColumnDef<LogStat>[] = [
         <div className="text-center">
           <CopyableCell value={completionTokens} label="输出Token">
             {completionTokens}
+          </CopyableCell>
+        </div>
+      );
+    },
+    enableHiding: true
+  },
+  {
+    accessorKey: 'speed',
+    header: () => <div className="text-center">Speed</div>,
+    size: 120,
+    minSize: 100,
+    cell: ({ row }) => {
+      const formattedSpeed = formatTokenSpeed(row.original);
+
+      if (formattedSpeed === '-') {
+        return <div className="text-center">-</div>;
+      }
+
+      return (
+        <div className="text-center">
+          <CopyableCell value={formattedSpeed} label="Token生成速率">
+            <span className="font-mono text-violet-600">{formattedSpeed}</span>
           </CopyableCell>
         </div>
       );
