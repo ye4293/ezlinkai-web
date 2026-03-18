@@ -17,6 +17,17 @@ const en: Locale = {
     getStarted: 'Get Started',
     viewDocs: 'Documentation'
   },
+  // Stats
+  stats: {
+    models: 'Models',
+    modelsValue: '100+',
+    developers: 'Developers',
+    developersValue: '10,000+',
+    uptime: 'Uptime',
+    uptimeValue: '99.9%',
+    apiCalls: 'Daily API Calls',
+    apiCallsValue: '10M+'
+  },
   // Features
   features: {
     title: 'Core Capabilities',
@@ -36,6 +47,21 @@ const en: Locale = {
       title: 'High Availability',
       description:
         'Global multi-node deployment, intelligent load balancing, and automatic failover for reliable service.'
+    },
+    security: {
+      title: 'Security & Compliance',
+      description:
+        'Enterprise-grade data encryption, comprehensive access control, API key management, and usage auditing.'
+    },
+    sdk: {
+      title: 'Developer Friendly',
+      description:
+        'OpenAI SDK compatible, with thorough API documentation and code samples for zero-friction integration.'
+    },
+    monitoring: {
+      title: 'Real-time Monitoring',
+      description:
+        'Visual usage dashboard to track token consumption, request latency, and call success rates in real time.'
     }
   },
   // CTA

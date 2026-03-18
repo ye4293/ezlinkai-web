@@ -15,6 +15,17 @@ const zh = {
     getStarted: '开始使用',
     viewDocs: '查看文档'
   },
+  // 数据统计
+  stats: {
+    models: '支持模型',
+    modelsValue: '100+',
+    developers: '开发者',
+    developersValue: '10,000+',
+    uptime: '服务可用率',
+    uptimeValue: '99.9%',
+    apiCalls: '日均调用',
+    apiCallsValue: '1,000万+'
+  },
   // 特性
   features: {
     title: '核心能力',
@@ -33,6 +44,21 @@ const zh = {
       title: '高可用低延迟',
       description:
         '全球多节点部署，智能负载均衡，自动故障转移，确保服务高可用。'
+    },
+    security: {
+      title: '安全合规',
+      description:
+        '企业级数据加密，完善的权限控制体系，支持 API Key 管理与访问审计。'
+    },
+    sdk: {
+      title: '开发者友好',
+      description:
+        '兼容 OpenAI SDK，提供完善的接口文档与代码示例，零学习成本快速接入。'
+    },
+    monitoring: {
+      title: '实时监控',
+      description:
+        '可视化用量仪表盘，实时追踪 Token 消耗、请求延迟与调用成功率。'
     }
   },
   // CTA
