@@ -329,7 +329,7 @@ const authConfig = {
     }
   },
   pages: {
-    signIn: '/' //sigin page
+    signIn: '/sign-in'
   },
   debug: process.env.NODE_ENV === 'development',
   logger: {

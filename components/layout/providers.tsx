@@ -2,6 +2,7 @@
 import React from 'react';
 import ThemeProvider from './ThemeToggle/theme-provider';
 import { SessionProvider, SessionProviderProps } from 'next-auth/react';
+import { LocaleProvider } from '@/components/providers/locale-provider';
 export default function Providers({
   session,
   children
@@ -12,7 +13,9 @@ export default function Providers({
   return (
     <>
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        <SessionProvider session={session}>{children}</SessionProvider>
+        <SessionProvider session={session}>
+          <LocaleProvider>{children}</LocaleProvider>
+        </SessionProvider>
       </ThemeProvider>
     </>
   );
