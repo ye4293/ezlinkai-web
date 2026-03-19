@@ -49,12 +49,13 @@ export function BarGraph({ session }: BarGraphProps) {
     React.useState<keyof typeof chartConfig>('quota');
   const [graphData, setGraphData] = React.useState<GraphData[]>([]);
 
+  const userRole = session?.user?.role;
+
   // 数据获取移到 useEffect 中
   React.useEffect(() => {
     const fetchData = async () => {
       // 获取图表数据
-      const _userRole = session?.user?.role;
-      const graphApi = [10, 100].includes(Number(_userRole))
+      const graphApi = [10, 100].includes(Number(userRole))
         ? `/api/dashboard/graph`
         : `/api/dashboard/graph/self`;
       const params = new URLSearchParams({
@@ -95,7 +96,7 @@ export function BarGraph({ session }: BarGraphProps) {
       // console.log('graphData', graphData);
     };
     fetchData();
-  }, [session, activeChart]);
+  }, [userRole, activeChart]);
 
   // const total = React.useMemo(
   //   () => graphData.reduce((acc: number, curr: any) => acc + curr.amount, 0),
