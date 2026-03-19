@@ -18,8 +18,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import request from '@/app/lib/clientFetch';
 import { Dashboard, DashboardResult } from '@/lib/types/dashboard';
 
+const isAdmin = (role: unknown) => [10, 100].includes(Number(role));
+
 export default function OverViewPage() {
   const { data: session, status } = useSession();
+  const userRole = session?.user?.role;
   const [dashboardData, setDashboardData] = useState<Dashboard>({
     current_quota: 0,
     used_quota: 0,
@@ -37,9 +40,8 @@ export default function OverViewPage() {
     const fetchDashboard = async () => {
       try {
         setLoading(true);
-        const _userRole = session?.user?.role;
-        const userApi = [10, 100].includes(Number(_userRole))
-          ? '/api/dashboard/'
+        const userApi = isAdmin(userRole)
+          ? '/api/dashboard'
           : '/api/dashboard/self';
 
         const res: DashboardResult = await request.get(userApi);
@@ -55,7 +57,7 @@ export default function OverViewPage() {
     };
 
     fetchDashboard();
-  }, [session, status]);
+  }, [userRole, status]);
 
   return (
     <PageContainer scrollable>
