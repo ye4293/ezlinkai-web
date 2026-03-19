@@ -15,10 +15,43 @@ const request: AxiosInstance = axios.create({
   }
 });
 
+// 缓存 session，避免每次请求都调用 getSession()
+let cachedSession: any = null;
+let sessionPromise: Promise<any> | null = null;
+let lastSessionFetch = 0;
+const SESSION_CACHE_TTL = 60 * 1000; // 缓存 60 秒
+
+async function getCachedSession() {
+  const now = Date.now();
+  if (cachedSession && now - lastSessionFetch < SESSION_CACHE_TTL) {
+    return cachedSession;
+  }
+  if (!sessionPromise) {
+    sessionPromise = getSession()
+      .then((session) => {
+        cachedSession = session;
+        lastSessionFetch = Date.now();
+        sessionPromise = null;
+        return session;
+      })
+      .catch((err) => {
+        sessionPromise = null;
+        throw err;
+      });
+  }
+  return sessionPromise;
+}
+
+export function clearSessionCache() {
+  cachedSession = null;
+  lastSessionFetch = 0;
+  sessionPromise = null;
+}
+
 // 请求拦截器
 request.interceptors.request.use(
   async (config: InternalAxiosRequestConfig<any>) => {
-    const session = await getSession();
+    const session = await getCachedSession();
     if (session?.user?.accessToken) {
       config.headers = {
         ...config.headers,

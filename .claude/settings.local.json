@@ -16,7 +16,8 @@
       "Bash(python3 -c \"import json,sys; data=json.load\\(sys.stdin\\); [print\\(x[''''name'''']\\) for x in data if ''''x'''' in x[''''name''''].lower\\(\\) or ''''grok'''' in x[''''name''''].lower\\(\\) or ''''ai'''' in x[''''name''''].lower\\(\\)]\")",
       "Bash(curl -sL \"https://api.github.com/search/code?q=xai+path:src+repo:lobehub/lobe-icons&per_page=5\")",
       "Bash(curl -sL https://raw.githubusercontent.com/lobehub/lobe-icons/master/src/Grok/components/Mono.tsx)",
-      "Bash(curl -sL https://raw.githubusercontent.com/lobehub/lobe-icons/master/src/XAI/components/Mono.tsx)"
+      "Bash(curl -sL https://raw.githubusercontent.com/lobehub/lobe-icons/master/src/XAI/components/Mono.tsx)",
+      "Bash(git checkout:*)"
     ]
   }
 }
