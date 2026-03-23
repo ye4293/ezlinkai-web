@@ -91,6 +91,15 @@ const formSchema = z.object({
       message: '权重必须大于等于0'
     })
     .optional(),
+  discount: z
+    .number()
+    .min(0.01, {
+      message: '折扣倍率必须大于0'
+    })
+    .max(1, {
+      message: '折扣倍率不能超过1'
+    })
+    .optional(),
   auto_disabled: z.boolean().default(true),
   // 新增：支持 Token 计数功能（仅 Anthropic 和 AWS Claude 渠道）
   support_count_tokens: z.boolean().default(false)
@@ -486,6 +495,7 @@ export default function ChannelForm() {
             customModelName: channelData.customModelName,
             priority: channelData.priority || 0,
             weight: channelData.weight || 0,
+            discount: channelData.discount ?? 1,
             auto_disabled: autoDisabledValue,
             // 新增：支持 Token 计数配置
             support_count_tokens: config.support_count_tokens || false,
@@ -557,6 +567,7 @@ export default function ChannelForm() {
       customModelName: undefined,
       priority: 0,
       weight: 0,
+      discount: 1,
       auto_disabled: true,
       support_count_tokens: false
     }
@@ -1112,6 +1123,7 @@ export default function ChannelForm() {
         header_override: values.header_override || '',
         priority: values.priority || 0,
         weight: values.weight || 0,
+        discount: values.discount ?? 1,
         auto_disabled: values.auto_disabled ?? true,
         key_selection_mode: values.key_selection_mode || 1,
         batch_import_mode: values.batch_import_mode || 1
@@ -1267,6 +1279,7 @@ export default function ChannelForm() {
           customModelName: values.customModelName || '',
           priority: values.priority || 0,
           weight: values.weight || 0,
+          discount: values.discount ?? 1,
           auto_disabled: values.auto_disabled ?? true,
           key_selection_mode: values.key_selection_mode ?? 1,
           batch_import_mode: values.batch_import_mode ?? 1,
@@ -3105,6 +3118,35 @@ ${type2secretPrompt(form.watch('type'))}`}
                           const value = e.target.value;
                           field.onChange(
                             value === '' ? undefined : parseInt(value)
+                          );
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="discount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>渠道折扣倍率</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min="0.01"
+                        max="1"
+                        step="0.01"
+                        placeholder="1.0 表示无折扣，0.7 表示七折"
+                        {...field}
+                        value={field.value ?? 1}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          const parsed = parseFloat(value);
+                          field.onChange(
+                            value === '' || isNaN(parsed) ? 1 : parsed
                           );
                         }}
                       />

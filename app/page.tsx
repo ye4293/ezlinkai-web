@@ -47,7 +47,7 @@ export default function HomePage() {
               {t.nav.docs}
             </a>
             <Link
-              href="#features"
+              href="/model-plaza"
               className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
               {t.nav.marketplace}

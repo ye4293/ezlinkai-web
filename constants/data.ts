@@ -131,6 +131,13 @@ export const navItems: NavItem[] = [
     roles: [1, 10, 100]
   },
   {
+    title: 'Model Plaza',
+    href: '/model-plaza',
+    icon: 'store',
+    label: 'model-plaza',
+    roles: [1, 10, 100]
+  },
+  {
     title: 'Channel',
     href: '/dashboard/channel',
     icon: 'channel',

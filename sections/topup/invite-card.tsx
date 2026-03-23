@@ -1,14 +1,36 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Copy } from 'lucide-react';
 import { toast } from 'sonner';
 
+function getServerAddress(): string {
+  if (typeof window === 'undefined') return '';
+  try {
+    const status = localStorage.getItem('status');
+    if (status) {
+      const parsed = JSON.parse(status);
+      if (parsed.server_address) {
+        return parsed.server_address.replace(/\/+$/, '');
+      }
+    }
+  } catch {}
+  return window.location.origin;
+}
+
 export default function InviteCard({ user }: { user?: any }) {
-  const referralLink = `https://api.ezlinkai.com/register?aff=${
+  const [serverAddress, setServerAddress] = useState(
+    typeof window !== 'undefined' ? getServerAddress() : ''
+  );
+
+  useEffect(() => {
+    setServerAddress(getServerAddress());
+  }, []);
+
+  const referralLink = `${serverAddress}/register?aff=${
     user?.aff_code || 'CODE'
   }`;
 

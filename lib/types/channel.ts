@@ -20,6 +20,8 @@ export interface ChannelForm {
   models: Array<string>;
   /** 分组 */
   groups: Array<string>;
+  /** 渠道折扣倍率 (0-1, 如 0.7 表示七折) */
+  discount?: number;
 }
 
 /** 渠道返回结果 */
@@ -75,6 +77,8 @@ export interface Channel {
   auto_disabled_model?: string;
   /** 余额 */
   balance?: number;
+  /** 渠道折扣倍率 */
+  discount?: number;
 }
 
 export type ModelResult = {

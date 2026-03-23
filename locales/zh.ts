@@ -3,7 +3,7 @@ const zh = {
   nav: {
     models: '模型列表',
     docs: '文档',
-    marketplace: '应用市场',
+    marketplace: '模型广场',
     signIn: '登录'
   },
   // Hero
@@ -70,6 +70,34 @@ const zh = {
   // Footer
   footer: {
     rights: 'All rights reserved.'
+  },
+  // 模型广场
+  modelPlaza: {
+    title: '模型广场',
+    subtitle: '共 {count} 个可用模型，支持多种 AI 供应商',
+    search: '搜索模型名称...',
+    providers: '供应商',
+    userTier: '用户等级',
+    billingType: '计费类型',
+    all: '全部',
+    tokenBased: '按量计费',
+    perCall: '按次计费',
+    perCallShort: '按次',
+    tokenBasedShort: '按量',
+    input: '输入',
+    output: '输出',
+    perUnit: '单次',
+    inputPrice: '输入价格/M',
+    outputPrice: '输出价格/M',
+    modelName: '模型名称',
+    provider: '供应商',
+    discount: '折扣',
+    noResults: '没有找到匹配的模型',
+    prevPage: '上一页',
+    nextPage: '下一页',
+    copyModel: '复制模型名称',
+    signIn: '登录',
+    backHome: '首页'
   }
 };
 

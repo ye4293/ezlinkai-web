@@ -5,7 +5,7 @@ const en: Locale = {
   nav: {
     models: 'Models',
     docs: 'Document',
-    marketplace: 'Marketplace',
+    marketplace: 'Model Plaza',
     signIn: 'Sign In'
   },
   // Hero
@@ -74,6 +74,34 @@ const en: Locale = {
   // Footer
   footer: {
     rights: 'All rights reserved.'
+  },
+  // Model Plaza
+  modelPlaza: {
+    title: 'Model Plaza',
+    subtitle: '{count} models available from multiple AI providers',
+    search: 'Search models...',
+    providers: 'Providers',
+    userTier: 'User Tier',
+    billingType: 'Billing',
+    all: 'All',
+    tokenBased: 'Token-based',
+    perCall: 'Per Call',
+    perCallShort: 'Per Call',
+    tokenBasedShort: 'Token',
+    input: 'Input',
+    output: 'Output',
+    perUnit: 'Per Call',
+    inputPrice: 'Input $/M',
+    outputPrice: 'Output $/M',
+    modelName: 'Model',
+    provider: 'Provider',
+    discount: 'Discount',
+    noResults: 'No models found',
+    prevPage: 'Previous',
+    nextPage: 'Next',
+    copyModel: 'Copy model name',
+    signIn: 'Sign In',
+    backHome: 'Home'
   }
 };
 

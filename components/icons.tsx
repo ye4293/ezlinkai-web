@@ -37,7 +37,8 @@ import {
   SquarePlay,
   Images,
   BarChart3,
-  MessageSquareCode
+  MessageSquareCode,
+  Store
 } from 'lucide-react';
 
 export type Icon = LucideIcon;
@@ -115,5 +116,6 @@ export const Icons = {
   setting: Settings,
   file: File,
   chart: BarChart3,
-  playground: MessageSquareCode
+  playground: MessageSquareCode,
+  store: Store
 };
