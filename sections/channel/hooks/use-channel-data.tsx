@@ -43,7 +43,7 @@ export const useChannelData = ({
   const [data, setData] = useState<Channel[]>([]);
   const [total, setTotal] = useState(0);
   const [typeCounts, setTypeCounts] = useState<Record<number, number>>({});
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchChannels = useCallback(async () => {

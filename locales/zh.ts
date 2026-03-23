@@ -1,6 +1,7 @@
 const zh = {
   // 导航
   nav: {
+    home: '首页',
     models: '模型列表',
     docs: '文档',
     marketplace: '模型广场',

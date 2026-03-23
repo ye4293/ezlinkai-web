@@ -19,7 +19,8 @@
       "Bash(curl -sL https://raw.githubusercontent.com/lobehub/lobe-icons/master/src/XAI/components/Mono.tsx)",
       "Bash(git checkout:*)",
       "Bash(find:*)",
-      "Bash(ls -la /c/Users/brows/Desktop/ezlinkai-web-next/README* /c/Users/brows/Desktop/ezlinkai-web-next/CHANGELOG*)"
+      "Bash(ls -la /c/Users/brows/Desktop/ezlinkai-web-next/README* /c/Users/brows/Desktop/ezlinkai-web-next/CHANGELOG*)",
+      "Bash(npx tsc:*)"
     ]
   }
 }

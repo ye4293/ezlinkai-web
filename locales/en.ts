@@ -3,6 +3,7 @@ import type { Locale } from './zh';
 const en: Locale = {
   // Navigation
   nav: {
+    home: 'Home',
     models: 'Models',
     docs: 'Document',
     marketplace: 'Model Plaza',

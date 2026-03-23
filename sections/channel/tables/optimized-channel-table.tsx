@@ -21,7 +21,6 @@ import { useSession } from 'next-auth/react';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { ModelsModal } from './models-modal';
-import type { CSSProperties } from 'react';
 
 interface OptimizedChannelTableProps {
   initialData?: Channel[];
@@ -47,37 +46,9 @@ const MobileChannelCard = memo(
     const [testLoading, setTestLoading] = useState(false);
     const [modelsModalOpen, setModelsModalOpen] = useState(false);
     const mobileActionButtonClass =
-      'h-9 w-full rounded-md border transition-colors disabled:cursor-not-allowed disabled:opacity-50';
+      'flex h-9 w-full items-center justify-center rounded-lg border border-border bg-background px-3 text-xs font-medium text-foreground transition-colors disabled:cursor-not-allowed disabled:opacity-50';
     const mobileDangerButtonClass =
-      'h-10 w-full rounded-md transition-colors disabled:cursor-not-allowed disabled:opacity-50';
-    const mobileActionButtonStyle: CSSProperties = {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      width: '100%',
-      height: '36px',
-      padding: '0 12px',
-      borderRadius: '8px',
-      border: '1px solid hsl(var(--border))',
-      backgroundColor: 'hsl(var(--background))',
-      color: 'hsl(var(--foreground))',
-      fontSize: '12px',
-      fontWeight: 500
-    };
-    const mobileDangerButtonStyle: CSSProperties = {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      width: '100%',
-      height: '40px',
-      padding: '0 12px',
-      borderRadius: '8px',
-      border: 'none',
-      backgroundColor: '#dc2626',
-      color: '#ffffff',
-      fontSize: '14px',
-      fontWeight: 600
-    };
+      'flex h-10 w-full items-center justify-center rounded-lg bg-red-600 px-3 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50';
 
     // 获取状态文本和颜色
     const statusMap = {
@@ -148,7 +119,7 @@ const MobileChannelCard = memo(
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+          <div className="grid w-full grid-cols-2 gap-x-4 gap-y-3 text-sm">
             <div className="flex flex-col gap-1">
               <span className="text-xs text-muted-foreground">类型</span>
               <Badge variant="secondary" className="w-fit font-normal">
@@ -228,7 +199,6 @@ const MobileChannelCard = memo(
               <button
                 type="button"
                 className={mobileActionButtonClass}
-                style={mobileActionButtonStyle}
                 translate="no"
                 onClick={testChannel}
                 disabled={testLoading}
@@ -238,7 +208,6 @@ const MobileChannelCard = memo(
               <button
                 type="button"
                 className={mobileActionButtonClass}
-                style={mobileActionButtonStyle}
                 translate="no"
                 onClick={() => handleStatusChange(channel.status === 1 ? 2 : 1)}
               >
@@ -247,7 +216,6 @@ const MobileChannelCard = memo(
               <button
                 type="button"
                 className={mobileActionButtonClass}
-                style={mobileActionButtonStyle}
                 translate="no"
                 onClick={() => router.push(`/dashboard/channel/${channel.id}`)}
               >
@@ -256,7 +224,6 @@ const MobileChannelCard = memo(
               <button
                 type="button"
                 className={mobileActionButtonClass}
-                style={mobileActionButtonStyle}
                 translate="no"
                 onClick={() => setModelsModalOpen(true)}
               >
@@ -266,7 +233,6 @@ const MobileChannelCard = memo(
                 <button
                   type="button"
                   className={mobileActionButtonClass}
-                  style={mobileActionButtonStyle}
                   translate="no"
                   onClick={() => onManageKeys(channel)}
                 >
@@ -279,7 +245,6 @@ const MobileChannelCard = memo(
               <button
                 type="button"
                 className={mobileDangerButtonClass}
-                style={mobileDangerButtonStyle}
                 translate="no"
                 onClick={() => onDelete(channel)}
               >

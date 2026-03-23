@@ -139,6 +139,11 @@
   overflow-x: hidden !important;
 }
 
+/* Fix Radix ScrollArea's internal display:table breaking CSS Grid layouts */
+[data-radix-scroll-area-viewport] > div {
+  display: block !important;
+}
+
 @layer utilities {
   .min-h-screen {
     min-height: 100vh; /* Fallback */
