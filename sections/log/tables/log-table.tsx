@@ -46,7 +46,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { LogStat } from '@/lib/types/log';
 import dayjs from 'dayjs';
-import { parseUsageDetails, usageDetailsLabels, UsageDetails } from './columns';
+import {
+  parseUsageDetails,
+  parseLogOther,
+  usageDetailsLabels,
+  UsageDetails
+} from './columns';
 import {
   Collapsible,
   CollapsibleContent,
@@ -67,22 +72,20 @@ interface DataTableProps<TData, TValue> {
 }
 
 // 解析 adminInfo 获取渠道信息
-const parseAdminInfo = (other: string): number[] | null => {
-  if (!other) return null;
-  const adminInfoMatch = other.match(/adminInfo:\s*(\[.*?\])/);
-  if (!adminInfoMatch) return null;
-  try {
-    return JSON.parse(adminInfoMatch[1]);
-  } catch {
-    return null;
+const parseAdminInfo = (log: LogStat): number[] | null => {
+  const parsed = parseLogOther(log);
+  if (parsed) {
+    const info = parsed.admin_info || parsed.adminInfo;
+    if (Array.isArray(info) && info.length > 0) return info;
   }
+  return null;
 };
 
 // 展开行详情组件
 const ExpandedRowContent = ({ row }: { row: Row<LogStat> }) => {
   const log = row.original;
-  const usageDetails = parseUsageDetails(log.other || '');
-  const channelIds = parseAdminInfo(log.other || '');
+  const usageDetails = parseUsageDetails(log);
+  const channelIds = parseAdminInfo(log);
 
   // 处理配额
   const processQuota = (quota: number) => {
@@ -206,7 +209,7 @@ const ExpandedRowContent = ({ row }: { row: Row<LogStat> }) => {
 const MobileLogCard = ({ row }: { row: Row<LogStat> }) => {
   const log = row.original;
   const [isExpanded, setIsExpanded] = React.useState(false);
-  const usageDetails = parseUsageDetails(log.other || '');
+  const usageDetails = parseUsageDetails(log);
 
   const renderType = (status: number) => {
     switch (status) {

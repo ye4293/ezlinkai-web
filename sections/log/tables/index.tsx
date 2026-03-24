@@ -11,9 +11,13 @@ import {
   columns,
   formatTokenSpeed,
   getTokenSpeedValue,
+  getSpeedTier,
+  getDurationTier,
   parseUsageDetails,
+  parseLogOther,
   usageDetailsLabels,
-  UsageDetails
+  UsageDetails,
+  getModelMappingInfo
 } from './columns';
 import { useTableFilters } from './use-table-filters';
 import { useSession } from 'next-auth/react';
@@ -53,15 +57,13 @@ import { Row } from '@tanstack/react-table';
 import dayjs from 'dayjs';
 
 // 解析 adminInfo 获取渠道信息
-const parseAdminInfo = (other: string): number[] | null => {
-  if (!other) return null;
-  const adminInfoMatch = other.match(/adminInfo:\s*(\[.*?\])/);
-  if (!adminInfoMatch) return null;
-  try {
-    return JSON.parse(adminInfoMatch[1]);
-  } catch {
-    return null;
+const parseAdminInfo = (log: LogStat): number[] | null => {
+  const parsed = parseLogOther(log);
+  if (parsed) {
+    const info = parsed.admin_info || parsed.adminInfo;
+    if (Array.isArray(info) && info.length > 0) return info;
   }
+  return null;
 };
 
 // 处理配额
@@ -85,8 +87,8 @@ const getUsageEntries = (details: UsageDetails | null) => {
 // 展开行详情组件
 const ExpandedRowContent = ({ row }: { row: Row<LogStat> }) => {
   const log = row.original;
-  const usageDetails = parseUsageDetails(log.other || '');
-  const channelIds = parseAdminInfo(log.other || '');
+  const usageDetails = parseUsageDetails(log);
+  const channelIds = parseAdminInfo(log);
 
   const usageEntries = getUsageEntries(usageDetails);
   const hasUsageDetails = usageEntries.length > 0;
@@ -128,9 +130,20 @@ const ExpandedRowContent = ({ row }: { row: Row<LogStat> }) => {
           <span className="text-xs font-medium text-muted-foreground">
             生成速率
           </span>
-          <p className="font-mono text-sm font-medium text-violet-600">
-            {formatTokenSpeed(log)}
-          </p>
+          {(() => {
+            const sv = getTokenSpeedValue(log);
+            return sv > 0 ? (
+              <p
+                className={`inline-flex items-center rounded-md px-1.5 py-0.5 font-mono text-xs font-medium ring-1 ring-inset ${getSpeedTier(
+                  sv
+                )}`}
+              >
+                {formatTokenSpeed(log)}
+              </p>
+            ) : (
+              <p className="text-sm font-medium">-</p>
+            );
+          })()}
         </div>
 
         {/* usageDetails 详细信息 */}
@@ -192,7 +205,7 @@ const ExpandedRowContent = ({ row }: { row: Row<LogStat> }) => {
 const MobileLogCard = ({ row }: { row: LogStat }) => {
   const log = row;
   const [isExpanded, setIsExpanded] = useState(false);
-  const usageDetails = parseUsageDetails(log.other || '');
+  const usageDetails = parseUsageDetails(log);
   const usageEntries = getUsageEntries(usageDetails);
   const hasUsageDetails = usageEntries.length > 0;
 
@@ -238,7 +251,25 @@ const MobileLogCard = ({ row }: { row: LogStat }) => {
 
         <div className="flex flex-col">
           <span className="text-xs text-muted-foreground">Model</span>
-          <span className="break-all font-medium">{log.model_name}</span>
+          {(() => {
+            const mappingInfo = getModelMappingInfo(log);
+            if (mappingInfo) {
+              return (
+                <div className="flex items-center gap-1 text-sm">
+                  <span className="break-all font-medium">
+                    {log.model_name}
+                  </span>
+                  <span className="text-muted-foreground">→</span>
+                  <Badge variant="secondary" className="text-xs">
+                    {mappingInfo.upstreamModelName}
+                  </Badge>
+                </div>
+              );
+            }
+            return (
+              <span className="break-all font-medium">{log.model_name}</span>
+            );
+          })()}
         </div>
 
         <div className="grid grid-cols-2 gap-2 rounded bg-muted/30 p-2">
@@ -252,9 +283,20 @@ const MobileLogCard = ({ row }: { row: LogStat }) => {
           </div>
           <div className="flex flex-col items-center">
             <span className="text-xs text-muted-foreground">Speed</span>
-            <span className="font-mono text-violet-600">
-              {formatTokenSpeed(log)}
-            </span>
+            {(() => {
+              const sv = getTokenSpeedValue(log);
+              return sv > 0 ? (
+                <span
+                  className={`inline-flex items-center rounded-md px-1.5 py-0.5 font-mono text-xs font-medium ring-1 ring-inset ${getSpeedTier(
+                    sv
+                  )}`}
+                >
+                  {formatTokenSpeed(log)}
+                </span>
+              ) : (
+                <span className="font-mono">-</span>
+              );
+            })()}
           </div>
           <div className="flex flex-col items-center">
             <span className="text-xs text-muted-foreground">Quota</span>
@@ -267,7 +309,13 @@ const MobileLogCard = ({ row }: { row: LogStat }) => {
         <div className="flex items-center justify-between pt-1">
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">Duration:</span>
-            <span>{log.duration}s</span>
+            <span
+              className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset ${getDurationTier(
+                log.duration
+              )}`}
+            >
+              {log.duration}s
+            </span>
             {log.is_stream && (
               <Badge variant="secondary" className="h-4 px-1 text-[10px]">
                 Stream

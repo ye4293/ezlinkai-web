@@ -257,6 +257,13 @@ export const navItems: NavItem[] = [
         roles: [100]
       },
       {
+        title: '折扣设置',
+        href: '/dashboard/setting/discount',
+        icon: 'billing',
+        label: 'discount-setting',
+        roles: [100]
+      },
+      {
         title: '模型设置',
         href: '/dashboard/setting/model',
         icon: 'channel',

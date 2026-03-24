@@ -20,7 +20,19 @@
       "Bash(git checkout:*)",
       "Bash(find:*)",
       "Bash(ls -la /c/Users/brows/Desktop/ezlinkai-web-next/README* /c/Users/brows/Desktop/ezlinkai-web-next/CHANGELOG*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(grep -r \"group.*discount\\\\|discount.*group\\\\|user.*group\\\\|group.*config\\\\|GroupConfig\" /c/Users/brows/Desktop/ezlinkai-web-next --include=*.tsx --include=*.ts)",
+      "Bash(grep -r \"GroupConfigItem\\\\|group-config\" /c/Users/brows/Desktop/ezlinkai-web-next --include=*.tsx --include=*.ts)",
+      "Bash(grep -r \"user.*group\\\\|group.*user\" /c/Users/brows/Desktop/ezlinkai-web-next/app/api --include=*.ts)",
+      "Bash(find /c/Users/brows/Desktop/ezlinkai-web-next -type f \\\\\\(-name *group* -o -name *discount* \\\\\\))",
+      "Bash(grep -E \"\\\\.\\(tsx|ts\\)$\")",
+      "Bash(grep -r \"GroupConfig\\\\|group_config\\\\|group discount\" /c/Users/brows/Desktop/ezlinkai-web-next/app --include=*.tsx --include=*.ts)",
+      "Bash(xargs ls:*)",
+      "Bash(grep -r fetch.*group-config C:UsersbrowsDesktopezlinkai-web-next)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:github.com)",
+      "Bash(go build:*)",
+      "Bash(xargs wc:*)"
     ]
   }
 }

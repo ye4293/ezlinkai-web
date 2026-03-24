@@ -47,75 +47,133 @@ export const usageDetailsLabels: Record<string, string> = {
 };
 
 // 解析 other 字段中的 usageDetails
-export const parseUsageDetails = (other: string): UsageDetails | null => {
-  if (!other) return null;
+export const parseUsageDetails = (row: LogStat): UsageDetails | null => {
+  const parsed = parseLogOther(row);
+  if (parsed) {
+    const details = parsed.usage_details || parsed.usageDetails;
+    if (details && typeof details === 'object') return details;
+  }
+  return null;
+};
 
-  // 查找 usageDetails: 的位置
-  const usageDetailsIndex = other.indexOf('usageDetails:');
-  if (usageDetailsIndex === -1) return null;
+// other 字段解析缓存，避免每列每行重复解析
+const otherParseCache = new WeakMap<LogStat, Record<string, any> | null>();
 
-  // 从 usageDetails: 后面开始查找 JSON 对象
-  const startIndex = other.indexOf('{', usageDetailsIndex);
-  if (startIndex === -1) return null;
+// 解析 other 字段（兼容 JSON 和 ezlinkai 分号分隔格式），带缓存
+// ezlinkai 格式示例: "adminInfo:[1,2];usageDetails:{...};is_model_mapped:true;upstream_model_name:gpt-4"
+export const parseLogOther = (row: LogStat): Record<string, any> | null => {
+  if (otherParseCache.has(row)) return otherParseCache.get(row)!;
+  const other = row.other;
+  if (!other || other.trim() === '') {
+    otherParseCache.set(row, null);
+    return null;
+  }
 
-  // 使用括号匹配来找到完整的 JSON 对象
-  let braceCount = 0;
-  let endIndex = startIndex;
+  // 尝试 JSON 解析（兼容 new-api 格式）
+  try {
+    const parsed = JSON.parse(other);
+    if (typeof parsed === 'object' && parsed !== null) {
+      otherParseCache.set(row, parsed);
+      return parsed;
+    }
+  } catch {
+    // 非 JSON，走分号分隔解析
+  }
 
-  for (let i = startIndex; i < other.length; i++) {
-    if (other[i] === '{') {
-      braceCount++;
-    } else if (other[i] === '}') {
-      braceCount--;
+  // ezlinkai 分号分隔格式解析
+  const result: Record<string, any> = {};
+  // 用分号分割，但需要处理 adminInfo:[...] 和 usageDetails:{...} 中包含分号的情况
+  // 简单的 key:value 对用正则提取
+  const isModelMappedMatch = other.match(/is_model_mapped:(\w+)/);
+  if (isModelMappedMatch) {
+    result.is_model_mapped = isModelMappedMatch[1] === 'true';
+  }
+  const upstreamMatch = other.match(/upstream_model_name:([^;]+)/);
+  if (upstreamMatch) {
+    result.upstream_model_name = upstreamMatch[1].trim();
+  }
+  // adminInfo
+  const adminInfoMatch = other.match(/adminInfo:\s*(\[.*?\])/);
+  if (adminInfoMatch) {
+    try {
+      result.adminInfo = JSON.parse(adminInfoMatch[1]);
+    } catch {
+      /* ignore */
+    }
+  }
+  // usageDetails
+  const usageIndex = other.indexOf('usageDetails:');
+  if (usageIndex !== -1) {
+    const startIndex = other.indexOf('{', usageIndex);
+    if (startIndex !== -1) {
+      let braceCount = 0;
+      let endIndex = startIndex;
+      for (let i = startIndex; i < other.length; i++) {
+        if (other[i] === '{') braceCount++;
+        else if (other[i] === '}') {
+          braceCount--;
+          if (braceCount === 0) {
+            endIndex = i;
+            break;
+          }
+        }
+      }
       if (braceCount === 0) {
-        endIndex = i;
-        break;
+        try {
+          result.usageDetails = JSON.parse(
+            other.substring(startIndex, endIndex + 1)
+          );
+        } catch {
+          /* ignore */
+        }
       }
     }
   }
 
-  if (braceCount !== 0) return null;
-
-  try {
-    const jsonStr = other.substring(startIndex, endIndex + 1);
-    const usageDetails = JSON.parse(jsonStr);
-    return usageDetails;
-  } catch (error) {
-    console.error('解析usageDetails失败:', error);
-    return null;
-  }
+  const hasData = Object.keys(result).length > 0;
+  otherParseCache.set(row, hasData ? result : null);
+  return hasData ? result : null;
 };
 
-// 解析重试序列的辅助函数
+// 获取模型重定向信息
+export const getModelMappingInfo = (
+  row: LogStat
+): { upstreamModelName: string } | null => {
+  const parsed = parseLogOther(row);
+  if (parsed && parsed.is_model_mapped === true && parsed.upstream_model_name) {
+    return { upstreamModelName: parsed.upstream_model_name };
+  }
+  return null;
+};
+
+// 截断字符串
+const truncateStr = (name: string, max: number) =>
+  name.length > max ? `${name.substring(0, max)}...` : name;
+
+// 解析重试序列
 const parseRetrySequence = (
-  other: string
+  row: LogStat
 ): {
   channelIds: number[];
   retrySequence: string;
   displayText: string;
 } | null => {
-  if (!other) return null;
+  const parsed = parseLogOther(row);
+  if (!parsed) return null;
 
-  const adminInfoMatch = other.match(/adminInfo:\s*(\[.*?\])/);
-  if (!adminInfoMatch) return null;
+  const info = parsed.admin_info || parsed.adminInfo;
+  if (!Array.isArray(info) || info.length === 0) return null;
 
-  try {
-    const channelIds = JSON.parse(adminInfoMatch[1]);
-    if (!Array.isArray(channelIds) || channelIds.length === 0) return null;
+  const channelIds: number[] = info;
+  const retrySequence = channelIds.join('->');
+  const displayText =
+    retrySequence.length > 15
+      ? `${channelIds[0]}->...${
+          channelIds.length > 1 ? `(${channelIds.length})` : ''
+        }`
+      : retrySequence;
 
-    const retrySequence = channelIds.join('->');
-    const displayText =
-      retrySequence.length > 15
-        ? `${channelIds[0]}->...${
-            channelIds.length > 1 ? `(${channelIds.length})` : ''
-          }`
-        : retrySequence;
-
-    return { channelIds, retrySequence, displayText };
-  } catch (error) {
-    console.error('解析adminInfo失败:', error);
-    return null;
-  }
+  return { channelIds, retrySequence, displayText };
 };
 
 /** 类型 */
@@ -167,6 +225,22 @@ export const formatTokenSpeed = (
   const speed = getTokenSpeedValue(log);
   return speed > 0 ? `${speed.toFixed(2)} t/s` : '-';
 };
+
+// 颜色档位常量
+const TIER_EMERALD =
+  'bg-emerald-50 text-emerald-600 ring-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-500/30';
+const TIER_AMBER =
+  'bg-amber-50 text-amber-600 ring-amber-500/20 dark:bg-amber-500/10 dark:text-amber-400 dark:ring-amber-500/30';
+const TIER_ROSE =
+  'bg-rose-50 text-rose-600 ring-rose-500/20 dark:bg-rose-500/10 dark:text-rose-400 dark:ring-rose-500/30';
+
+/** Duration 颜色：越低越好 */
+export const getDurationTier = (duration: number) =>
+  duration >= 100 ? TIER_ROSE : duration >= 50 ? TIER_AMBER : TIER_EMERALD;
+
+/** Speed 颜色：越高越好 */
+export const getSpeedTier = (speed: number) =>
+  speed >= 50 ? TIER_EMERALD : speed >= 20 ? TIER_AMBER : TIER_ROSE;
 
 export const columns: ColumnDef<LogStat>[] = [
   {
@@ -286,16 +360,58 @@ export const columns: ColumnDef<LogStat>[] = [
     header: () => <div className="text-center">Model</div>,
     cell: ({ row }) => {
       const modelName = row.getValue('model_name') as string;
-      const truncatedModelName =
-        modelName.length > 40 ? `${modelName.substring(0, 40)}...` : modelName;
+      const mappingInfo = getModelMappingInfo(row.original);
 
+      if (mappingInfo) {
+        const { upstreamModelName } = mappingInfo;
+        const copyValue = `${modelName} → ${upstreamModelName}`;
+        return (
+          <div className="text-center">
+            <CopyableCell value={copyValue} label="模型名称">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex items-center gap-1">
+                      <Badge variant="outline">
+                        {truncateStr(modelName, 25)}
+                      </Badge>
+                      <span className="text-muted-foreground">→</span>
+                      <Badge variant="secondary">
+                        {truncateStr(upstreamModelName, 25)}
+                      </Badge>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-sm">
+                    <div className="space-y-1 text-xs">
+                      <p>
+                        <span className="text-muted-foreground">
+                          请求模型：
+                        </span>
+                        {modelName}
+                      </p>
+                      <p>
+                        <span className="text-muted-foreground">
+                          实际模型：
+                        </span>
+                        {upstreamModelName}
+                      </p>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </CopyableCell>
+          </div>
+        );
+      }
+
+      // 无重定向：正常显示
       return (
         <div className="text-center">
           <CopyableCell value={modelName} label="模型名称">
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Badge variant="outline">{truncatedModelName}</Badge>
+                  <Badge variant="outline">{truncateStr(modelName, 40)}</Badge>
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>{modelName}</p>
@@ -349,6 +465,7 @@ export const columns: ColumnDef<LogStat>[] = [
     minSize: 100,
     cell: ({ row }) => {
       const formattedSpeed = formatTokenSpeed(row.original);
+      const speedValue = getTokenSpeedValue(row.original);
 
       if (formattedSpeed === '-') {
         return <div className="text-center">-</div>;
@@ -357,7 +474,13 @@ export const columns: ColumnDef<LogStat>[] = [
       return (
         <div className="text-center">
           <CopyableCell value={formattedSpeed} label="Token生成速率">
-            <span className="font-mono text-violet-600">{formattedSpeed}</span>
+            <span
+              className={`inline-flex items-center rounded-md px-1.5 py-0.5 font-mono text-xs font-medium ring-1 ring-inset ${getSpeedTier(
+                speedValue
+              )}`}
+            >
+              {formattedSpeed}
+            </span>
           </CopyableCell>
         </div>
       );
@@ -370,8 +493,7 @@ export const columns: ColumnDef<LogStat>[] = [
     header: () => <div className="w-24 text-center">重试</div>,
     size: 120,
     cell: ({ row }) => {
-      const other = row.original.other as string;
-      const parsed = parseRetrySequence(other);
+      const parsed = parseRetrySequence(row.original);
 
       if (!parsed) {
         return <div className="w-24 text-center">-</div>;
@@ -437,21 +559,15 @@ export const columns: ColumnDef<LogStat>[] = [
       const firstWordLatency =
         typeof firstWordLatencyValue === 'number' ? firstWordLatencyValue : 0;
 
-      // 调试信息（生产环境可删除）
-      if (isStream && process.env.NODE_ENV === 'development') {
-        console.log('Debug - Row data:', {
-          original: row.original,
-          first_word_latency: row.original.first_word_latency,
-          firstWordLatency: row.original.first_word_latency,
-          FirstWordLatency: (row.original as any).FirstWordLatency,
-          finalValue: firstWordLatency,
-          isStream
-        });
-      }
-
       return (
         <div className="flex items-center justify-center gap-1.5 text-center">
-          <span>{duration}</span>
+          <span
+            className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset ${getDurationTier(
+              duration
+            )}`}
+          >
+            {duration}s
+          </span>
           {isStream && (
             <>
               <span className="inline-flex items-center rounded bg-green-100 px-1.5 py-0.5 text-xs font-medium text-green-700">
