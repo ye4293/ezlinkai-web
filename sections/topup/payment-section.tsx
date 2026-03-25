@@ -49,6 +49,7 @@ export default function PaymentSection() {
   const [payAmount, setPayAmount] = useState('');
 
   const isEpayMethod = paymentMethod === 'wxpay' || paymentMethod === 'alipay';
+  const isStripeMethod = paymentMethod === 'stripe';
 
   useEffect(() => {
     const fetchTopupInfo = async () => {
@@ -69,7 +70,12 @@ export default function PaymentSection() {
   }, []);
 
   useEffect(() => {
-    if (!isEpayMethod || !amount || amount <= 0) {
+    if (!amount || amount <= 0) {
+      setPayAmount('');
+      return;
+    }
+
+    if (!isEpayMethod && !isStripeMethod) {
       setPayAmount('');
       return;
     }
@@ -77,16 +83,21 @@ export default function PaymentSection() {
     let cancelled = false;
 
     const fetchPayAmount = async () => {
+      const endpoint = isStripeMethod
+        ? '/api/user/stripe/amount'
+        : '/api/user/amount';
+      const body = isStripeMethod
+        ? { amount: Number(amount), payment_method: 'stripe' }
+        : { amount: Number(amount) };
+
       try {
-        const res = await fetch('/api/user/amount', {
+        const res = await fetch(endpoint, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
           credentials: 'include',
-          body: JSON.stringify({
-            amount: Number(amount)
-          })
+          body: JSON.stringify(body)
         });
         const result = await res.json();
         if (!cancelled) {
@@ -108,7 +119,7 @@ export default function PaymentSection() {
     return () => {
       cancelled = true;
     };
-  }, [amount, isEpayMethod]);
+  }, [amount, isEpayMethod, isStripeMethod]);
 
   const handlePay = async () => {
     if (!amount || amount <= 0) {
@@ -119,32 +130,25 @@ export default function PaymentSection() {
     setIsSubmitting(true);
 
     if (paymentMethod === 'stripe') {
-      // Map known amounts to charge IDs based on previous StripePage logic
-      let chargeId = 0;
-      if (amount === 1) chargeId = 1;
-      else if (amount === 10) chargeId = 2;
-      else if (amount === 50) chargeId = 3;
-
-      if (chargeId === 0) {
-        toast.info(`当前仅支持部分固定 Stripe 面额，暂不支持该金额`);
-        setIsSubmitting(false);
-        return;
-      }
-
       try {
-        const res = await fetch(`/api/charge/create_order`, {
+        const res = await fetch('/api/user/stripe/pay', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ charge_id: chargeId }),
-          credentials: 'include'
+          credentials: 'include',
+          body: JSON.stringify({
+            amount: Number(amount),
+            payment_method: 'stripe',
+            success_url: `${window.location.origin}/dashboard/log`,
+            cancel_url: `${window.location.origin}/dashboard/topup`
+          })
         });
-        const { data, success } = await res.json();
-        if (success && data?.charge_url) {
-          window.open(data.charge_url, '_blank');
+        const result = await res.json().catch(() => null);
+        if (res.ok && result?.success && result.data?.pay_link) {
+          window.open(result.data.pay_link, '_blank');
         } else {
-          toast.error('创建 Stripe 订单失败');
+          toast.error(extractApiErrorMessage(result, '创建 Stripe 订单失败'));
         }
       } catch (e) {
         toast.error('创建 Stripe 订单时出错');
@@ -211,7 +215,13 @@ export default function PaymentSection() {
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-3">
-          <Label>{isEpayMethod ? '充值数量' : '选择金额 ($)'}</Label>
+          <Label>
+            {isEpayMethod
+              ? '充值数量'
+              : isStripeMethod
+              ? '充值数量'
+              : '选择金额 ($)'}
+          </Label>
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-3">
             {FIXED_AMOUNTS.map((val) => (
               <Button
@@ -220,18 +230,24 @@ export default function PaymentSection() {
                 className="w-full"
                 onClick={() => setAmount(val)}
               >
-                {isEpayMethod ? val : `$${val}`}
+                {isEpayMethod || isStripeMethod ? val : `$${val}`}
               </Button>
             ))}
           </div>
           <div className="mt-4 flex items-center gap-3">
             <Label className="w-32 whitespace-nowrap">
-              {isEpayMethod ? '自定义数量:' : '自定义金额:'}
+              {isStripeMethod
+                ? '充值数量:'
+                : isEpayMethod
+                ? '自定义数量:'
+                : '自定义金额:'}
             </Label>
             <Input
               type="number"
               min="1"
-              placeholder={isEpayMethod ? '输入充值数量' : '输入金额'}
+              placeholder={
+                isEpayMethod || isStripeMethod ? '输入充值数量' : '输入金额'
+              }
               value={amount}
               onChange={(e) =>
                 setAmount(e.target.value ? Number(e.target.value) : '')
@@ -249,6 +265,13 @@ export default function PaymentSection() {
               </div>
               <div className="mt-2 font-medium text-foreground">
                 应付金额：{payAmount ? `¥${payAmount}` : '--'}
+              </div>
+            </div>
+          )}
+          {isStripeMethod && (
+            <div className="rounded-lg border bg-muted/20 p-4 text-sm text-muted-foreground">
+              <div className="mt-0 font-medium text-foreground">
+                应付金额：{payAmount ? `$${payAmount}` : '--'}
               </div>
             </div>
           )}
@@ -313,6 +336,8 @@ export default function PaymentSection() {
         >
           {isSubmitting
             ? '提交中...'
+            : isStripeMethod
+            ? `Pay Now${payAmount ? ` ($${payAmount})` : ''}`
             : isEpayMethod
             ? `立即支付${payAmount ? ` (¥${payAmount})` : ''}`
             : `Pay Now${amount ? ` ($${amount})` : ''}`}

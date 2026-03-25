@@ -16,7 +16,7 @@ import {
   CardTitle
 } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { CreditCard, KeyRound, Link2, Save } from 'lucide-react';
+import { CreditCard, KeyRound, Link2, Save, ShieldCheck } from 'lucide-react';
 
 const breadcrumbItems = [
   { title: 'Dashboard', link: '/dashboard' },
@@ -34,11 +34,14 @@ const getOptionValue = (options: Option[], key: string) => {
   return option?.value;
 };
 
+const toBool = (val: unknown) => val === 'true' || val === true;
+
 export default function PaymentSettingPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // ---- Epay state ----
   const [epayPaymentEnabled, setEpayPaymentEnabled] = useState(false);
   const [epayPayAddress, setEpayPayAddress] = useState('');
   const [epayId, setEpayId] = useState('');
@@ -47,9 +50,23 @@ export default function PaymentSettingPage() {
   const [epayMinTopUp, setEpayMinTopUp] = useState('1');
   const [epayCallbackAddress, setEpayCallbackAddress] = useState('');
 
-  const isConfigured = useMemo(() => {
+  // ---- Stripe state ----
+  const [stripePaymentEnabled, setStripePaymentEnabled] = useState(false);
+  const [stripeApiSecret, setStripeApiSecret] = useState('');
+  const [stripeWebhookSecret, setStripeWebhookSecret] = useState('');
+  const [stripePriceId, setStripePriceId] = useState('');
+  const [stripeUnitPrice, setStripeUnitPrice] = useState('7.3');
+  const [stripeMinTopUp, setStripeMinTopUp] = useState('1');
+  const [stripePromotionCodesEnabled, setStripePromotionCodesEnabled] =
+    useState(false);
+
+  const isEpayConfigured = useMemo(() => {
     return Boolean(epayPayAddress && epayId);
   }, [epayPayAddress, epayId]);
+
+  const isStripeConfigured = useMemo(() => {
+    return Boolean(stripePriceId);
+  }, [stripePriceId]);
 
   const fetchOptions = async () => {
     try {
@@ -63,9 +80,9 @@ export default function PaymentSettingPage() {
       if (result.success && Array.isArray(result.data)) {
         const options = result.data as Option[];
 
+        // Epay
         setEpayPaymentEnabled(
-          getOptionValue(options, 'EpayPaymentEnabled') === 'true' ||
-            getOptionValue(options, 'EpayPaymentEnabled') === true
+          toBool(getOptionValue(options, 'EpayPaymentEnabled'))
         );
         setEpayPayAddress(
           String(getOptionValue(options, 'EpayPayAddress') || '')
@@ -77,6 +94,25 @@ export default function PaymentSettingPage() {
           String(getOptionValue(options, 'EpayCallbackAddress') || '')
         );
         setEpayKey('');
+
+        // Stripe
+        setStripePaymentEnabled(
+          toBool(getOptionValue(options, 'StripePaymentEnabled'))
+        );
+        setStripePriceId(
+          String(getOptionValue(options, 'StripePriceId') || '')
+        );
+        setStripeUnitPrice(
+          String(getOptionValue(options, 'StripeUnitPrice') || '7.3')
+        );
+        setStripeMinTopUp(
+          String(getOptionValue(options, 'StripeMinTopUp') || '1')
+        );
+        setStripePromotionCodesEnabled(
+          toBool(getOptionValue(options, 'StripePromotionCodesEnabled'))
+        );
+        setStripeApiSecret('');
+        setStripeWebhookSecret('');
       }
     } catch (err) {
       setError(
@@ -109,12 +145,25 @@ export default function PaymentSettingPage() {
     setIsLoading(true);
     try {
       const optionsToSave = [
+        // Epay
         { key: 'EpayPaymentEnabled', value: epayPaymentEnabled.toString() },
         { key: 'EpayPayAddress', value: epayPayAddress.trim() },
         { key: 'EpayId', value: epayId.trim() },
         { key: 'EpayPrice', value: epayPrice.trim() || '7.3' },
         { key: 'EpayMinTopUp', value: epayMinTopUp.trim() || '1' },
-        { key: 'EpayCallbackAddress', value: epayCallbackAddress.trim() }
+        { key: 'EpayCallbackAddress', value: epayCallbackAddress.trim() },
+        // Stripe
+        {
+          key: 'StripePaymentEnabled',
+          value: stripePaymentEnabled.toString()
+        },
+        { key: 'StripePriceId', value: stripePriceId.trim() },
+        { key: 'StripeUnitPrice', value: stripeUnitPrice.trim() || '7.3' },
+        { key: 'StripeMinTopUp', value: stripeMinTopUp.trim() || '1' },
+        {
+          key: 'StripePromotionCodesEnabled',
+          value: stripePromotionCodesEnabled.toString()
+        }
       ];
 
       for (const option of optionsToSave) {
@@ -124,9 +173,17 @@ export default function PaymentSettingPage() {
       if (epayKey.trim()) {
         await saveOption('EpayKey', epayKey.trim());
       }
+      if (stripeApiSecret.trim()) {
+        await saveOption('StripeApiSecret', stripeApiSecret.trim());
+      }
+      if (stripeWebhookSecret.trim()) {
+        await saveOption('StripeWebhookSecret', stripeWebhookSecret.trim());
+      }
 
       toast.success('支付设置保存成功');
       setEpayKey('');
+      setStripeApiSecret('');
+      setStripeWebhookSecret('');
       await fetchOptions();
     } catch (saveError) {
       console.error('Save payment setting error:', saveError);
@@ -153,7 +210,7 @@ export default function PaymentSettingPage() {
           <div>
             <h2 className="text-2xl font-bold tracking-tight">支付设置</h2>
             <p className="text-sm text-muted-foreground">
-              配置易支付接入参数，适用于 PC 与手机端管理界面。
+              配置易支付和 Stripe 的接入参数，适用于 PC 与手机端管理界面。
             </p>
           </div>
           <Button onClick={handleSave} disabled={isLoading}>
@@ -164,6 +221,7 @@ export default function PaymentSettingPage() {
 
         <Separator />
 
+        {/* ==================== 易支付 ==================== */}
         <div className="grid gap-6">
           <Card>
             <CardHeader>
@@ -186,7 +244,9 @@ export default function PaymentSettingPage() {
                   </Label>
                   <p className="text-sm text-muted-foreground">
                     当前状态：{epayPaymentEnabled ? '已启用' : '未启用'}
-                    {isConfigured ? '，已填写基础参数' : '，尚未完成基础参数'}
+                    {isEpayConfigured
+                      ? '，已填写基础参数'
+                      : '，尚未完成基础参数'}
                   </p>
                 </div>
                 <Switch
@@ -326,6 +386,195 @@ export default function PaymentSettingPage() {
                   </li>
                   <li>
                     该页面对手机端使用单列布局，对桌面端自动切换为双列/三列布局。
+                  </li>
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Separator />
+
+        {/* ==================== Stripe ==================== */}
+        <div className="grid gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CreditCard className="h-5 w-5" />
+                Stripe 开关
+              </CardTitle>
+              <CardDescription>
+                开启后，前端充值页将可以使用 Stripe Checkout 进行在线支付。
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="space-y-1">
+                  <Label
+                    htmlFor="stripe-enabled"
+                    className="text-base font-medium"
+                  >
+                    启用 Stripe 支付
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    当前状态：{stripePaymentEnabled ? '已启用' : '未启用'}
+                    {isStripeConfigured
+                      ? '，已填写 Price ID'
+                      : '，尚未配置 Price ID'}
+                  </p>
+                </div>
+                <Switch
+                  id="stripe-enabled"
+                  checked={stripePaymentEnabled}
+                  onCheckedChange={setStripePaymentEnabled}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ShieldCheck className="h-5 w-5" />
+                Stripe 密钥
+              </CardTitle>
+              <CardDescription>
+                填写 Stripe API Secret Key 和 Webhook Signing
+                Secret。密钥属于敏感信息，不会回显。
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="stripe-api-secret">API Secret Key</Label>
+                  <Input
+                    id="stripe-api-secret"
+                    type="password"
+                    value={stripeApiSecret}
+                    onChange={(e) => setStripeApiSecret(e.target.value)}
+                    placeholder="sk_live_... 或 sk_test_..."
+                    autoComplete="new-password"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    以 sk_live_ 或 sk_test_ 开头的密钥，仅在输入新值时更新。
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="stripe-webhook-secret">
+                    Webhook Signing Secret
+                  </Label>
+                  <Input
+                    id="stripe-webhook-secret"
+                    type="password"
+                    value={stripeWebhookSecret}
+                    onChange={(e) => setStripeWebhookSecret(e.target.value)}
+                    placeholder="whsec_..."
+                    autoComplete="new-password"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    以 whsec_ 开头，用于验证 Stripe Webhook 签名。
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <KeyRound className="h-5 w-5" />
+                Stripe 充值规则
+              </CardTitle>
+              <CardDescription>
+                配置 Stripe 的 Price ID、单价、最低充值数量以及是否允许优惠码。
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="stripe-price-id">Stripe Price ID</Label>
+                  <Input
+                    id="stripe-price-id"
+                    value={stripePriceId}
+                    onChange={(e) => setStripePriceId(e.target.value)}
+                    placeholder="price_..."
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    在 Stripe Dashboard 中创建 Product → Price 后获得的价格 ID。
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="stripe-unit-price">
+                    充值单价（USD / 单位）
+                  </Label>
+                  <Input
+                    id="stripe-unit-price"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={stripeUnitPrice}
+                    onChange={(e) => setStripeUnitPrice(e.target.value)}
+                    placeholder="例如：7.3"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    每个充值单位对应的美元金额，用于前端展示和后端校验。
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="stripe-min-topup">最低充值数量</Label>
+                  <Input
+                    id="stripe-min-topup"
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={stripeMinTopUp}
+                    onChange={(e) => setStripeMinTopUp(e.target.value)}
+                    placeholder="例如：1"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    前端与后端都将依据该值限制 Stripe 最低充值数量。
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="space-y-1">
+                  <Label
+                    htmlFor="stripe-promo"
+                    className="text-base font-medium"
+                  >
+                    允许优惠码
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    开启后，用户在 Stripe Checkout 页面可以输入 Promotion Code。
+                  </p>
+                </div>
+                <Switch
+                  id="stripe-promo"
+                  checked={stripePromotionCodesEnabled}
+                  onCheckedChange={setStripePromotionCodesEnabled}
+                />
+              </div>
+
+              <div className="rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
+                <p className="font-medium text-foreground">配置说明</p>
+                <ul className="mt-2 list-inside list-disc space-y-1">
+                  <li>
+                    建议先填写 API Secret Key、Webhook Secret 和 Price
+                    ID，再启用 Stripe 开关。
+                  </li>
+                  <li>
+                    Webhook 回调地址需在 Stripe Dashboard 中配置为
+                    <code className="mx-1 rounded bg-muted px-1 py-0.5">
+                      {'https://<你的域名>/api/stripe/webhook'}
+                    </code>
+                  </li>
+                  <li>
+                    Stripe
+                    和易支付可以同时启用，用户在充值页面会看到多个支付选项。
                   </li>
                 </ul>
               </div>
