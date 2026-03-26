@@ -5,7 +5,15 @@ const zh = {
     models: '模型列表',
     docs: '文档',
     marketplace: '模型广场',
-    signIn: '登录'
+    signIn: '登录',
+    dashboard: '控制台'
+  },
+  // 用户菜单
+  userMenu: {
+    profile: '个人资料',
+    billing: '账单管理',
+    settings: '设置',
+    logout: '退出登录'
   },
   // Hero
   hero: {

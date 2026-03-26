@@ -7,7 +7,15 @@ const en: Locale = {
     models: 'Models',
     docs: 'Document',
     marketplace: 'Model Plaza',
-    signIn: 'Sign In'
+    signIn: 'Sign In',
+    dashboard: 'Dashboard'
+  },
+  // User Menu
+  userMenu: {
+    profile: 'Profile',
+    billing: 'Billing',
+    settings: 'Settings',
+    logout: 'Log out'
   },
   // Hero
   hero: {

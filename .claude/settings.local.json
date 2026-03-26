@@ -32,7 +32,8 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:github.com)",
       "Bash(go build:*)",
-      "Bash(xargs wc:*)"
+      "Bash(xargs wc:*)",
+      "Bash(grep -E \"\\\\.\\(tsx?|js\\)$\")"
     ]
   }
 }

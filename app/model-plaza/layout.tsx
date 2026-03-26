@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useLocale } from '@/components/providers/locale-provider';
 import ThemeToggle from '@/components/layout/ThemeToggle/theme-toggle';
 import LanguageToggle from '@/components/layout/language-toggle';
+import { UserNav } from '@/components/layout/user-nav';
 
 export default function ModelPlazaLayout({
   children
@@ -53,12 +54,7 @@ export default function ModelPlazaLayout({
           <div className="flex items-center gap-2">
             <LanguageToggle />
             <ThemeToggle />
-            <Link
-              href="/sign-in"
-              className="inline-flex h-8 items-center justify-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90"
-            >
-              {t.modelPlaza.signIn}
-            </Link>
+            <UserNav />
           </div>
         </div>
       </header>

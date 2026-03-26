@@ -4,11 +4,14 @@ import Link from 'next/link';
 import { useLocale } from '@/components/providers/locale-provider';
 import ThemeToggle from '@/components/layout/ThemeToggle/theme-toggle';
 import LanguageToggle from '@/components/layout/language-toggle';
+import { UserNav } from '@/components/layout/user-nav';
 import ModelMarquee from '@/components/landing/model-marquee';
 import CodeExample from '@/components/landing/code-example';
+import { useSession } from 'next-auth/react';
 
 export default function HomePage() {
   const { t } = useLocale();
+  const { data: session } = useSession();
 
   return (
     <div className="min-h-screen bg-background">
@@ -57,12 +60,7 @@ export default function HomePage() {
           <div className="flex items-center gap-2">
             <LanguageToggle />
             <ThemeToggle />
-            <Link
-              href="/sign-in"
-              className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90"
-            >
-              {t.nav.signIn}
-            </Link>
+            <UserNav />
           </div>
         </div>
       </header>
@@ -85,7 +83,7 @@ export default function HomePage() {
               </p>
               <div className="mt-10 flex items-center gap-4">
                 <Link
-                  href="/sign-in"
+                  href={session ? '/dashboard' : '/sign-in'}
                   className="inline-flex h-11 items-center justify-center rounded-md bg-primary px-8 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90"
                 >
                   {t.hero.getStarted}
@@ -298,7 +296,7 @@ export default function HomePage() {
           </p>
           <div className="mt-8">
             <Link
-              href="/sign-in"
+              href={session ? '/dashboard' : '/sign-in'}
               className="inline-flex h-11 items-center justify-center rounded-md bg-primary px-8 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90"
             >
               {t.cta.button}
