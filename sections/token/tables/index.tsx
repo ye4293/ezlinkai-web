@@ -11,7 +11,15 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { Copy, Calendar, Clock, Database } from 'lucide-react';
+import {
+  Copy,
+  Calendar,
+  Clock,
+  Database,
+  CheckCircle2,
+  Ban,
+  AlertTriangle
+} from 'lucide-react';
 import { renderQuota } from '@/utils/render';
 import dayjs from 'dayjs';
 import { CellAction } from './cell-action';
@@ -20,36 +28,48 @@ import { CellAction } from './cell-action';
 const MobileTokenCard = ({ row }: { row: Token }) => {
   const token = row;
 
-  const renderStatus = (status: number | undefined) => {
-    switch (status) {
-      case 1:
-        return (
-          <Badge variant="outline" className="bg-green-100 text-green-800">
-            Enabled
-          </Badge>
-        );
-      case 2:
-        return (
-          <Badge variant="outline" className="bg-red-100 text-red-800">
-            Disabled
-          </Badge>
-        );
-      case 3:
-        return (
-          <Badge variant="outline" className="bg-yellow-100 text-yellow-800">
-            Expired
-          </Badge>
-        );
-      case 4:
-        return (
-          <Badge variant="outline" className="bg-gray-100 text-gray-800">
-            Exhausted
-          </Badge>
-        );
-      default:
-        return <Badge variant="outline">Unknown</Badge>;
+  const statusConfig: Record<
+    number,
+    {
+      text: string;
+      icon: React.ReactNode;
+      badgeClass: string;
+      borderClass: string;
+      cardBgClass: string;
+    }
+  > = {
+    1: {
+      text: 'Enabled',
+      icon: <CheckCircle2 className="h-3 w-3" />,
+      badgeClass: 'bg-green-50 text-green-700 border-green-200',
+      borderClass: 'border-l-green-500',
+      cardBgClass: ''
+    },
+    2: {
+      text: 'Disabled',
+      icon: <Ban className="h-3 w-3" />,
+      badgeClass: 'bg-gray-50 text-gray-600 border-gray-200',
+      borderClass: 'border-l-gray-400',
+      cardBgClass: 'bg-muted/30'
+    },
+    3: {
+      text: 'Expired',
+      icon: <Clock className="h-3 w-3" />,
+      badgeClass: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+      borderClass: 'border-l-yellow-500',
+      cardBgClass: 'bg-yellow-50/20'
+    },
+    4: {
+      text: 'Exhausted',
+      icon: <AlertTriangle className="h-3 w-3" />,
+      badgeClass: 'bg-orange-50 text-orange-700 border-orange-200',
+      borderClass: 'border-l-orange-500',
+      cardBgClass: 'bg-orange-50/20'
     }
   };
+
+  const status = statusConfig[token.status ?? 0];
+  const isInactive = token.status !== 1;
 
   const handleCopy = () => {
     navigator.clipboard
@@ -59,12 +79,32 @@ const MobileTokenCard = ({ row }: { row: Token }) => {
   };
 
   return (
-    <Card className="mb-4 overflow-hidden text-sm">
+    <Card
+      className={`mb-4 overflow-hidden border-l-4 text-sm ${
+        status?.borderClass ?? ''
+      } ${status?.cardBgClass ?? ''}`}
+    >
       <CardContent className="space-y-3 p-4">
         <div className="flex items-center justify-between border-b pb-2">
-          <div className="max-w-[200px] truncate font-medium">{token.name}</div>
+          <div
+            className={`max-w-[200px] truncate font-medium ${
+              isInactive ? 'opacity-60' : ''
+            }`}
+          >
+            {token.name}
+          </div>
           <div className="flex items-center gap-2">
-            {renderStatus(token.status)}
+            {status ? (
+              <Badge
+                variant="outline"
+                className={`gap-1 text-xs font-medium ${status.badgeClass}`}
+              >
+                {status.icon}
+                {status.text}
+              </Badge>
+            ) : (
+              <Badge variant="outline">Unknown</Badge>
+            )}
             <div className="md:hidden">
               <CellAction data={token} />
             </div>

@@ -6,7 +6,9 @@ import { useCallback, useMemo } from 'react';
 
 export const STATUS_OPTIONS = [
   { value: '1', label: 'Enabled' },
-  { value: '2', label: 'Disabled' }
+  { value: '2', label: 'Disabled' },
+  { value: '3', label: 'Expired' },
+  { value: '4', label: 'Exhausted' }
 ];
 
 export function useTableFilters() {

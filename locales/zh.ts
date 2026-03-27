@@ -107,6 +107,32 @@ const zh = {
     copyModel: '复制模型名称',
     signIn: '登录',
     backHome: '首页'
+  },
+  // 模型详情
+  modelDetail: {
+    back: '返回模型广场',
+    performance: '性能监控',
+    successRate: '成功率',
+    avgLatency: '平均延迟',
+    avgSpeed: '平均速度',
+    inputPrice: '输入价格',
+    outputPrice: '输出价格',
+    priceType: '计费类型',
+    requests24h: '24h 请求量',
+    latencyTrend: '延迟趋势',
+    speedTrend: '速度 (TPS)',
+    successRateTrend: '成功率趋势',
+    tokenUsage: '用量分析',
+    pricingDetail: '定价详情',
+    userTier: '用户等级',
+    channelDetail: '渠道明细',
+    channelName: '渠道名称',
+    adminOnly: '仅管理员可见',
+    ttftDesc: '首 Token 延迟',
+    healthy: '正常',
+    degraded: '降级',
+    down: '异常',
+    noData: '无数据'
   }
 };
 

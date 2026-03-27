@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useLocale } from '@/components/providers/locale-provider';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +26,9 @@ import type {
   GroupConfigItem,
   ProviderInfo
 } from '@/lib/types/model-plaza';
+import type { ModelMetricsMini } from '@/lib/types/model-metrics';
+import StatusBadge from './components/status-badge';
+import { get } from '@/app/lib/clientFetch';
 
 // --- 供应商颜色 ---
 const providerColors: Record<string, string> = {
@@ -93,11 +97,15 @@ function CopyButton({ text, title }: { text: string; title: string }) {
 function ModelPriceCard({
   model,
   selectedGroup,
-  t
+  t,
+  metrics,
+  onClick
 }: {
   model: ModelPlazaItem;
   selectedGroup: string;
   t: any;
+  metrics?: ModelMetricsMini;
+  onClick?: () => void;
 }) {
   const groupPrice = model.group_prices?.find(
     (gp) => gp.group_key === selectedGroup
@@ -115,7 +123,10 @@ function ModelPriceCard({
     groupPrice?.final_fixed_price ?? model.base_fixed_price ?? 0;
 
   return (
-    <Card className="group relative flex flex-col overflow-hidden border border-border/60 bg-card transition-all hover:border-border hover:shadow-lg dark:hover:shadow-primary/5">
+    <Card
+      className="group relative flex cursor-pointer flex-col overflow-hidden border border-border/60 bg-card transition-all hover:border-border hover:shadow-lg dark:hover:shadow-primary/5"
+      onClick={onClick}
+    >
       {/* 顶部区域 */}
       <div className="flex items-start justify-between p-4 pb-2">
         <div className="min-w-0 flex-1">
@@ -155,14 +166,17 @@ function ModelPriceCard({
             </Badge>
           </div>
         </div>
-        {hasDiscount && (
-          <Badge
-            variant="destructive"
-            className="ml-2 shrink-0 text-[10px] font-bold leading-none"
-          >
-            -{discountPercent}%
-          </Badge>
-        )}
+        <div className="ml-2 flex shrink-0 items-center gap-1.5">
+          {metrics && <StatusBadge status={metrics.status} />}
+          {hasDiscount && (
+            <Badge
+              variant="destructive"
+              className="text-[10px] font-bold leading-none"
+            >
+              -{discountPercent}%
+            </Badge>
+          )}
+        </div>
       </div>
 
       {/* 价格区域 */}
@@ -224,6 +238,14 @@ function ModelPriceCard({
           </div>
         )}
       </div>
+
+      {/* 监控指标 mini */}
+      {metrics && metrics.status !== 'no_data' && (
+        <div className="flex items-center justify-between border-t border-border/30 px-4 py-1.5 text-[10px] text-muted-foreground">
+          <span>{metrics.avg_latency.toFixed(1)}s latency</span>
+          <span>{metrics.avg_speed.toFixed(0)} t/s</span>
+        </div>
+      )}
     </Card>
   );
 }
@@ -272,11 +294,15 @@ function FilterBadge({
 // --- 主视图 ---
 export default function ModelPlazaView() {
   const { t } = useLocale();
+  const router = useRouter();
   const [models, setModels] = useState<ModelPlazaItem[]>([]);
   const [groups, setGroups] = useState<GroupConfigItem[]>([]);
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [metricsMap, setMetricsMap] = useState<
+    Record<string, ModelMetricsMini>
+  >({});
 
   const [keyword, setKeyword] = useState('');
   const [selectedProvider, setSelectedProvider] = useState('');
@@ -337,6 +363,17 @@ export default function ModelPlazaView() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // 获取模型监控迷你摘要
+  useEffect(() => {
+    get<any>('/api/model-plaza/metrics/all')
+      .then((res: any) => {
+        if (res?.success && res.data) {
+          setMetricsMap(res.data);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const totalPages = Math.ceil(total / pageSize);
 
@@ -528,6 +565,12 @@ export default function ModelPlazaView() {
                   model={model}
                   selectedGroup={selectedGroup}
                   t={t}
+                  metrics={metricsMap[model.model_name]}
+                  onClick={() =>
+                    router.push(
+                      `/model-plaza/${encodeURIComponent(model.model_name)}`
+                    )
+                  }
                 />
               ))}
             </div>

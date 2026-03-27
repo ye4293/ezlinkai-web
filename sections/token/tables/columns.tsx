@@ -2,27 +2,62 @@
 import dayjs from 'dayjs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-// import { Toaster } from '@/components/ui/toaster';
-// import { Toaster, toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Token } from '@/lib/types/token';
 import { ColumnDef } from '@tanstack/react-table';
 import { CellAction } from './cell-action';
 import { renderQuota } from '@/utils/render';
+import { CheckCircle2, Ban, Clock, AlertTriangle } from 'lucide-react';
+
+const statusConfig: Record<
+  number,
+  { text: string; icon: React.ReactNode; badgeClass: string }
+> = {
+  1: {
+    text: 'Enabled',
+    icon: <CheckCircle2 className="h-3 w-3" />,
+    badgeClass:
+      'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-400'
+  },
+  2: {
+    text: 'Disabled',
+    icon: <Ban className="h-3 w-3" />,
+    badgeClass:
+      'border-gray-200 bg-gray-50 text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400'
+  },
+  3: {
+    text: 'Expired',
+    icon: <Clock className="h-3 w-3" />,
+    badgeClass:
+      'border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-800 dark:bg-yellow-950 dark:text-yellow-400'
+  },
+  4: {
+    text: 'Exhausted',
+    icon: <AlertTriangle className="h-3 w-3" />,
+    badgeClass:
+      'border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800 dark:bg-orange-950 dark:text-orange-400'
+  }
+};
 
 const renderStatus = (status: number) => {
-  switch (status) {
-    case 1:
-      return 'Enabled';
-    case 2:
-      return 'Disabled';
-    case 3:
-      return 'Expired';
-    case 4:
-      return 'Exhausted';
-    default:
-      return 'Unknown status';
+  const config = statusConfig[status];
+  if (!config) {
+    return (
+      <Badge variant="outline" className="text-xs">
+        Unknown
+      </Badge>
+    );
   }
+  return (
+    <Badge
+      variant="outline"
+      className={`gap-1 text-xs font-medium ${config.badgeClass}`}
+    >
+      {config.icon}
+      {config.text}
+    </Badge>
+  );
 };
 
 export const columns: ColumnDef<Token>[] = [
@@ -54,7 +89,9 @@ export const columns: ColumnDef<Token>[] = [
     accessorKey: 'status',
     header: () => <div className="text-center">Status</div>,
     cell: ({ row }) => (
-      <div className="text-center">{renderStatus(row.getValue('status'))}</div>
+      <div className="flex justify-center">
+        {renderStatus(row.getValue('status'))}
+      </div>
     )
   },
   {

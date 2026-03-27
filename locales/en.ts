@@ -111,6 +111,31 @@ const en: Locale = {
     copyModel: 'Copy model name',
     signIn: 'Sign In',
     backHome: 'Home'
+  },
+  modelDetail: {
+    back: 'Back to Model Plaza',
+    performance: 'Performance',
+    successRate: 'Success Rate',
+    avgLatency: 'Avg Latency',
+    avgSpeed: 'Avg Speed',
+    inputPrice: 'Input Price',
+    outputPrice: 'Output Price',
+    priceType: 'Type',
+    requests24h: '24h Requests',
+    latencyTrend: 'Latency Trend',
+    speedTrend: 'Speed (TPS)',
+    successRateTrend: 'Success Rate',
+    tokenUsage: 'Token Usage',
+    pricingDetail: 'Pricing Detail',
+    userTier: 'Tier',
+    channelDetail: 'Channel Detail',
+    channelName: 'Channel',
+    adminOnly: 'Admin Only',
+    ttftDesc: 'First Token',
+    healthy: 'Healthy',
+    degraded: 'Degraded',
+    down: 'Down',
+    noData: 'No Data'
   }
 };
 
