@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 // --- Types ---
 const providers = ['OpenAI', 'Claude', 'Gemini'] as const;
@@ -10,9 +10,12 @@ const languages = ['curl', 'python', 'javascript'] as const;
 type Lang = (typeof languages)[number];
 
 // --- Code Snippets: [provider][lang] ---
-const codeSnippets: Record<Provider, Record<Lang, string>> = {
-  OpenAI: {
-    curl: `curl https://api.ezlinkai.com/v1/chat/completions \\
+function getCodeSnippets(
+  serverAddress: string
+): Record<Provider, Record<Lang, string>> {
+  return {
+    OpenAI: {
+      curl: `curl ${serverAddress}/v1/chat/completions \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer $EZLINK_API_KEY" \\
   -d '{
@@ -21,10 +24,10 @@ const codeSnippets: Record<Provider, Record<Lang, string>> = {
       { "role": "user", "content": "Hello!" }
     ]
   }'`,
-    python: `from openai import OpenAI
+      python: `from openai import OpenAI
 
 client = OpenAI(
-    base_url="https://api.ezlinkai.com/v1",
+    base_url="${serverAddress}/v1",
     api_key="your-api-key",
 )
 
@@ -36,10 +39,10 @@ response = client.chat.completions.create(
 )
 
 print(response.choices[0].message.content)`,
-    javascript: `import OpenAI from 'openai';
+      javascript: `import OpenAI from 'openai';
 
 const client = new OpenAI({
-  baseURL: 'https://api.ezlinkai.com/v1',
+  baseURL: '${serverAddress}/v1',
   apiKey: 'your-api-key',
 });
 
@@ -51,9 +54,9 @@ const response = await client.chat.completions.create({
 });
 
 console.log(response.choices[0].message.content);`
-  },
-  Claude: {
-    curl: `curl https://api.anthropic.com/v1/messages \\
+    },
+    Claude: {
+      curl: `curl https://api.anthropic.com/v1/messages \\
   -H "Content-Type: application/json" \\
   -H "x-api-key: $ANTHROPIC_API_KEY" \\
   -H "anthropic-version: 2023-06-01" \\
@@ -64,7 +67,7 @@ console.log(response.choices[0].message.content);`
       { "role": "user", "content": "Hello!" }
     ]
   }'`,
-    python: `import anthropic
+      python: `import anthropic
 
 client = anthropic.Anthropic(
     api_key="your-api-key",
@@ -79,7 +82,7 @@ message = client.messages.create(
 )
 
 print(message.content[0].text)`,
-    javascript: `import Anthropic from '@anthropic-ai/sdk';
+      javascript: `import Anthropic from '@anthropic-ai/sdk';
 
 const client = new Anthropic({
   apiKey: 'your-api-key',
@@ -94,9 +97,9 @@ const message = await client.messages.create({
 });
 
 console.log(message.content[0].text);`
-  },
-  Gemini: {
-    curl: `curl "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent?key=$GEMINI_API_KEY" \\
+    },
+    Gemini: {
+      curl: `curl "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent?key=$GEMINI_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
     "contents": [{
@@ -105,7 +108,7 @@ console.log(message.content[0].text);`
       ]
     }]
   }'`,
-    python: `from google import genai
+      python: `from google import genai
 
 client = genai.Client(
     api_key="your-api-key",
@@ -117,7 +120,7 @@ response = client.models.generate_content(
 )
 
 print(response.text)`,
-    javascript: `import { GoogleGenAI } from '@google/genai';
+      javascript: `import { GoogleGenAI } from '@google/genai';
 
 const ai = new GoogleGenAI({
   apiKey: 'your-api-key',
@@ -129,8 +132,9 @@ const response = await ai.models.generateContent({
 });
 
 console.log(response.text);`
-  }
-};
+    }
+  };
+}
 
 // --- Syntax highlighting ---
 const highlights: Record<
@@ -298,11 +302,19 @@ function LangDropdown({
 }
 
 // --- Main Component ---
-export default function CodeExample() {
+export default function CodeExample({
+  serverAddress
+}: {
+  serverAddress: string;
+}) {
   const [activeProvider, setActiveProvider] = useState<Provider>('OpenAI');
   const [activeLang, setActiveLang] = useState<Lang>('curl');
   const [copied, setCopied] = useState(false);
 
+  const codeSnippets = useMemo(
+    () => getCodeSnippets(serverAddress),
+    [serverAddress]
+  );
   const code = codeSnippets[activeProvider][activeLang];
 
   const handleCopy = async () => {

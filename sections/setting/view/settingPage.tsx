@@ -39,6 +39,7 @@ export default function SettingPage() {
   const [systemName, setSystemName] = useState('');
   const [frontendServerAddress, setFrontendServerAddress] = useState('');
   const [serverAddress, setServerAddress] = useState('');
+  const [docsAddress, setDocsAddress] = useState('');
   const [retryCount, setRetryCount] = useState(0);
   const [autoDisableEnabled, setAutoDisableEnabled] = useState(false);
   const [autoDisableKeywords, setAutoDisableKeywords] = useState('');
@@ -102,6 +103,13 @@ export default function SettingPage() {
         );
         if (serverAddressOption) {
           setServerAddress(serverAddressOption.value || '');
+        }
+
+        const docsAddressOption = options.find(
+          (o: Option) => o.key === 'DocsAddress'
+        );
+        if (docsAddressOption) {
+          setDocsAddress(docsAddressOption.value || '');
         }
 
         const retryCountOption = options.find(
@@ -235,6 +243,7 @@ export default function SettingPage() {
           value: frontendServerAddress.trim()
         },
         { key: 'ServerAddress', value: serverAddress.trim() },
+        { key: 'DocsAddress', value: docsAddress.trim() },
         { key: 'RetryTimes', value: retryCount.toString() },
         {
           key: 'AutomaticDisableChannelEnabled',
@@ -523,6 +532,19 @@ export default function SettingPage() {
                 <p className="text-sm text-muted-foreground">
                   对应配置项 ServerAddress，用于 API
                   对外地址、回调地址和资源访问地址
+                </p>
+              </div>
+              <div className="grid w-full max-w-2xl items-center gap-1.5">
+                <Label htmlFor="docs-address">文档地址</Label>
+                <Input
+                  id="docs-address"
+                  type="text"
+                  value={docsAddress}
+                  onChange={(e) => setDocsAddress(e.target.value)}
+                  placeholder="例如：https://docs.example.com"
+                />
+                <p className="text-sm text-muted-foreground">
+                  对应配置项 DocsAddress，用于首页和导航栏中的文档链接地址
                 </p>
               </div>
               <div className="grid w-full max-w-sm items-center gap-1.5">

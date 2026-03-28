@@ -33,7 +33,10 @@
       "WebFetch(domain:github.com)",
       "Bash(go build:*)",
       "Bash(xargs wc:*)",
-      "Bash(grep -E \"\\\\.\\(tsx?|js\\)$\")"
+      "Bash(grep -E \"\\\\.\\(tsx?|js\\)$\")",
+      "Bash(git fetch:*)",
+      "Bash(git merge:*)",
+      "Bash(git push:*)"
     ]
   }
 }

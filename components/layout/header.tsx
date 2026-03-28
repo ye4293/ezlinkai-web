@@ -9,25 +9,27 @@ import Link from 'next/link';
 import { useLocale } from '@/components/providers/locale-provider';
 import { usePathname } from 'next/navigation';
 import { Home, Store, FileText } from 'lucide-react';
-
-const navLinks = [
-  { key: 'home' as const, href: '/', icon: Home },
-  {
-    key: 'marketplace' as const,
-    href: '/model-plaza',
-    icon: Store
-  },
-  {
-    key: 'docs' as const,
-    href: 'http://docs.ezlinkai.com/',
-    icon: FileText,
-    external: true
-  }
-];
+import { useSystemConfig } from '@/hooks/use-system-config';
 
 export default function Header() {
   const { t } = useLocale();
   const pathname = usePathname();
+  const { docsAddress } = useSystemConfig();
+
+  const navLinks = [
+    { key: 'home' as const, href: '/', icon: Home },
+    {
+      key: 'marketplace' as const,
+      href: '/model-plaza',
+      icon: Store
+    },
+    {
+      key: 'docs' as const,
+      href: docsAddress,
+      icon: FileText,
+      external: true
+    }
+  ];
 
   return (
     <header className="sticky inset-x-0 top-0 z-10 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">

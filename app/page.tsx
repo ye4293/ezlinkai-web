@@ -8,10 +8,12 @@ import { UserNav } from '@/components/layout/user-nav';
 import ModelMarquee from '@/components/landing/model-marquee';
 import CodeExample from '@/components/landing/code-example';
 import { useSession } from 'next-auth/react';
+import { useSystemConfig } from '@/hooks/use-system-config';
 
 export default function HomePage() {
   const { t } = useLocale();
   const { data: session } = useSession();
+  const { systemName, serverAddress, docsAddress } = useSystemConfig();
 
   return (
     <div className="min-h-screen bg-background">
@@ -31,7 +33,7 @@ export default function HomePage() {
             >
               <path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3" />
             </svg>
-            <span className="text-xl font-bold">EZLINK AI</span>
+            <span className="text-xl font-bold">{systemName}</span>
           </div>
 
           <nav className="hidden items-center gap-6 md:flex">
@@ -42,7 +44,7 @@ export default function HomePage() {
               {t.nav.models}
             </Link>
             <a
-              href="http://docs.ezlinkai.com/"
+              href={docsAddress}
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
@@ -89,7 +91,7 @@ export default function HomePage() {
                   {t.hero.getStarted}
                 </Link>
                 <a
-                  href="http://docs.ezlinkai.com/"
+                  href={docsAddress}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex h-11 items-center justify-center rounded-md border border-input bg-background px-8 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground"
@@ -101,7 +103,7 @@ export default function HomePage() {
 
             {/* 右侧代码示例 */}
             <div className="hidden lg:block">
-              <CodeExample />
+              <CodeExample serverAddress={serverAddress} />
             </div>
           </div>
         </div>
@@ -308,7 +310,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="border-t py-8">
         <div className="mx-auto max-w-7xl px-4 text-center text-sm text-muted-foreground sm:px-6 lg:px-8">
-          © {new Date().getFullYear()} EZLINK AI. {t.footer.rights}
+          © {new Date().getFullYear()} {systemName}. {t.footer.rights}
         </div>
       </footer>
     </div>
