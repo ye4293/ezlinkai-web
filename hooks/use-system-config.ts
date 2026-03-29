@@ -10,9 +10,9 @@ interface SystemConfig {
 }
 
 const DEFAULTS = {
-  systemName: 'EZLINK AI',
-  serverAddress: 'https://api.ezlinkai.com',
-  docsAddress: 'http://docs.ezlinkai.com/'
+  systemName: '',
+  serverAddress: '',
+  docsAddress: ''
 };
 
 // 模块级缓存，避免多个组件各自发起重复请求

@@ -10,10 +10,30 @@ import { auth } from '@/auth';
 
 const inter = Inter({ subsets: ['latin'] });
 
-export const metadata: Metadata = {
-  title: 'EZLINK AI',
-  description: 'EZLINK AI - Unified AI Model API Gateway'
-};
+async function fetchSystemName(): Promise<string> {
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '';
+    if (!baseUrl) return '';
+    const res = await fetch(`${baseUrl}/api/status`, {
+      next: { revalidate: 60 }
+    });
+    if (!res.ok) return '';
+    const data = await res.json();
+    return data?.data?.system_name || '';
+  } catch {
+    return '';
+  }
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const systemName = await fetchSystemName();
+  return {
+    title: systemName || undefined,
+    description: systemName
+      ? `${systemName} - Unified AI Model API Gateway`
+      : undefined
+  };
+}
 
 export default async function RootLayout({
   children
