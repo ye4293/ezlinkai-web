@@ -724,9 +724,7 @@ export default function PlaygroundPage() {
       });
 
       if (modelList.length === 0) {
-        setModelError(
-          'No models were returned by the current ezlinkai backend.'
-        );
+        setModelError('No models were returned by the current backend.');
       }
 
       return modelList;

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLocale } from '@/components/providers/locale-provider';
+import { useDocumentTitle } from '@/hooks/use-document-title';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
@@ -294,7 +295,9 @@ function FilterBadge({
 // --- 主视图 ---
 export default function ModelPlazaView() {
   const { t } = useLocale();
+  useDocumentTitle('模型广场');
   const router = useRouter();
+
   const [models, setModels] = useState<ModelPlazaItem[]>([]);
   const [groups, setGroups] = useState<GroupConfigItem[]>([]);
   const [providers, setProviders] = useState<ProviderInfo[]>([]);

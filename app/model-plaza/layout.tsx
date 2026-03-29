@@ -13,7 +13,7 @@ export default function ModelPlazaLayout({
   children: React.ReactNode;
 }) {
   const { t } = useLocale();
-  const { systemName } = useSystemConfig();
+  const { systemName, docsAddress } = useSystemConfig();
 
   return (
     <div className="min-h-screen bg-background">
@@ -43,7 +43,7 @@ export default function ModelPlazaLayout({
                 {t.modelPlaza.backHome}
               </Link>
               <a
-                href="http://docs.ezlinkai.com/"
+                href={docsAddress}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-muted-foreground transition-colors hover:text-foreground"

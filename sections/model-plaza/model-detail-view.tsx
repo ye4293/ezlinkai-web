@@ -8,6 +8,7 @@ import { ArrowLeft, RefreshCw } from 'lucide-react';
 
 import { get } from '@/app/lib/clientFetch';
 import { useLocale } from '@/components/providers/locale-provider';
+import { useDocumentTitle } from '@/hooks/use-document-title';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -61,16 +62,10 @@ export default function ModelDetailView() {
   const router = useRouter();
   const { data: session } = useSession();
   const { t } = useLocale();
+  useDocumentTitle('模型详情');
 
   const modelName = decodeURIComponent(params.model as string);
   const userIsAdmin = session?.user?.role ? isAdmin(session.user.role) : false;
-
-  console.log(
-    '[model-metrics] session role:',
-    session?.user?.role,
-    'isAdmin:',
-    userIsAdmin
-  );
 
   const [detail, setDetail] = useState<ModelMetricsDetail | null>(null);
   const [timeSeries, setTimeSeries] = useState<MetricsTimeSeriesPoint[]>([]);
@@ -84,10 +79,6 @@ export default function ModelDetailView() {
       const res: any = await get('/api/model-plaza/metrics/detail', {
         model_name: modelName
       });
-      console.log(
-        '[model-metrics] detail API response:',
-        JSON.stringify(res?.data?.channels)
-      );
       if (res?.success && res.data) {
         setDetail(res.data);
       }
