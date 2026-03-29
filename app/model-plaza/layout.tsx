@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useLocale } from '@/components/providers/locale-provider';
+import { useSystemConfig } from '@/hooks/use-system-config';
 import ThemeToggle from '@/components/layout/ThemeToggle/theme-toggle';
 import LanguageToggle from '@/components/layout/language-toggle';
 import { UserNav } from '@/components/layout/user-nav';
@@ -12,6 +13,7 @@ export default function ModelPlazaLayout({
   children: React.ReactNode;
 }) {
   const { t } = useLocale();
+  const { systemName } = useSystemConfig();
 
   return (
     <div className="min-h-screen bg-background">
@@ -31,7 +33,7 @@ export default function ModelPlazaLayout({
               >
                 <path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3" />
               </svg>
-              <span className="text-lg font-bold">EZLINK AI</span>
+              <span className="text-lg font-bold">{systemName}</span>
             </Link>
             <nav className="hidden items-center gap-4 md:flex">
               <Link

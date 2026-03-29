@@ -1,15 +1,13 @@
-import { Metadata } from 'next';
+'use client';
+
 import Link from 'next/link';
 import UserAuthForm from '../user-auth-form';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-
-export const metadata: Metadata = {
-  title: 'Authentication',
-  description: 'Authentication forms built using the components.'
-};
+import { useSystemConfig } from '@/hooks/use-system-config';
 
 export default function SignInViewPage() {
+  const { systemName } = useSystemConfig();
   return (
     <div className="relative h-screen flex-col items-center justify-center md:grid lg:max-w-none lg:grid-cols-2 lg:px-0">
       <Link
@@ -36,7 +34,7 @@ export default function SignInViewPage() {
           >
             <path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3" />
           </svg>
-          EZLINK AI
+          {systemName}
         </div>
         <div className="relative z-20 mt-auto">
           <blockquote className="space-y-2">
@@ -52,7 +50,9 @@ export default function SignInViewPage() {
       <div className="flex h-full items-center p-4 lg:p-8">
         <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
           <div className="flex flex-col space-y-2 text-center">
-            <h1 className="text-2xl font-semibold tracking-tight">EZLINK AI</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">
+              {systemName}
+            </h1>
             {/* <h1 className="text-2xl font-semibold tracking-tight">
               Create an account
             </h1>
