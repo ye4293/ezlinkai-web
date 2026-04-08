@@ -136,6 +136,40 @@ const en: Locale = {
     degraded: 'Degraded',
     down: 'Down',
     noData: 'No Data'
+  },
+  // Log billing details
+  logDetail: {
+    channelInfo: 'Channel Info',
+    promptTokens: 'Prompt Tokens',
+    completionTokens: 'Completion Tokens',
+    cachedTokens: 'Cached Tokens',
+    cost: 'Cost',
+    logContent: 'Log Content',
+    noDetails: 'No details available',
+    modelPrice: 'Model Price',
+    billingProcess: 'Billing Process',
+    billingMode: 'Billing Mode',
+    tokenBilling: 'Token-based',
+    fixedPrice: 'Fixed Price',
+    perMillionInput: '/ 1M input tokens',
+    perMillionOutput: '/ 1M output tokens',
+    perMillionCached: '/ 1M cached tokens',
+    perRequest: '/ request',
+    referenceOnly: 'For reference only, actual charges may vary',
+    groupRatio: 'Group Ratio',
+    inputTokens: 'Input Tokens',
+    outputTokens: 'Output Tokens',
+    inputText: 'Text Input',
+    inputImage: 'Image Input',
+    outputText: 'Text Output',
+    outputImage: 'Image Output',
+    outputReasoning: 'Reasoning Output',
+    cacheRead: 'Cache Read',
+    cacheCreation: 'Cache Creation',
+    claudeCache5m: 'Claude 5min Cache Creation',
+    speed: 'Speed',
+    collapse: 'Collapse',
+    expand: 'Details'
   }
 };
 

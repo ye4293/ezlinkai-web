@@ -14,8 +14,9 @@ import {
   getSpeedTier,
   getDurationTier,
   parseUsageDetails,
+  parseBillingDetails,
   parseLogOther,
-  usageDetailsLabels,
+  getUsageDetailsLabels,
   UsageDetails,
   getModelMappingInfo
 } from './columns';
@@ -55,6 +56,7 @@ import {
 } from '@/components/ui/collapsible';
 import { Row } from '@tanstack/react-table';
 import dayjs from 'dayjs';
+import { useLocale } from '@/components/providers/locale-provider';
 
 // 解析 adminInfo 获取渠道信息
 const parseAdminInfo = (log: LogStat): number[] | null => {
@@ -72,27 +74,34 @@ const processQuota = (quota: number) => {
   return `$${parseFloat(processedQuota)}`;
 };
 
-// 获取有效的 usageDetails 条目（值大于0的）
-const getUsageEntries = (details: UsageDetails | null) => {
-  if (!details) return [];
-  return Object.entries(details)
-    .filter(([_, value]) => value !== undefined && value > 0)
-    .map(([key, value]) => ({
-      key,
-      label: usageDetailsLabels[key] || key,
-      value: value as number
-    }));
-};
+// 计算模型价格（每 1M tokens 的美元价格）
+const getTokenPrice = (ratio: number) => ratio * 2;
 
 // 展开行详情组件
 const ExpandedRowContent = ({ row }: { row: Row<LogStat> }) => {
+  const { t } = useLocale();
+  const ld = t.logDetail;
   const log = row.original;
   const usageDetails = parseUsageDetails(log);
+  const billingDetails = parseBillingDetails(log);
   const channelIds = parseAdminInfo(log);
+  const labels = getUsageDetailsLabels(ld);
+
+  const getUsageEntries = (details: UsageDetails | null) => {
+    if (!details) return [];
+    return Object.entries(details)
+      .filter(([_, value]) => value !== undefined && value > 0)
+      .map(([key, value]) => ({
+        key,
+        label: labels[key] || key,
+        value: value as number
+      }));
+  };
 
   const usageEntries = getUsageEntries(usageDetails);
   const hasUsageDetails = usageEntries.length > 0;
   const hasChannelInfo = channelIds && channelIds.length > 0;
+  const hasBillingDetails = billingDetails !== null;
 
   return (
     <div className="px-6 py-4">
@@ -101,7 +110,7 @@ const ExpandedRowContent = ({ row }: { row: Row<LogStat> }) => {
         {hasChannelInfo && (
           <div className="space-y-1">
             <span className="text-xs font-medium text-muted-foreground">
-              渠道信息
+              {ld.channelInfo}
             </span>
             <p className="text-sm font-medium">
               {channelIds!.length === 1
@@ -114,21 +123,21 @@ const ExpandedRowContent = ({ row }: { row: Row<LogStat> }) => {
         {/* 基础 Token 信息 */}
         <div className="space-y-1">
           <span className="text-xs font-medium text-muted-foreground">
-            提示Token
+            {ld.promptTokens}
           </span>
           <p className="text-sm font-medium">{log.prompt_tokens} tokens</p>
         </div>
 
         <div className="space-y-1">
           <span className="text-xs font-medium text-muted-foreground">
-            补全Token
+            {ld.completionTokens}
           </span>
           <p className="text-sm font-medium">{log.completion_tokens} tokens</p>
         </div>
 
         <div className="space-y-1">
           <span className="text-xs font-medium text-muted-foreground">
-            生成速率
+            {ld.speed}
           </span>
           {(() => {
             const sv = getTokenSpeedValue(log);
@@ -161,7 +170,7 @@ const ExpandedRowContent = ({ row }: { row: Row<LogStat> }) => {
         {/* 配额信息 */}
         <div className="space-y-1">
           <span className="text-xs font-medium text-muted-foreground">
-            花费
+            {ld.cost}
           </span>
           <p className="text-sm font-medium text-blue-600">
             {processQuota(log.quota)}
@@ -188,11 +197,119 @@ const ExpandedRowContent = ({ row }: { row: Row<LogStat> }) => {
         )}
       </div>
 
+      {/* 计费详情 */}
+      {hasBillingDetails && (
+        <div className="mt-4 space-y-3 border-t pt-4">
+          <div className="space-y-1">
+            <span className="text-xs font-medium text-muted-foreground">
+              {ld.billingMode}
+            </span>
+            <p className="text-sm font-medium">
+              {billingDetails.billing_type === 'fixed_price'
+                ? ld.fixedPrice
+                : ld.tokenBilling}
+            </p>
+          </div>
+
+          <div className="space-y-1">
+            <span className="text-xs font-medium text-muted-foreground">
+              {ld.modelPrice}
+            </span>
+            <div className="text-sm">
+              {billingDetails.billing_type === 'fixed_price' ? (
+                <p className="font-medium">
+                  ${billingDetails.model_price?.toFixed(2)} {ld.perRequest}
+                </p>
+              ) : (
+                <div className="space-y-0.5">
+                  <p>
+                    <span className="font-medium">
+                      $
+                      {getTokenPrice(billingDetails.model_ratio || 0).toFixed(
+                        6
+                      )}
+                    </span>{' '}
+                    <span className="text-muted-foreground">
+                      {ld.perMillionInput}
+                    </span>
+                  </p>
+                  <p>
+                    <span className="font-medium">
+                      $
+                      {getTokenPrice(
+                        (billingDetails.model_ratio || 0) *
+                          (billingDetails.completion_ratio || 1)
+                      ).toFixed(6)}
+                    </span>{' '}
+                    <span className="text-muted-foreground">
+                      {ld.perMillionOutput}
+                    </span>
+                  </p>
+                  {billingDetails.cached_tokens &&
+                    billingDetails.cached_tokens > 0 && (
+                      <p>
+                        <span className="font-medium">
+                          $
+                          {getTokenPrice(
+                            billingDetails.cache_ratio || 0
+                          ).toFixed(6)}
+                        </span>{' '}
+                        <span className="text-muted-foreground">
+                          {ld.perMillionCached}
+                        </span>
+                      </p>
+                    )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <span className="text-xs font-medium text-muted-foreground">
+              {ld.billingProcess}
+            </span>
+            <div className="rounded bg-muted/50 p-2 font-mono text-xs">
+              {billingDetails.billing_type === 'fixed_price' ? (
+                <p>
+                  ${billingDetails.model_price?.toFixed(2)} ×{' '}
+                  {billingDetails.group_ratio?.toFixed(2)} ({ld.groupRatio}) ={' '}
+                  {processQuota(log.quota)}
+                </p>
+              ) : (
+                <>
+                  <p>
+                    ({log.prompt_tokens.toLocaleString()} × $
+                    {getTokenPrice(billingDetails.model_ratio || 0).toFixed(6)}
+                    /1M + {log.completion_tokens.toLocaleString()} × $
+                    {getTokenPrice(
+                      (billingDetails.model_ratio || 0) *
+                        (billingDetails.completion_ratio || 1)
+                    ).toFixed(6)}
+                    /1M) × {billingDetails.group_ratio?.toFixed(2)} ={' '}
+                    {processQuota(log.quota)}
+                  </p>
+                  {billingDetails.cached_tokens &&
+                    billingDetails.cached_tokens > 0 && (
+                      <p className="mt-1 text-muted-foreground">
+                        {ld.cachedTokens}:{' '}
+                        {billingDetails.cached_tokens.toLocaleString()} tokens
+                      </p>
+                    )}
+                </>
+              )}
+              <p className="mt-1 italic text-muted-foreground">
+                {ld.referenceOnly}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 详情内容 */}
-      {log.content && (
+      {log.content && !hasBillingDetails && (
         <div className="mt-4 border-t pt-4">
           <span className="text-xs font-medium text-muted-foreground">
-            日志详情
+            {ld.logContent}
           </span>
           <p className="mt-1 whitespace-pre-wrap text-sm">{log.content}</p>
         </div>
@@ -203,9 +320,24 @@ const ExpandedRowContent = ({ row }: { row: Row<LogStat> }) => {
 
 // 移动端卡片组件
 const MobileLogCard = ({ row }: { row: LogStat }) => {
+  const { t } = useLocale();
+  const ld = t.logDetail;
   const log = row;
   const [isExpanded, setIsExpanded] = useState(false);
   const usageDetails = parseUsageDetails(log);
+  const labels = getUsageDetailsLabels(ld);
+
+  const getUsageEntries = (details: UsageDetails | null) => {
+    if (!details) return [];
+    return Object.entries(details)
+      .filter(([_, value]) => value !== undefined && value > 0)
+      .map(([key, value]) => ({
+        key,
+        label: labels[key] || key,
+        value: value as number
+      }));
+  };
+
   const usageEntries = getUsageEntries(usageDetails);
   const hasUsageDetails = usageEntries.length > 0;
 
@@ -343,7 +475,7 @@ const MobileLogCard = ({ row }: { row: LogStat }) => {
                 className="w-full justify-between"
               >
                 <span className="text-xs">
-                  {isExpanded ? '收起详情' : '展开详情'}
+                  {isExpanded ? ld.collapse : ld.expand}
                 </span>
                 {isExpanded ? (
                   <ChevronDown className="h-4 w-4" />

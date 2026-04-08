@@ -28,11 +28,40 @@ export interface UsageDetails {
   cache_read_input_tokens?: number;
   cache_creation_input_tokens?: number;
   claude_cache_creation_5_m_tokens?: number;
+  cached_tokens?: number;
   // 其他可能的字段
   [key: string]: number | undefined;
 }
 
-// usageDetails 字段名称映射（用于展示）
+// billingDetails 字段的类型定义
+export interface BillingDetails {
+  billing_type: 'token' | 'fixed_price';
+  model_ratio?: number;
+  completion_ratio?: number;
+  group_ratio?: number;
+  model_price?: number;
+  cached_tokens?: number;
+  cache_ratio?: number;
+}
+
+// usageDetails 字段名称映射（用于展示），支持 i18n
+export const getUsageDetailsLabels = (
+  logDetail: Record<string, string>
+): Record<string, string> => ({
+  input_tokens: logDetail.inputTokens,
+  output_tokens: logDetail.outputTokens,
+  input_text: logDetail.inputText,
+  input_image: logDetail.inputImage,
+  output_text: logDetail.outputText,
+  output_image: logDetail.outputImage,
+  output_reasoning: logDetail.outputReasoning,
+  cache_read_input_tokens: logDetail.cacheRead,
+  cache_creation_input_tokens: logDetail.cacheCreation,
+  claude_cache_creation_5_m_tokens: logDetail.claudeCache5m,
+  cached_tokens: logDetail.cachedTokens
+});
+
+// 保留静态导出用于向后兼容
 export const usageDetailsLabels: Record<string, string> = {
   input_tokens: '输入 Tokens',
   output_tokens: '输出 Tokens',
@@ -43,7 +72,8 @@ export const usageDetailsLabels: Record<string, string> = {
   output_reasoning: '推理输出',
   cache_read_input_tokens: '缓存读取',
   cache_creation_input_tokens: '缓存创建',
-  claude_cache_creation_5_m_tokens: 'Claude 5分钟缓存创建'
+  claude_cache_creation_5_m_tokens: 'Claude 5分钟缓存创建',
+  cached_tokens: '缓存 Token'
 };
 
 // 解析 other 字段中的 usageDetails
@@ -56,8 +86,49 @@ export const parseUsageDetails = (row: LogStat): UsageDetails | null => {
   return null;
 };
 
+// 解析 other 字段中的 billingDetails
+export const parseBillingDetails = (row: LogStat): BillingDetails | null => {
+  const parsed = parseLogOther(row);
+  if (parsed) {
+    const details = parsed.billing_details || parsed.billingDetails;
+    if (details && typeof details === 'object' && 'billing_type' in details) {
+      return details as BillingDetails;
+    }
+  }
+  return null;
+};
+
 // other 字段解析缓存，避免每列每行重复解析
 const otherParseCache = new WeakMap<LogStat, Record<string, any> | null>();
+
+// 从分号分隔格式中提取 JSON 对象（如 usageDetails:{...}）
+const extractJsonFromSemicolonFormat = (
+  str: string,
+  key: string
+): any | null => {
+  const index = str.indexOf(`${key}:`);
+  if (index === -1) return null;
+  const startIndex = str.indexOf('{', index);
+  if (startIndex === -1) return null;
+  let braceCount = 0;
+  let endIndex = startIndex;
+  for (let i = startIndex; i < str.length; i++) {
+    if (str[i] === '{') braceCount++;
+    else if (str[i] === '}') {
+      braceCount--;
+      if (braceCount === 0) {
+        endIndex = i;
+        break;
+      }
+    }
+  }
+  if (braceCount !== 0) return null;
+  try {
+    return JSON.parse(str.substring(startIndex, endIndex + 1));
+  } catch {
+    return null;
+  }
+};
 
 // 解析 other 字段（兼容 JSON 和 ezlinkai 分号分隔格式），带缓存
 // ezlinkai 格式示例: "adminInfo:[1,2];usageDetails:{...};is_model_mapped:true;upstream_model_name:gpt-4"
@@ -82,8 +153,6 @@ export const parseLogOther = (row: LogStat): Record<string, any> | null => {
 
   // ezlinkai 分号分隔格式解析
   const result: Record<string, any> = {};
-  // 用分号分割，但需要处理 adminInfo:[...] 和 usageDetails:{...} 中包含分号的情况
-  // 简单的 key:value 对用正则提取
   const isModelMappedMatch = other.match(/is_model_mapped:(\w+)/);
   if (isModelMappedMatch) {
     result.is_model_mapped = isModelMappedMatch[1] === 'true';
@@ -101,34 +170,14 @@ export const parseLogOther = (row: LogStat): Record<string, any> | null => {
       /* ignore */
     }
   }
-  // usageDetails
-  const usageIndex = other.indexOf('usageDetails:');
-  if (usageIndex !== -1) {
-    const startIndex = other.indexOf('{', usageIndex);
-    if (startIndex !== -1) {
-      let braceCount = 0;
-      let endIndex = startIndex;
-      for (let i = startIndex; i < other.length; i++) {
-        if (other[i] === '{') braceCount++;
-        else if (other[i] === '}') {
-          braceCount--;
-          if (braceCount === 0) {
-            endIndex = i;
-            break;
-          }
-        }
-      }
-      if (braceCount === 0) {
-        try {
-          result.usageDetails = JSON.parse(
-            other.substring(startIndex, endIndex + 1)
-          );
-        } catch {
-          /* ignore */
-        }
-      }
-    }
-  }
+  // usageDetails & billingDetails
+  const usageDetails = extractJsonFromSemicolonFormat(other, 'usageDetails');
+  if (usageDetails) result.usageDetails = usageDetails;
+  const billingDetails = extractJsonFromSemicolonFormat(
+    other,
+    'billingDetails'
+  );
+  if (billingDetails) result.billingDetails = billingDetails;
 
   const hasData = Object.keys(result).length > 0;
   otherParseCache.set(row, hasData ? result : null);

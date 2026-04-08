@@ -76,9 +76,14 @@ export function BarGraph({ session }: BarGraphProps) {
       }
 
       if (activeChart === 'quota') {
+        const quotaPerUnit = parseFloat(
+          (typeof window !== 'undefined' &&
+            localStorage?.getItem('quota_per_unit')) ||
+            '500000'
+        );
         res.data = res.data.map((item: GraphData) => ({
           ...item,
-          amount: parseFloat((item.amount / 500000).toFixed(3))
+          amount: parseFloat((item.amount / quotaPerUnit).toFixed(3))
         }));
       }
       setGraphData(res.data);

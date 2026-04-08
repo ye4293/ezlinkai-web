@@ -133,6 +133,40 @@ const zh = {
     degraded: '降级',
     down: '异常',
     noData: '无数据'
+  },
+  // 日志计费详情
+  logDetail: {
+    channelInfo: '渠道信息',
+    promptTokens: '提示 Token',
+    completionTokens: '补全 Token',
+    cachedTokens: '缓存 Token',
+    cost: '花费',
+    logContent: '日志详情',
+    noDetails: '暂无详细信息',
+    modelPrice: '模型价格',
+    billingProcess: '计费过程',
+    billingMode: '计费模式',
+    tokenBilling: '按 Token 计费',
+    fixedPrice: '固定价格',
+    perMillionInput: '/ 1M input tokens',
+    perMillionOutput: '/ 1M output tokens',
+    perMillionCached: '/ 1M cached tokens',
+    perRequest: '/ 次',
+    referenceOnly: '仅供参考，以实际扣费为准',
+    groupRatio: '分组倍率',
+    inputTokens: '输入 Tokens',
+    outputTokens: '输出 Tokens',
+    inputText: '文本输入',
+    inputImage: '图片输入',
+    outputText: '文本输出',
+    outputImage: '图片输出',
+    outputReasoning: '推理输出',
+    cacheRead: '缓存读取',
+    cacheCreation: '缓存创建',
+    claudeCache5m: 'Claude 5分钟缓存创建',
+    speed: '生成速率',
+    collapse: '收起详情',
+    expand: '展开详情'
   }
 };
 

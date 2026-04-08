@@ -3,6 +3,7 @@
 import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 import { BarGraph } from '../bar-graph';
+import { AnalyticsContent } from '../analytics-content';
 import PageContainer from '@/components/layout/page-container';
 import { RecentSales } from '../recent-sales';
 import {
@@ -70,9 +71,7 @@ export default function OverViewPage() {
         <Tabs defaultValue="overview" className="space-y-4">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="analytics" disabled>
-              Analytics
-            </TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
           </TabsList>
           <TabsContent value="overview" className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -212,11 +211,11 @@ export default function OverViewPage() {
                 </CardContent>
               </Card>
             </div>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-7">
-              <div className="col-span-4">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-7">
+              <div className="lg:col-span-4">
                 <BarGraph session={session} />
               </div>
-              <Card className="col-span-4 md:col-span-3">
+              <Card className="lg:col-span-3">
                 <CardHeader>
                   <CardTitle>Most Popular AI Models</CardTitle>
                   <CardDescription>
@@ -243,6 +242,12 @@ export default function OverViewPage() {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+          <TabsContent value="analytics" className="space-y-4">
+            <AnalyticsContent
+              session={session}
+              modelStats={dashboardData.model_stats || []}
+            />
           </TabsContent>
         </Tabs>
       </div>
