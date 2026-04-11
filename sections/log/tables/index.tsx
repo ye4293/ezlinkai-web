@@ -569,8 +569,8 @@ export default function LogTable({
   const [localXRequestId, setLocalXRequestId] = useState(xRequestId || '');
   const [localXResponseId, setLocalXResponseId] = useState(xResponseId || '');
 
-  // 查询加载状态
-  const [isSearching, setIsSearching] = useState(false);
+  // 使用 useTransition 跟踪 router.refresh() 的加载状态
+  const [isSearching, startSearchTransition] = React.useTransition();
 
   // 同步 URL 参数到本地状态
   useEffect(() => {
@@ -594,7 +594,6 @@ export default function LogTable({
 
   // 统一搜索处理函数
   const handleSearch = () => {
-    setIsSearching(true);
     setPage(1);
     setTokenName(localTokenName || null);
     setModelName(localModelName || null);
@@ -603,8 +602,11 @@ export default function LogTable({
     setXRequestId(localXRequestId || null);
     setXResponseId(localXResponseId || null);
 
-    // 强制刷新数据
-    router.refresh();
+    // 使用 startTransition 包裹 router.refresh()，
+    // useTransition 会自动追踪刷新完成状态，避免手动管理 loading 导致卡死
+    startSearchTransition(() => {
+      router.refresh();
+    });
   };
 
   // 处理回车键
@@ -829,13 +831,6 @@ export default function LogTable({
 
     return () => clearTimeout(timeoutId);
   }, [page, pageSize, router]);
-
-  // 数据变化时关闭加载状态
-  React.useEffect(() => {
-    if (isSearching) {
-      setIsSearching(false);
-    }
-  }, [data]);
 
   // 处理页面大小变化，重置到第一页
   const handlePageSizeChange = React.useCallback(

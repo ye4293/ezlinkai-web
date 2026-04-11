@@ -63,8 +63,8 @@ export default function MidjourneyTable({
   const [localChannelId, setLocalChannelId] = useState(channelId || '');
   const [localUserName, setLocalUserName] = useState(userName || '');
 
-  // 查询加载状态
-  const [isSearching, setIsSearching] = useState(false);
+  // 使用 useTransition 跟踪 router.refresh() 的加载状态
+  const [isSearching, startSearchTransition] = React.useTransition();
 
   useEffect(() => {
     setLocalMjId(mjId || '');
@@ -79,22 +79,15 @@ export default function MidjourneyTable({
   }, [userName]);
 
   const handleSearch = () => {
-    setIsSearching(true);
     setPage(1);
     setMjId(localMjId || null);
     setChannelId(localChannelId || null);
     setUserName(localUserName || null);
 
-    // 强制刷新数据
-    router.refresh();
+    startSearchTransition(() => {
+      router.refresh();
+    });
   };
-
-  // 数据变化时关闭加载状态
-  React.useEffect(() => {
-    if (isSearching) {
-      setIsSearching(false);
-    }
-  }, [data]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {

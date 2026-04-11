@@ -162,8 +162,8 @@ export default function ImageTable({
   const [localChannelId, setLocalChannelId] = useState(channelId || '');
   const [localUserName, setLocalUserName] = useState(userName || '');
 
-  // 查询加载状态
-  const [isSearching, setIsSearching] = useState(false);
+  // 使用 useTransition 跟踪 router.refresh() 的加载状态
+  const [isSearching, startSearchTransition] = React.useTransition();
 
   useEffect(() => {
     setLocalSearchQuery(searchQuery || '');
@@ -185,7 +185,6 @@ export default function ImageTable({
   }, [userName]);
 
   const handleSearch = () => {
-    setIsSearching(true);
     setPage(1);
     setSearchQuery(localSearchQuery || null);
     setTaskId(localTaskId || null);
@@ -194,16 +193,10 @@ export default function ImageTable({
     setChannelId(localChannelId || null);
     setUserName(localUserName || null);
 
-    // 强制刷新数据
-    router.refresh();
+    startSearchTransition(() => {
+      router.refresh();
+    });
   };
-
-  // 数据变化时关闭加载状态
-  React.useEffect(() => {
-    if (isSearching) {
-      setIsSearching(false);
-    }
-  }, [data]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
