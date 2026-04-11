@@ -173,6 +173,13 @@ export const navItems: NavItem[] = [
     roles: [1, 10, 100]
   },
   {
+    title: 'Statistics',
+    href: '/dashboard/statistics',
+    icon: 'chart',
+    label: 'statistics',
+    roles: [1, 10, 100]
+  },
+  {
     title: 'Midjourney',
     href: '/dashboard/midjourney',
     icon: 'userPen',
