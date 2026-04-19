@@ -36,7 +36,9 @@
       "Bash(grep -E \"\\\\.\\(tsx?|js\\)$\")",
       "Bash(git fetch:*)",
       "Bash(git merge:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(mkdir -p C:/Users/brows/.claude/skills/frontend-design)",
+      "Read(//c/Users/brows/.claude/**)"
     ]
   }
 }

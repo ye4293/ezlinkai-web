@@ -21,15 +21,15 @@ interface LocaleContextValue {
 const locales: Record<Lang, Locale> = { zh, en };
 
 const LocaleContext = createContext<LocaleContextValue>({
-  lang: 'zh',
-  t: zh,
+  lang: 'en',
+  t: en,
   setLang: () => {}
 });
 
 const STORAGE_KEY = 'ezlink-locale';
 
 export function LocaleProvider({ children }: { children: React.ReactNode }) {
-  const [lang, setLangState] = useState<Lang>('zh');
+  const [lang, setLangState] = useState<Lang>('en');
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY) as Lang | null;

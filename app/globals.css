@@ -93,6 +93,14 @@
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
+    /* v3 landing tokens (light) */
+    --accent-ezl: 20 100% 48%;
+    --border-strong: 214 20% 82%;
+    --bg-elev: 0 0% 98%;
+    --bg-card: 220 14% 96%;
+    --bg-hover: 220 14% 93%;
+    --text-dim: 220 9% 46%;
+    --text-faint: 220 9% 65%;
   }
 
   .dark {
@@ -120,6 +128,14 @@
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
+    /* v3 landing tokens (dark — matches home-v3.html palette) */
+    --accent-ezl: 27 100% 62%;
+    --border-strong: 240 8% 18%;
+    --bg-elev: 240 10% 5%;
+    --bg-card: 240 12% 7%;
+    --bg-hover: 240 10% 10%;
+    --text-dim: 240 5% 36%;
+    --text-faint: 240 5% 22%;
   }
 }
 

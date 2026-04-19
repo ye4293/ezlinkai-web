@@ -18,6 +18,24 @@ module.exports = {
       }
     },
     extend: {
+      fontFamily: {
+        sans: [
+          'var(--font-sans)',
+          'ui-sans-serif',
+          'system-ui',
+          '-apple-system',
+          'BlinkMacSystemFont',
+          'sans-serif'
+        ],
+        mono: [
+          'var(--font-mono)',
+          'ui-monospace',
+          'SFMono-Regular',
+          'Menlo',
+          'monospace'
+        ],
+        serif: ['var(--font-serif)', 'Georgia', 'serif']
+      },
       colors: {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
@@ -51,7 +69,16 @@ module.exports = {
         card: {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))'
-        }
+        },
+        // v3 landing tokens
+        'accent-ezl': 'hsl(var(--accent-ezl))',
+        'accent-ezl-soft': 'hsl(var(--accent-ezl) / 0.08)',
+        'border-strong': 'hsl(var(--border-strong))',
+        'bg-elev': 'hsl(var(--bg-elev))',
+        'bg-card': 'hsl(var(--bg-card))',
+        'bg-hover': 'hsl(var(--bg-hover))',
+        'text-dim': 'hsl(var(--text-dim))',
+        'text-faint': 'hsl(var(--text-faint))'
       },
       borderRadius: {
         lg: 'var(--radius)',
@@ -70,12 +97,22 @@ module.exports = {
         marquee: {
           '0%': { transform: 'translateX(0)' },
           '100%': { transform: 'translateX(-50%)' }
+        },
+        blink: {
+          '50%': { opacity: '0' }
+        },
+        statpulse: {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0.4' }
         }
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
-        marquee: 'marquee 30s linear infinite'
+        marquee: 'marquee 30s linear infinite',
+        'marquee-slow': 'marquee 40s linear infinite',
+        blink: 'blink 1s step-end infinite',
+        statpulse: 'statpulse 2s ease-in-out infinite'
       }
     }
   },

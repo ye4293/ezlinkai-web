@@ -1,0 +1,1879 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EZLINK — The unified AI gateway for production</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      :root {
+        --bg: #0a0a0b;
+        --bg-elev: #0f0f11;
+        --bg-card: #131316;
+        --bg-hover: #16161a;
+        --border: #1d1d22;
+        --border-strong: #26262d;
+        --text: #f2f2f4;
+        --text-muted: #8a8a93;
+        --text-dim: #54545c;
+        --text-faint: #37373e;
+        --accent: #ff9a3c;
+        --accent-soft: rgba(255, 154, 60, 0.08);
+        --green: #7ee787;
+        --mono: 'Geist Mono', ui-monospace, 'JetBrains Mono', Menlo, monospace;
+        --sans: 'Geist', -apple-system, BlinkMacSystemFont, system-ui,
+          sans-serif;
+        --serif: 'Instrument Serif', Georgia, serif;
+      }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--sans);
+        font-size: 15px;
+        line-height: 1.55;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        overflow-x: hidden;
+        letter-spacing: -0.005em;
+      }
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+      button {
+        font: inherit;
+        cursor: pointer;
+        border: none;
+        background: none;
+        color: inherit;
+      }
+      .container {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 0 28px;
+      }
+      .container-wide {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 0 28px;
+      }
+      .mono {
+        font-family: var(--mono);
+        font-feature-settings: 'ss02', 'zero';
+      }
+      .serif {
+        font-family: var(--serif);
+        font-style: italic;
+      }
+      .muted {
+        color: var(--text-muted);
+      }
+      .dim {
+        color: var(--text-dim);
+      }
+
+      /* Shared eyebrow */
+      .eyebrow {
+        font-family: var(--mono);
+        font-size: 11px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: var(--text-dim);
+      }
+      .eyebrow .dot {
+        display: inline-block;
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: var(--accent);
+        margin-right: 10px;
+        vertical-align: 2px;
+      }
+
+      /* NAV */
+      .nav {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        background: rgba(10, 10, 11, 0.7);
+        border-bottom: 1px solid var(--border);
+      }
+      .nav-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 60px;
+      }
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        font-weight: 600;
+        font-size: 15px;
+        letter-spacing: -0.01em;
+      }
+      .logo-mark {
+        width: 22px;
+        height: 22px;
+        border-radius: 5px;
+        background: var(--text);
+        color: var(--bg);
+        font-weight: 700;
+        display: grid;
+        place-items: center;
+        font-size: 12px;
+        font-family: var(--mono);
+      }
+      .nav-links {
+        display: flex;
+        gap: 28px;
+      }
+      .nav-links a {
+        font-size: 13.5px;
+        color: var(--text-muted);
+        transition: color 0.15s;
+        font-weight: 450;
+      }
+      .nav-links a:hover {
+        color: var(--text);
+      }
+      .nav-cta {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 8px 14px;
+        border-radius: 7px;
+        font-size: 13.5px;
+        font-weight: 500;
+        transition: all 0.15s ease;
+        letter-spacing: -0.005em;
+      }
+      .btn-ghost {
+        color: var(--text-muted);
+      }
+      .btn-ghost:hover {
+        color: var(--text);
+      }
+      .btn-primary {
+        background: var(--text);
+        color: var(--bg);
+        font-weight: 500;
+      }
+      .btn-primary:hover {
+        background: #fff;
+      }
+      .btn-accent {
+        background: var(--accent);
+        color: #1a0d00;
+        font-weight: 600;
+      }
+      .btn-accent:hover {
+        background: #ffb366;
+      }
+      .btn-outline {
+        border: 1px solid var(--border-strong);
+        color: var(--text);
+      }
+      .btn-outline:hover {
+        border-color: var(--text-muted);
+        background: var(--bg-hover);
+      }
+      .btn-lg {
+        padding: 12px 22px;
+        font-size: 14.5px;
+      }
+
+      /* HERO */
+      .hero {
+        position: relative;
+        padding: 140px 0 80px;
+        text-align: center;
+        overflow: hidden;
+      }
+      .hero::before {
+        content: '';
+        position: absolute;
+        top: -200px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 1200px;
+        height: 600px;
+        background: radial-gradient(
+          ellipse 50% 50% at center,
+          rgba(255, 154, 60, 0.06),
+          transparent 70%
+        );
+        pointer-events: none;
+      }
+      .hero::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          var(--border-strong) 20%,
+          var(--border-strong) 80%,
+          transparent
+        );
+      }
+      .hero-inner {
+        position: relative;
+        max-width: 900px;
+        margin: 0 auto;
+      }
+      .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 6px 14px 6px 8px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        font-family: var(--mono);
+        font-size: 12px;
+        background: var(--bg-elev);
+        margin-bottom: 36px;
+        transition: border-color 0.2s;
+      }
+      .hero-badge:hover {
+        border-color: var(--border-strong);
+      }
+      .hero-badge .tag {
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .hero-badge span {
+        color: var(--text-muted);
+      }
+      .hero-badge span strong {
+        color: var(--text);
+        font-weight: 500;
+      }
+      .hero-badge .arrow {
+        color: var(--text-dim);
+      }
+      .hero h1 {
+        font-size: clamp(50px, 7vw, 96px);
+        font-weight: 500;
+        line-height: 0.96;
+        letter-spacing: -0.04em;
+        color: var(--text);
+      }
+      .hero h1 .line2 {
+        display: block;
+        color: var(--text-muted);
+      }
+      .hero h1 em {
+        font-style: italic;
+        font-family: var(--serif);
+        font-weight: 400;
+        letter-spacing: -0.02em;
+        color: var(--text);
+      }
+      .hero .lede {
+        margin-top: 32px;
+        font-size: 19px;
+        line-height: 1.55;
+        color: var(--text-muted);
+        max-width: 620px;
+        margin-left: auto;
+        margin-right: auto;
+        font-weight: 400;
+      }
+      .hero-ctas {
+        margin-top: 44px;
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .hero-proof {
+        margin-top: 72px;
+        padding-top: 28px;
+        display: flex;
+        justify-content: center;
+        gap: 56px;
+        flex-wrap: wrap;
+        font-family: var(--mono);
+        font-size: 12px;
+        color: var(--text-dim);
+      }
+      .hero-proof > div {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+      }
+      .hero-proof .n {
+        color: var(--text);
+        font-size: 17px;
+        font-weight: 500;
+        letter-spacing: -0.01em;
+      }
+      .hero-proof .l {
+        font-size: 10.5px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+      }
+
+      /* SECTION shell */
+      section.block {
+        padding: 120px 0;
+        position: relative;
+      }
+      section.block.tight {
+        padding: 80px 0;
+      }
+      .section-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        margin-bottom: 48px;
+        gap: 40px;
+      }
+      .section-head .head-text {
+        max-width: 580px;
+      }
+      .section-head h2 {
+        font-size: clamp(32px, 3.6vw, 46px);
+        font-weight: 500;
+        line-height: 1.05;
+        letter-spacing: -0.03em;
+        margin-top: 16px;
+      }
+      .section-head h2 em {
+        font-family: var(--serif);
+        font-style: italic;
+        font-weight: 400;
+        color: var(--text-muted);
+      }
+      .section-head p {
+        margin-top: 14px;
+        font-size: 16px;
+        color: var(--text-muted);
+        max-width: 500px;
+      }
+      .section-head .head-aside {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+      .section-head .head-aside a {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--text);
+        border-bottom: 1px solid var(--border-strong);
+        padding-bottom: 2px;
+        transition: border-color 0.15s;
+      }
+      .section-head .head-aside a:hover {
+        border-color: var(--text);
+      }
+
+      /* MODELS LIST */
+      .models-wrap {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: var(--bg-elev);
+        overflow: hidden;
+      }
+      .models-filter {
+        display: flex;
+        gap: 4px;
+        padding: 12px;
+        border-bottom: 1px solid var(--border);
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .models-filter::-webkit-scrollbar {
+        display: none;
+      }
+      .models-filter button {
+        padding: 7px 14px;
+        border-radius: 7px;
+        font-size: 12.5px;
+        color: var(--text-muted);
+        white-space: nowrap;
+        transition: all 0.15s;
+        font-family: var(--mono);
+        font-weight: 500;
+      }
+      .models-filter button:hover {
+        color: var(--text);
+        background: var(--bg-hover);
+      }
+      .models-filter button.active {
+        background: var(--bg-card);
+        color: var(--text);
+        box-shadow: inset 0 0 0 1px var(--border-strong);
+      }
+      .models-list {
+        display: grid;
+      }
+      .model-row {
+        display: grid;
+        grid-template-columns: 44px 1.6fr 1fr 1.2fr 110px;
+        align-items: center;
+        gap: 20px;
+        padding: 18px 22px;
+        border-bottom: 1px solid var(--border);
+        transition: background 0.15s;
+        cursor: pointer;
+      }
+      .model-row:last-child {
+        border-bottom: none;
+      }
+      .model-row:hover {
+        background: var(--bg-hover);
+      }
+      .provider-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 7px;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+        font-size: 13px;
+        color: var(--text-muted);
+        font-family: var(--mono);
+      }
+      .provider-icon.openai {
+        background: #0d3c2e;
+        color: #74e8c2;
+      }
+      .provider-icon.anthropic {
+        background: #3d2817;
+        color: #ffb38a;
+      }
+      .provider-icon.google {
+        background: #1c2d4a;
+        color: #8ab4f8;
+      }
+      .provider-icon.deepseek {
+        background: #1a2c3d;
+        color: #5eb8ff;
+      }
+      .provider-icon.meta {
+        background: #1e3a5f;
+        color: #8ab4f8;
+      }
+      .provider-icon.mistral {
+        background: #402817;
+        color: #ffb88a;
+      }
+      .provider-icon.xai {
+        background: #2a2a2a;
+        color: #e5e5e5;
+      }
+      .provider-icon.qwen {
+        background: #2d1f3d;
+        color: #c695ff;
+      }
+
+      .model-info .name {
+        font-size: 14.5px;
+        font-weight: 500;
+        color: var(--text);
+        letter-spacing: -0.005em;
+      }
+      .model-info .desc {
+        font-size: 12.5px;
+        color: var(--text-dim);
+        margin-top: 3px;
+      }
+      .model-badges {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .badge {
+        padding: 3px 9px;
+        border-radius: 4px;
+        font-family: var(--mono);
+        font-size: 10.5px;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+        border: 1px solid var(--border-strong);
+        color: var(--text-muted);
+      }
+      .badge.hot {
+        background: var(--accent-soft);
+        color: var(--accent);
+        border-color: rgba(255, 154, 60, 0.2);
+      }
+      .badge.sota {
+        background: rgba(126, 231, 135, 0.06);
+        color: var(--green);
+        border-color: rgba(126, 231, 135, 0.2);
+      }
+
+      .model-tput {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        font-family: var(--mono);
+      }
+      .model-tput .val {
+        font-size: 13px;
+        color: var(--text);
+      }
+      .model-tput .val span {
+        color: var(--text-dim);
+        font-size: 11px;
+      }
+      .tput-bar {
+        height: 3px;
+        background: var(--border);
+        border-radius: 2px;
+        overflow: hidden;
+        position: relative;
+      }
+      .tput-bar::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, var(--text-dim), var(--text));
+        border-radius: 2px;
+        transform-origin: left;
+        animation: pulse-glow 3s ease-in-out infinite;
+      }
+      .model-row .tput-bar::after {
+        width: var(--w, 50%);
+      }
+      @keyframes pulse-glow {
+        0%,
+        100% {
+          opacity: 0.8;
+        }
+        50% {
+          opacity: 1;
+        }
+      }
+
+      .model-ctx {
+        font-family: var(--mono);
+        font-size: 12.5px;
+        color: var(--text-muted);
+      }
+      .model-action {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        font-family: var(--mono);
+        font-size: 12px;
+        color: var(--text-dim);
+        gap: 4px;
+      }
+
+      /* CODE SECTION */
+      .code-showcase {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 60px;
+        align-items: center;
+      }
+      .code-showcase h2 {
+        font-size: clamp(34px, 3.6vw, 46px);
+        font-weight: 500;
+        line-height: 1.05;
+        letter-spacing: -0.03em;
+        margin-top: 16px;
+      }
+      .code-showcase h2 em {
+        font-family: var(--serif);
+        font-style: italic;
+        color: var(--text-muted);
+        font-weight: 400;
+      }
+      .code-showcase p {
+        margin-top: 18px;
+        font-size: 16px;
+        color: var(--text-muted);
+        max-width: 420px;
+      }
+      .code-showcase ul {
+        margin-top: 28px;
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .code-showcase ul li {
+        font-size: 14px;
+        color: var(--text-muted);
+        display: flex;
+        gap: 12px;
+        padding-left: 0;
+      }
+      .code-showcase ul li::before {
+        content: '→';
+        color: var(--text-dim);
+        font-family: var(--mono);
+      }
+      .code-showcase ul li strong {
+        color: var(--text);
+        font-weight: 500;
+      }
+
+      .code-block {
+        background: var(--bg-elev);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        overflow: hidden;
+      }
+      .code-tabs {
+        display: flex;
+        border-bottom: 1px solid var(--border);
+        padding: 10px 12px;
+        gap: 2px;
+        background: var(--bg);
+      }
+      .code-tabs button {
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-family: var(--mono);
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text-dim);
+        transition: all 0.15s;
+      }
+      .code-tabs button:hover {
+        color: var(--text-muted);
+      }
+      .code-tabs button.active {
+        background: var(--bg-card);
+        color: var(--text);
+      }
+      .code-tabs .spacer {
+        flex: 1;
+      }
+      .code-tabs .copy {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--text-dim);
+        padding: 6px 10px;
+      }
+      .code-tabs .copy:hover {
+        color: var(--text);
+      }
+      pre.code {
+        padding: 22px 24px;
+        font-family: var(--mono);
+        font-size: 13px;
+        line-height: 1.7;
+        color: var(--text);
+        overflow-x: auto;
+        background: var(--bg-elev);
+      }
+      pre.code .cm {
+        color: var(--text-dim);
+      }
+      pre.code .kw {
+        color: #c4b5fd;
+      }
+      pre.code .st {
+        color: #86efac;
+      }
+      pre.code .ky {
+        color: #93c5fd;
+      }
+      pre.code .nm {
+        color: var(--accent);
+      }
+      pre.code .fn {
+        color: #fca5a5;
+      }
+      pre.code.hidden {
+        display: none;
+      }
+
+      /* PILLARS */
+      .pillars {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        border-top: 1px solid var(--border);
+      }
+      .pillar {
+        padding: 48px 36px 48px 0;
+        border-right: 1px solid var(--border);
+      }
+      .pillar:last-child {
+        border-right: none;
+        padding-right: 0;
+        padding-left: 0;
+      }
+      .pillar:not(:first-child):not(:last-child) {
+        padding-left: 36px;
+        padding-right: 36px;
+      }
+      .pillar:first-child {
+        padding-left: 0;
+      }
+      .pillar .p-num {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--text-dim);
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        margin-bottom: 28px;
+      }
+      .pillar h3 {
+        font-size: 22px;
+        font-weight: 500;
+        line-height: 1.2;
+        letter-spacing: -0.015em;
+        margin-bottom: 14px;
+      }
+      .pillar p {
+        font-size: 14.5px;
+        color: var(--text-muted);
+        line-height: 1.6;
+      }
+      .pillar .p-diagram {
+        margin-top: 32px;
+        height: 130px;
+        background: var(--bg-elev);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* APPS SHOWCASE */
+      .apps-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1px;
+        background: var(--border);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        overflow: hidden;
+      }
+      .app-card {
+        background: var(--bg-elev);
+        padding: 24px 22px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        transition: background 0.15s;
+        cursor: pointer;
+      }
+      .app-card:hover {
+        background: var(--bg-hover);
+      }
+      .app-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 9px;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        display: grid;
+        place-items: center;
+        font-weight: 600;
+        color: var(--text);
+        font-size: 15px;
+        font-family: var(--mono);
+      }
+      .app-icon.g {
+        background: linear-gradient(135deg, #2d1f3d, #1a2c3d);
+        color: #c695ff;
+      }
+      .app-icon.b {
+        background: linear-gradient(135deg, #0d3c2e, #1a2c3d);
+        color: #74e8c2;
+      }
+      .app-icon.r {
+        background: linear-gradient(135deg, #3d2817, #402817);
+        color: #ffb38a;
+      }
+      .app-icon.p {
+        background: linear-gradient(135deg, #2a2a2a, #1d1d22);
+        color: #e5e5e5;
+      }
+      .app-icon.m {
+        background: linear-gradient(135deg, #1e3a5f, #2d1f3d);
+        color: #8ab4f8;
+      }
+      .app-icon.o {
+        background: linear-gradient(135deg, #402817, #3d2817);
+        color: #ffb88a;
+      }
+      .app-icon.s {
+        background: linear-gradient(135deg, #1a2c3d, #0d3c2e);
+        color: #5eb8ff;
+      }
+      .app-icon.w {
+        background: linear-gradient(135deg, #3d1a2e, #2d1f3d);
+        color: #ff95c8;
+      }
+      .app-card .app-name {
+        font-size: 14.5px;
+        font-weight: 500;
+        color: var(--text);
+        letter-spacing: -0.005em;
+      }
+      .app-card .app-desc {
+        font-size: 12.5px;
+        color: var(--text-dim);
+        line-height: 1.5;
+      }
+      .app-card .app-stat {
+        margin-top: auto;
+        padding-top: 12px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+      .app-card .app-stat .n {
+        color: var(--text);
+      }
+
+      /* TRUST STRIP */
+      .trust-strip {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: var(--bg-elev);
+      }
+      .trust-item {
+        padding: 28px 24px;
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .trust-item:last-child {
+        border-right: none;
+      }
+      .trust-item .t-label {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--text-dim);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      .trust-item .t-value {
+        font-size: 17px;
+        font-weight: 500;
+        color: var(--text);
+        letter-spacing: -0.01em;
+        margin-top: 4px;
+      }
+      .trust-item .t-sub {
+        font-size: 12.5px;
+        color: var(--text-muted);
+        margin-top: 2px;
+      }
+
+      /* FINAL CTA */
+      .final-cta {
+        text-align: center;
+        padding: 160px 0;
+        position: relative;
+        border-top: 1px solid var(--border);
+      }
+      .final-cta::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 800px;
+        height: 400px;
+        background: radial-gradient(
+          ellipse 50% 50% at center,
+          rgba(255, 154, 60, 0.08),
+          transparent 70%
+        );
+        pointer-events: none;
+      }
+      .final-cta h2 {
+        position: relative;
+        font-size: clamp(44px, 5.5vw, 76px);
+        font-weight: 500;
+        line-height: 1;
+        letter-spacing: -0.035em;
+        max-width: 820px;
+        margin: 0 auto;
+      }
+      .final-cta h2 em {
+        font-family: var(--serif);
+        font-style: italic;
+        color: var(--text-muted);
+        font-weight: 400;
+      }
+      .final-cta p {
+        position: relative;
+        margin-top: 24px;
+        font-size: 18px;
+        color: var(--text-muted);
+      }
+      .final-cta .ctas {
+        position: relative;
+        margin-top: 44px;
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      /* FOOTER */
+      footer {
+        padding: 80px 0 48px;
+        border-top: 1px solid var(--border);
+        color: var(--text-muted);
+        font-size: 13px;
+      }
+      .footer-grid {
+        display: grid;
+        grid-template-columns: 2.5fr 1fr 1fr 1fr 1fr;
+        gap: 40px;
+        margin-bottom: 64px;
+      }
+      .footer-grid h5 {
+        font-family: var(--mono);
+        font-size: 10.5px;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: var(--text-dim);
+        margin-bottom: 18px;
+        font-weight: 500;
+      }
+      .footer-grid ul {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .footer-grid a {
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+      .footer-grid a:hover {
+        color: var(--text);
+      }
+      .footer-about p {
+        margin-top: 18px;
+        max-width: 320px;
+        line-height: 1.6;
+        font-size: 13px;
+      }
+      .footer-bottom {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 28px;
+        border-top: 1px solid var(--border);
+        font-family: var(--mono);
+        font-size: 11.5px;
+        color: var(--text-dim);
+        letter-spacing: 0.02em;
+      }
+      .footer-bottom .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .footer-bottom .status::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--green);
+        box-shadow: 0 0 8px var(--green);
+      }
+
+      /* Responsive */
+      @media (max-width: 900px) {
+        .nav-links {
+          display: none;
+        }
+        .hero {
+          padding: 90px 0 60px;
+        }
+        .hero-proof {
+          gap: 28px;
+        }
+        section.block {
+          padding: 80px 0;
+        }
+        .section-head {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        .code-showcase {
+          grid-template-columns: 1fr;
+          gap: 40px;
+        }
+        .pillars {
+          grid-template-columns: 1fr;
+        }
+        .pillar {
+          padding: 36px 0 !important;
+          border-right: none;
+          border-bottom: 1px solid var(--border);
+        }
+        .pillar:last-child {
+          border-bottom: none;
+        }
+        .apps-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .trust-strip {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .trust-item:nth-child(2) {
+          border-right: none;
+        }
+        .trust-item:nth-child(1),
+        .trust-item:nth-child(2) {
+          border-bottom: 1px solid var(--border);
+        }
+        .footer-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+        .model-row {
+          grid-template-columns: 36px 1fr auto;
+          gap: 14px;
+          padding: 16px;
+        }
+        .model-row .model-badges,
+        .model-row .model-ctx {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- NAV -->
+    <header class="nav">
+      <div class="container-wide nav-inner">
+        <div class="logo">
+          <span class="logo-mark">E</span>
+          <span>EZLINK</span>
+        </div>
+        <nav class="nav-links">
+          <a href="#models">Models</a>
+          <a href="#">Pricing</a>
+          <a href="#">Docs</a>
+          <a href="#">Changelog</a>
+          <a href="#">Enterprise</a>
+        </nav>
+        <div class="nav-cta">
+          <a href="#" class="btn btn-ghost">Sign in</a>
+          <a href="#" class="btn btn-primary">Start building</a>
+        </div>
+      </div>
+    </header>
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="hero-inner container">
+        <a href="#" class="hero-badge">
+          <span class="tag">New</span>
+          <span><strong>DeepSeek V3.2</strong> is now available</span>
+          <span class="arrow">→</span>
+        </a>
+        <h1>
+          The unified API<br />
+          <span class="line2">for <em>every</em> frontier model.</span>
+        </h1>
+        <p class="lede">
+          Access 180+ models from OpenAI, Anthropic, Google, and every major
+          provider through a single OpenAI-compatible endpoint. Built for teams
+          shipping production AI.
+        </p>
+        <div class="hero-ctas">
+          <a href="#" class="btn btn-accent btn-lg">Start building →</a>
+          <a href="#models" class="btn btn-outline btn-lg">Explore models</a>
+        </div>
+        <div class="hero-proof">
+          <div>
+            <span class="n mono" id="hero-tokens">247.3M</span>
+            <span class="l">Tokens routed · last hour</span>
+          </div>
+          <div>
+            <span class="n mono">180+</span>
+            <span class="l">Live models</span>
+          </div>
+          <div>
+            <span class="n mono">99.99%</span>
+            <span class="l">Uptime · 90d</span>
+          </div>
+          <div>
+            <span class="n mono"
+              >42<span style="color: var(--text-dim)">ms</span></span
+            >
+            <span class="l">Median latency</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MODELS LEADERBOARD -->
+    <section id="models" class="block">
+      <div class="container">
+        <div class="section-head">
+          <div class="head-text">
+            <div class="eyebrow"><span class="dot"></span>Models</div>
+            <h2>The frontier, <em>in one place.</em></h2>
+            <p>
+              Every major provider, every frontier model, ranked by real
+              throughput across production workloads this week.
+            </p>
+          </div>
+          <div class="head-aside">
+            <a href="#">Browse all 180+ models <span class="mono">→</span></a>
+          </div>
+        </div>
+
+        <div class="models-wrap">
+          <div class="models-filter">
+            <button class="active">All</button>
+            <button>Reasoning</button>
+            <button>Coding</button>
+            <button>Vision</button>
+            <button>Speed</button>
+            <button>Long context</button>
+            <button>Open source</button>
+          </div>
+          <div class="models-list">
+            <div class="model-row">
+              <div class="provider-icon anthropic">A</div>
+              <div class="model-info">
+                <div class="name">Claude Sonnet 4.5</div>
+                <div class="desc">
+                  Anthropic · Best-in-class reasoning, coding & agentic tasks
+                </div>
+              </div>
+              <div class="model-badges">
+                <span class="badge sota">SOTA</span>
+                <span class="badge">Reasoning</span>
+              </div>
+              <div class="model-tput">
+                <div class="val">8.42B <span>tokens / wk</span></div>
+                <div class="tput-bar" style="--w: 98%"></div>
+              </div>
+              <div class="model-ctx">
+                <span class="mono">200K ctx</span>
+              </div>
+            </div>
+
+            <div class="model-row">
+              <div class="provider-icon openai">O</div>
+              <div class="model-info">
+                <div class="name">GPT-5</div>
+                <div class="desc">OpenAI · Flagship general-purpose model</div>
+              </div>
+              <div class="model-badges">
+                <span class="badge hot">Hot</span>
+                <span class="badge">Multimodal</span>
+              </div>
+              <div class="model-tput">
+                <div class="val">6.18B <span>tokens / wk</span></div>
+                <div class="tput-bar" style="--w: 82%"></div>
+              </div>
+              <div class="model-ctx">
+                <span class="mono">400K ctx</span>
+              </div>
+            </div>
+
+            <div class="model-row">
+              <div class="provider-icon deepseek">D</div>
+              <div class="model-info">
+                <div class="name">DeepSeek V3.2</div>
+                <div class="desc">
+                  DeepSeek · Open-weight reasoning at a fraction of the cost
+                </div>
+              </div>
+              <div class="model-badges">
+                <span class="badge hot">New</span>
+                <span class="badge">Open</span>
+              </div>
+              <div class="model-tput">
+                <div class="val">4.73B <span>tokens / wk</span></div>
+                <div class="tput-bar" style="--w: 68%"></div>
+              </div>
+              <div class="model-ctx">
+                <span class="mono">128K ctx</span>
+              </div>
+            </div>
+
+            <div class="model-row">
+              <div class="provider-icon google">G</div>
+              <div class="model-info">
+                <div class="name">Gemini 2.5 Pro</div>
+                <div class="desc">
+                  Google · 2M context, native multimodal, fast
+                </div>
+              </div>
+              <div class="model-badges">
+                <span class="badge">Long ctx</span>
+                <span class="badge">Vision</span>
+              </div>
+              <div class="model-tput">
+                <div class="val">3.89B <span>tokens / wk</span></div>
+                <div class="tput-bar" style="--w: 56%"></div>
+              </div>
+              <div class="model-ctx">
+                <span class="mono">2M ctx</span>
+              </div>
+            </div>
+
+            <div class="model-row">
+              <div class="provider-icon anthropic">A</div>
+              <div class="model-info">
+                <div class="name">Claude Haiku 4.5</div>
+                <div class="desc">
+                  Anthropic · Fast & affordable for high-volume workloads
+                </div>
+              </div>
+              <div class="model-badges">
+                <span class="badge">Speed</span>
+              </div>
+              <div class="model-tput">
+                <div class="val">2.61B <span>tokens / wk</span></div>
+                <div class="tput-bar" style="--w: 42%"></div>
+              </div>
+              <div class="model-ctx">
+                <span class="mono">200K ctx</span>
+              </div>
+            </div>
+
+            <div class="model-row">
+              <div class="provider-icon xai">X</div>
+              <div class="model-info">
+                <div class="name">Grok 4</div>
+                <div class="desc">
+                  xAI · Real-time web access, unfiltered reasoning
+                </div>
+              </div>
+              <div class="model-badges">
+                <span class="badge">Real-time</span>
+              </div>
+              <div class="model-tput">
+                <div class="val">1.94B <span>tokens / wk</span></div>
+                <div class="tput-bar" style="--w: 32%"></div>
+              </div>
+              <div class="model-ctx">
+                <span class="mono">256K ctx</span>
+              </div>
+            </div>
+
+            <div class="model-row">
+              <div class="provider-icon qwen">Q</div>
+              <div class="model-info">
+                <div class="name">Qwen3-Max</div>
+                <div class="desc">
+                  Alibaba · Strong multilingual, competitive reasoning
+                </div>
+              </div>
+              <div class="model-badges">
+                <span class="badge">Multilingual</span>
+                <span class="badge">Open</span>
+              </div>
+              <div class="model-tput">
+                <div class="val">1.47B <span>tokens / wk</span></div>
+                <div class="tput-bar" style="--w: 26%"></div>
+              </div>
+              <div class="model-ctx">
+                <span class="mono">128K ctx</span>
+              </div>
+            </div>
+
+            <div class="model-row">
+              <div class="provider-icon meta">M</div>
+              <div class="model-info">
+                <div class="name">Llama 4 Maverick</div>
+                <div class="desc">
+                  Meta · Open-weight flagship, fine-tunable
+                </div>
+              </div>
+              <div class="model-badges">
+                <span class="badge">Open</span>
+              </div>
+              <div class="model-tput">
+                <div class="val">0.98B <span>tokens / wk</span></div>
+                <div class="tput-bar" style="--w: 18%"></div>
+              </div>
+              <div class="model-ctx">
+                <span class="mono">1M ctx</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CODE SECTION -->
+    <section class="tight block">
+      <div class="container">
+        <div class="code-showcase">
+          <div>
+            <div class="eyebrow">
+              <span class="dot"></span>Developer experience
+            </div>
+            <h2>Drop-in. <em>Instantly.</em></h2>
+            <p>
+              Fully OpenAI-compatible. Point your existing SDK at EZLINK and
+              change the model name &mdash; that's it.
+            </p>
+            <ul>
+              <li>
+                <strong>Zero migration.</strong> Use any OpenAI SDK, unchanged.
+              </li>
+              <li>
+                <strong>Every provider, one key.</strong> No more juggling API
+                keys.
+              </li>
+              <li>
+                <strong>Automatic failover.</strong> If a provider is down, we
+                route around it.
+              </li>
+              <li>
+                <strong>Stream, tools, vision.</strong> Every capability works
+                across every model.
+              </li>
+            </ul>
+          </div>
+
+          <div class="code-block">
+            <div class="code-tabs">
+              <button class="tab active" data-tab="curl">curl</button>
+              <button class="tab" data-tab="python">Python</button>
+              <button class="tab" data-tab="node">Node.js</button>
+              <span class="spacer"></span>
+              <button class="copy">Copy</button>
+            </div>
+
+            <pre
+              class="code active"
+              id="c-curl"
+            ><span class="cm"># Same OpenAI format. Any model.</span>
+<span class="kw">curl</span> https://api.ezlinkai.com/v1/chat/completions \
+  -H <span class="st">"Authorization: Bearer $EZ_KEY"</span> \
+  -H <span class="st">"Content-Type: application/json"</span> \
+  -d <span class="st">'{
+    "model": "claude-opus-4-7",
+    "messages": [
+      {"role": "user", "content": "Build me a REST API"}
+    ],
+    "stream": true
+  }'</span></pre>
+
+            <pre
+              class="code hidden"
+              id="c-python"
+            ><span class="cm"># Works with the OpenAI Python SDK, unchanged.</span>
+<span class="kw">from</span> openai <span class="kw">import</span> OpenAI
+
+client = <span class="fn">OpenAI</span>(
+    api_key=<span class="st">"$EZ_KEY"</span>,
+    base_url=<span class="st">"https://api.ezlinkai.com/v1"</span>,
+)
+
+response = client.chat.completions.<span class="fn">create</span>(
+    model=<span class="st">"claude-opus-4-7"</span>,
+    messages=[{<span class="ky">"role"</span>: <span class="st">"user"</span>,
+               <span class="ky">"content"</span>: <span class="st">"Build me a REST API"</span>}],
+    stream=<span class="nm">True</span>,
+)</pre>
+
+            <pre
+              class="code hidden"
+              id="c-node"
+            ><span class="cm">// Works with the OpenAI Node SDK, unchanged.</span>
+<span class="kw">import</span> OpenAI <span class="kw">from</span> <span class="st">"openai"</span>;
+
+<span class="kw">const</span> client = <span class="kw">new</span> <span class="fn">OpenAI</span>({
+  apiKey: process.env.EZ_KEY,
+  baseURL: <span class="st">"https://api.ezlinkai.com/v1"</span>,
+});
+
+<span class="kw">const</span> stream = <span class="kw">await</span> client.chat.completions.<span class="fn">create</span>({
+  model: <span class="st">"claude-opus-4-7"</span>,
+  messages: [{ role: <span class="st">"user"</span>, content: <span class="st">"Build me a REST API"</span> }],
+  stream: <span class="nm">true</span>,
+});</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PILLARS -->
+    <section class="block">
+      <div class="container">
+        <div class="section-head">
+          <div class="head-text">
+            <div class="eyebrow">
+              <span class="dot"></span>Built for production
+            </div>
+            <h2>Not a reseller. <em>Infrastructure.</em></h2>
+            <p>
+              Everything you need to run AI in production, without running your
+              own gateway.
+            </p>
+          </div>
+        </div>
+
+        <div class="pillars">
+          <div class="pillar">
+            <div class="p-num">01</div>
+            <h3>Every model, one integration.</h3>
+            <p>
+              Switch between 180+ models by changing a single parameter. No SDK
+              rewrites, no vendor lock-in, no weekend migrations.
+            </p>
+            <div class="p-diagram">
+              <svg width="100%" height="100%" viewBox="0 0 260 100" fill="none">
+                <text
+                  x="20"
+                  y="30"
+                  font-family="Geist Mono, monospace"
+                  font-size="10"
+                  fill="#8a8a93"
+                >
+                  model:
+                </text>
+                <text
+                  x="20"
+                  y="48"
+                  font-family="Geist Mono, monospace"
+                  font-size="11"
+                  fill="#f2f2f4"
+                >
+                  "claude-opus-4-7"
+                </text>
+                <text
+                  x="20"
+                  y="75"
+                  font-family="Geist Mono, monospace"
+                  font-size="11"
+                  fill="#ff9a3c"
+                >
+                  "gpt-5.4"
+                </text>
+                <text
+                  x="140"
+                  y="75"
+                  font-family="Geist Mono, monospace"
+                  font-size="11"
+                  fill="#ff9a3c"
+                >
+                  "deepseek-v3.2"
+                </text>
+                <line
+                  x1="20"
+                  y1="55"
+                  x2="240"
+                  y2="55"
+                  stroke="#1d1d22"
+                  stroke-width="1"
+                />
+              </svg>
+            </div>
+          </div>
+
+          <div class="pillar">
+            <div class="p-num">02</div>
+            <h3>Automatic failover.</h3>
+            <p>
+              If a provider goes down, we route to the next best one — same
+              model family, same endpoint. Your app doesn't blink.
+            </p>
+            <div class="p-diagram">
+              <svg width="100%" height="100%" viewBox="0 0 260 100" fill="none">
+                <circle cx="30" cy="50" r="6" fill="#ff9a3c" />
+                <line
+                  x1="36"
+                  y1="50"
+                  x2="100"
+                  y2="50"
+                  stroke="#8a8a93"
+                  stroke-width="1"
+                  stroke-dasharray="3 3"
+                />
+                <rect
+                  x="100"
+                  y="30"
+                  width="60"
+                  height="40"
+                  rx="6"
+                  fill="none"
+                  stroke="#26262d"
+                />
+                <text
+                  x="130"
+                  y="54"
+                  text-anchor="middle"
+                  font-family="Geist Mono, monospace"
+                  font-size="9"
+                  fill="#8a8a93"
+                >
+                  GATEWAY
+                </text>
+                <line
+                  x1="160"
+                  y1="38"
+                  x2="220"
+                  y2="22"
+                  stroke="#54545c"
+                  stroke-width="1"
+                  stroke-dasharray="3 3"
+                />
+                <line
+                  x1="160"
+                  y1="50"
+                  x2="220"
+                  y2="50"
+                  stroke="#ff9a3c"
+                  stroke-width="1"
+                />
+                <line
+                  x1="160"
+                  y1="62"
+                  x2="220"
+                  y2="78"
+                  stroke="#54545c"
+                  stroke-width="1"
+                  stroke-dasharray="3 3"
+                />
+                <circle cx="225" cy="22" r="4" fill="#37373e" />
+                <circle cx="225" cy="50" r="4" fill="#ff9a3c" />
+                <circle cx="225" cy="78" r="4" fill="#37373e" />
+              </svg>
+            </div>
+          </div>
+
+          <div class="pillar">
+            <div class="p-num">03</div>
+            <h3>Observability, by default.</h3>
+            <p>
+              Every request logged with cost, latency, tokens and model. Usage
+              dashboards, per-key analytics, webhooks for anomalies.
+            </p>
+            <div class="p-diagram">
+              <svg width="100%" height="100%" viewBox="0 0 260 100" fill="none">
+                <polyline
+                  points="10,80 40,55 70,62 100,35 130,45 160,20 190,30 220,18 250,25"
+                  stroke="#ff9a3c"
+                  stroke-width="1.5"
+                  fill="none"
+                />
+                <polyline
+                  points="10,80 40,55 70,62 100,35 130,45 160,20 190,30 220,18 250,25 250,92 10,92"
+                  fill="rgba(255,154,60,0.05)"
+                  stroke="none"
+                />
+                <line
+                  x1="10"
+                  y1="92"
+                  x2="250"
+                  y2="92"
+                  stroke="#1d1d22"
+                  stroke-width="1"
+                />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- APPS SHOWCASE -->
+    <section class="block">
+      <div class="container">
+        <div class="section-head">
+          <div class="head-text">
+            <div class="eyebrow">
+              <span class="dot"></span>Built with EZLINK
+            </div>
+            <h2>Teams shipping AI, <em>at scale.</em></h2>
+            <p>
+              From weekend projects to series-C companies. Here's a snapshot of
+              apps routing through EZLINK this week.
+            </p>
+          </div>
+          <div class="head-aside">
+            <a href="#">See all apps <span class="mono">→</span></a>
+          </div>
+        </div>
+
+        <div class="apps-grid">
+          <div class="app-card">
+            <div class="app-icon g">Gv</div>
+            <div class="app-name">Groove.ai</div>
+            <div class="app-desc">
+              AI copilot for sales teams. Real-time call coaching.
+            </div>
+            <div class="app-stat">
+              <span>Primary model</span><span class="n">Claude 4.5</span>
+            </div>
+          </div>
+          <div class="app-card">
+            <div class="app-icon b">Bf</div>
+            <div class="app-name">BaseFrame</div>
+            <div class="app-desc">
+              Vibe-coding platform for non-technical founders.
+            </div>
+            <div class="app-stat">
+              <span>Primary model</span><span class="n">GPT-5</span>
+            </div>
+          </div>
+          <div class="app-card">
+            <div class="app-icon r">Rd</div>
+            <div class="app-name">Redcap</div>
+            <div class="app-desc">
+              Document intelligence for medical research teams.
+            </div>
+            <div class="app-stat">
+              <span>Primary model</span><span class="n">Gemini 2.5</span>
+            </div>
+          </div>
+          <div class="app-card">
+            <div class="app-icon p">Pt</div>
+            <div class="app-name">Portal</div>
+            <div class="app-desc">Internal AI assistants for finance orgs.</div>
+            <div class="app-stat">
+              <span>Primary model</span><span class="n">Claude 4.5</span>
+            </div>
+          </div>
+          <div class="app-card">
+            <div class="app-icon m">Ml</div>
+            <div class="app-name">Modulo</div>
+            <div class="app-desc">Open-source agent framework. 24k stars.</div>
+            <div class="app-stat">
+              <span>Primary model</span><span class="n">DeepSeek V3.2</span>
+            </div>
+          </div>
+          <div class="app-card">
+            <div class="app-icon o">On</div>
+            <div class="app-name">Onset</div>
+            <div class="app-desc">AI voice agents for healthcare intake.</div>
+            <div class="app-stat">
+              <span>Primary model</span><span class="n">GPT-5 · Haiku</span>
+            </div>
+          </div>
+          <div class="app-card">
+            <div class="app-icon s">Sv</div>
+            <div class="app-name">Subverse</div>
+            <div class="app-desc">Character chat for game studios. 2M DAU.</div>
+            <div class="app-stat">
+              <span>Primary model</span><span class="n">Llama 4</span>
+            </div>
+          </div>
+          <div class="app-card">
+            <div class="app-icon w">Wr</div>
+            <div class="app-name">Weave</div>
+            <div class="app-desc">
+              Knowledge graphs, auto-generated from your docs.
+            </div>
+            <div class="app-stat">
+              <span>Primary model</span><span class="n">Gemini 2.5</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TRUST STRIP -->
+    <section class="tight block" style="padding-top: 0">
+      <div class="container">
+        <div class="section-head">
+          <div class="head-text">
+            <div class="eyebrow"><span class="dot"></span>Enterprise</div>
+            <h2>Ready for <em>the last mile.</em></h2>
+            <p>
+              Everything procurement, security and legal will ask for — before
+              they ask for it.
+            </p>
+          </div>
+          <div class="head-aside">
+            <a href="#">Talk to sales <span class="mono">→</span></a>
+          </div>
+        </div>
+
+        <div class="trust-strip">
+          <div class="trust-item">
+            <div class="t-label">Compliance</div>
+            <div class="t-value">SOC 2 Type II</div>
+            <div class="t-sub">GDPR · HIPAA-ready</div>
+          </div>
+          <div class="trust-item">
+            <div class="t-label">Availability</div>
+            <div class="t-value">99.99% SLA</div>
+            <div class="t-sub">Written, with penalties</div>
+          </div>
+          <div class="trust-item">
+            <div class="t-label">Support</div>
+            <div class="t-value">Dedicated, 24/7</div>
+            <div class="t-sub">Shared Slack · 15-min response</div>
+          </div>
+          <div class="trust-item">
+            <div class="t-label">Deployment</div>
+            <div class="t-value">Single-tenant</div>
+            <div class="t-sub">VPC · self-hosted options</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FINAL CTA -->
+    <section class="final-cta">
+      <div class="container">
+        <h2>Ship with <em>any model.</em><br />Starting today.</h2>
+        <p>Free credits on sign-up. No card required. No lock-in.</p>
+        <div class="ctas">
+          <a href="#" class="btn btn-accent btn-lg">Start building →</a>
+          <a href="#" class="btn btn-outline btn-lg">Read the docs</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+      <div class="container">
+        <div class="footer-grid">
+          <div class="footer-about">
+            <div class="logo">
+              <span class="logo-mark">E</span>
+              <span>EZLINK</span>
+            </div>
+            <p>
+              The unified AI gateway for production. One API, every frontier
+              model, zero lock-in.
+            </p>
+          </div>
+          <div>
+            <h5>Product</h5>
+            <ul>
+              <li><a href="#">Models</a></li>
+              <li><a href="#">Pricing</a></li>
+              <li><a href="#">Dashboard</a></li>
+              <li><a href="#">Changelog</a></li>
+            </ul>
+          </div>
+          <div>
+            <h5>Developers</h5>
+            <ul>
+              <li><a href="#">Documentation</a></li>
+              <li><a href="#">API reference</a></li>
+              <li><a href="#">SDKs</a></li>
+              <li><a href="#">Status</a></li>
+            </ul>
+          </div>
+          <div>
+            <h5>Company</h5>
+            <ul>
+              <li><a href="#">Enterprise</a></li>
+              <li><a href="#">Security</a></li>
+              <li><a href="#">Blog</a></li>
+              <li><a href="#">Careers</a></li>
+            </ul>
+          </div>
+          <div>
+            <h5>Legal</h5>
+            <ul>
+              <li><a href="#">Terms</a></li>
+              <li><a href="#">Privacy</a></li>
+              <li><a href="#">SLA</a></li>
+              <li><a href="#">DPA</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <span>© 2026 EZLINK Inc. All rights reserved.</span>
+          <span class="status">All systems operational</span>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      // Code tab switcher
+      const tabs = document.querySelectorAll('.code-tabs .tab');
+      const blocks = {
+        curl: document.getElementById('c-curl'),
+        python: document.getElementById('c-python'),
+        node: document.getElementById('c-node')
+      };
+      tabs.forEach((t) =>
+        t.addEventListener('click', () => {
+          tabs.forEach((x) => x.classList.remove('active'));
+          t.classList.add('active');
+          Object.values(blocks).forEach((b) => {
+            b.classList.add('hidden');
+            b.classList.remove('active');
+          });
+          const target = blocks[t.dataset.tab];
+          target.classList.remove('hidden');
+          target.classList.add('active');
+        })
+      );
+
+      // Subtle live token counter
+      const tEl = document.getElementById('hero-tokens');
+      let tokens = 247.3;
+      setInterval(() => {
+        tokens += Math.random() * 0.4;
+        tEl.textContent = tokens.toFixed(1) + 'M';
+      }, 1600);
+
+      // Copy button
+      document
+        .querySelector('.code-tabs .copy')
+        ?.addEventListener('click', (e) => {
+          const active = document.querySelector('pre.code:not(.hidden)');
+          if (active) {
+            navigator.clipboard.writeText(active.innerText);
+            e.target.textContent = 'Copied';
+            setTimeout(() => (e.target.textContent = 'Copy'), 1400);
+          }
+        });
+    </script>
+  </body>
+</html>

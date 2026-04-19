@@ -1,0 +1,2796 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EZLINK — One gateway. Every native SDK.</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      :root {
+        --bg: #070708;
+        --bg-elev: #0c0c0e;
+        --bg-card: #101014;
+        --bg-hover: #15151a;
+        --bg-input: #0a0a0c;
+        --border: #1d1d23;
+        --border-strong: #26262e;
+        --text: #f4f4f6;
+        --text-muted: #8a8a94;
+        --text-dim: #55555d;
+        --text-faint: #34343b;
+        --accent: #ff9a3c;
+        --accent-hot: #ffb366;
+        --accent-soft: rgba(255, 154, 60, 0.08);
+        --green: #7ee787;
+        --purple: #c4b5fd;
+        --blue: #93c5fd;
+        --pink: #f0abfc;
+        --mono: 'Geist Mono', ui-monospace, 'JetBrains Mono', Menlo, monospace;
+        --sans: 'Geist', -apple-system, BlinkMacSystemFont, system-ui,
+          sans-serif;
+        --serif: 'Instrument Serif', Georgia, serif;
+      }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--sans);
+        font-size: 15px;
+        line-height: 1.55;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        overflow-x: hidden;
+        letter-spacing: -0.005em;
+      }
+      body::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 1;
+        background-image: radial-gradient(
+          rgba(255, 255, 255, 0.015) 1px,
+          transparent 1px
+        );
+        background-size: 3px 3px;
+        opacity: 0.6;
+      }
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+      button {
+        font: inherit;
+        cursor: pointer;
+        border: none;
+        background: none;
+        color: inherit;
+      }
+      input {
+        font: inherit;
+        border: none;
+        outline: none;
+        background: none;
+        color: inherit;
+      }
+      .container {
+        max-width: 1240px;
+        margin: 0 auto;
+        padding: 0 28px;
+        position: relative;
+        z-index: 2;
+      }
+      .mono {
+        font-family: var(--mono);
+        font-feature-settings: 'ss02', 'zero';
+      }
+      .serif {
+        font-family: var(--serif);
+        font-style: italic;
+      }
+
+      .eyebrow {
+        font-family: var(--mono);
+        font-size: 11px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: var(--text-dim);
+      }
+      .eyebrow .dot {
+        display: inline-block;
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: var(--accent);
+        margin-right: 10px;
+        vertical-align: 2px;
+        box-shadow: 0 0 8px var(--accent);
+      }
+
+      /* NAV */
+      .nav {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        background: rgba(7, 7, 8, 0.78);
+        border-bottom: 1px solid var(--border);
+      }
+      .nav-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 58px;
+      }
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        font-weight: 600;
+        font-size: 15px;
+        letter-spacing: -0.01em;
+      }
+      .logo-mark {
+        width: 22px;
+        height: 22px;
+        border-radius: 5px;
+        background: var(--text);
+        color: var(--bg);
+        font-weight: 700;
+        display: grid;
+        place-items: center;
+        font-size: 12px;
+        font-family: var(--mono);
+      }
+      .nav-links {
+        display: flex;
+        gap: 28px;
+      }
+      .nav-links a {
+        font-size: 13.5px;
+        color: var(--text-muted);
+        transition: color 0.15s;
+        font-weight: 450;
+      }
+      .nav-links a:hover {
+        color: var(--text);
+      }
+      .nav-cta {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 8px 14px;
+        border-radius: 7px;
+        font-size: 13.5px;
+        font-weight: 500;
+        transition: all 0.15s ease;
+        letter-spacing: -0.005em;
+      }
+      .btn-ghost {
+        color: var(--text-muted);
+      }
+      .btn-ghost:hover {
+        color: var(--text);
+      }
+      .btn-primary {
+        background: var(--text);
+        color: var(--bg);
+        font-weight: 500;
+      }
+      .btn-primary:hover {
+        background: #fff;
+        transform: translateY(-0.5px);
+      }
+      .btn-accent {
+        background: var(--accent);
+        color: #140800;
+        font-weight: 600;
+        box-shadow:
+          0 0 0 1px var(--accent),
+          0 8px 30px -8px rgba(255, 154, 60, 0.5);
+      }
+      .btn-accent:hover {
+        background: var(--accent-hot);
+        transform: translateY(-1px);
+      }
+      .btn-outline {
+        border: 1px solid var(--border-strong);
+        color: var(--text);
+      }
+      .btn-outline:hover {
+        border-color: var(--text-muted);
+        background: var(--bg-hover);
+      }
+      .btn-lg {
+        padding: 13px 22px;
+        font-size: 14.5px;
+      }
+
+      /* HERO */
+      .hero {
+        position: relative;
+        padding: 80px 0 60px;
+        overflow: hidden;
+      }
+      .hero::before {
+        content: '';
+        position: absolute;
+        top: -100px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 1400px;
+        height: 700px;
+        background: radial-gradient(
+            ellipse 60% 50% at 30% 30%,
+            rgba(255, 154, 60, 0.07),
+            transparent 60%
+          ),
+          radial-gradient(
+            ellipse 40% 40% at 80% 60%,
+            rgba(147, 197, 253, 0.04),
+            transparent 70%
+          );
+        pointer-events: none;
+      }
+      .hero-head {
+        text-align: center;
+        max-width: 900px;
+        margin: 0 auto 48px;
+        position: relative;
+      }
+      .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 6px 14px 6px 6px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        font-family: var(--mono);
+        font-size: 11.5px;
+        background: var(--bg-elev);
+        margin-bottom: 32px;
+        transition: border-color 0.2s;
+      }
+      .hero-badge:hover {
+        border-color: var(--border-strong);
+      }
+      .hero-badge .tag {
+        padding: 3px 8px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .hero-badge span {
+        color: var(--text-muted);
+      }
+      .hero-badge span strong {
+        color: var(--text);
+        font-weight: 500;
+      }
+      .hero-badge .arrow {
+        color: var(--text-dim);
+      }
+      .hero h1 {
+        font-size: clamp(56px, 8.5vw, 120px);
+        font-weight: 500;
+        line-height: 0.92;
+        letter-spacing: -0.045em;
+        color: var(--text);
+      }
+      .hero h1 em {
+        font-style: italic;
+        font-family: var(--serif);
+        font-weight: 400;
+        letter-spacing: -0.015em;
+        color: var(--text-muted);
+      }
+      .hero .lede {
+        margin-top: 28px;
+        font-size: 18px;
+        line-height: 1.55;
+        color: var(--text-muted);
+        max-width: 560px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      /* PLAYGROUND */
+      .playground {
+        max-width: 1080px;
+        margin: 0 auto;
+        background: var(--bg-elev);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow:
+          0 0 0 1px rgba(255, 154, 60, 0.04),
+          0 40px 80px -20px rgba(0, 0, 0, 0.6),
+          0 0 100px -20px rgba(255, 154, 60, 0.04);
+        position: relative;
+      }
+      .pg-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg-card);
+      }
+      .model-picker {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 7px 10px 7px 8px;
+        border-radius: 7px;
+        background: var(--bg-elev);
+        border: 1px solid var(--border);
+        font-size: 13px;
+        font-weight: 500;
+        transition: all 0.15s;
+        position: relative;
+      }
+      .model-picker:hover {
+        border-color: var(--border-strong);
+        background: var(--bg-hover);
+      }
+      .model-picker .mp-icon {
+        width: 22px;
+        height: 22px;
+        border-radius: 5px;
+        background: var(--bg-card);
+        display: grid;
+        place-items: center;
+        font-family: var(--mono);
+        font-size: 11px;
+        font-weight: 700;
+        border: 1px solid var(--border);
+      }
+      .model-picker.anthropic .mp-icon {
+        background: #3d2817;
+        color: #ffb38a;
+        border-color: transparent;
+      }
+      .model-picker.openai .mp-icon {
+        background: #0d3c2e;
+        color: #74e8c2;
+        border-color: transparent;
+      }
+      .model-picker.google .mp-icon {
+        background: #1c2d4a;
+        color: #8ab4f8;
+        border-color: transparent;
+      }
+      .model-picker.deepseek .mp-icon {
+        background: #1a2c3d;
+        color: #5eb8ff;
+        border-color: transparent;
+      }
+      .model-picker.meta .mp-icon {
+        background: #1e3a5f;
+        color: #8ab4f8;
+        border-color: transparent;
+      }
+      .model-picker.xai .mp-icon {
+        background: #2a2a2a;
+        color: #e5e5e5;
+        border-color: transparent;
+      }
+      .model-picker .mp-caret {
+        color: var(--text-dim);
+        margin-left: 2px;
+      }
+
+      .model-dropdown {
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 0;
+        z-index: 20;
+        min-width: 320px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-strong);
+        border-radius: 10px;
+        padding: 6px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        display: none;
+      }
+      .model-dropdown.open {
+        display: block;
+      }
+      .mdr {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 7px;
+        font-size: 13px;
+        cursor: pointer;
+        transition: background 0.1s;
+      }
+      .mdr:hover {
+        background: var(--bg-hover);
+      }
+      .mdr .mdr-icon {
+        width: 24px;
+        height: 24px;
+        border-radius: 6px;
+        display: grid;
+        place-items: center;
+        font-family: var(--mono);
+        font-size: 11px;
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+      .mdr.anthropic .mdr-icon {
+        background: #3d2817;
+        color: #ffb38a;
+      }
+      .mdr.openai .mdr-icon {
+        background: #0d3c2e;
+        color: #74e8c2;
+      }
+      .mdr.google .mdr-icon {
+        background: #1c2d4a;
+        color: #8ab4f8;
+      }
+      .mdr.deepseek .mdr-icon {
+        background: #1a2c3d;
+        color: #5eb8ff;
+      }
+      .mdr.meta .mdr-icon {
+        background: #1e3a5f;
+        color: #8ab4f8;
+      }
+      .mdr.xai .mdr-icon {
+        background: #2a2a2a;
+        color: #e5e5e5;
+      }
+      .mdr .mdr-info {
+        flex: 1;
+      }
+      .mdr .mdr-name {
+        font-weight: 500;
+        color: var(--text);
+      }
+      .mdr .mdr-sub {
+        color: var(--text-dim);
+        font-size: 11px;
+        margin-top: 1px;
+        font-family: var(--mono);
+      }
+      .mdr .mdr-tag {
+        font-family: var(--mono);
+        font-size: 10px;
+        color: var(--text-dim);
+        padding: 2px 7px;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+      }
+      .mdr.active {
+        background: var(--bg-hover);
+      }
+      .mdr.active .mdr-name::after {
+        content: ' ✓';
+        color: var(--accent);
+      }
+
+      .pg-params {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .pg-params .chip {
+        padding: 6px 10px;
+        border-radius: 7px;
+        font-family: var(--mono);
+        font-size: 11.5px;
+        background: var(--bg-elev);
+        border: 1px solid var(--border);
+        color: var(--text-muted);
+        letter-spacing: 0.02em;
+      }
+      .pg-params .chip strong {
+        color: var(--text);
+        font-weight: 500;
+      }
+
+      .pg-status {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        font-family: var(--mono);
+        font-size: 11.5px;
+        color: var(--text-muted);
+      }
+      .pg-status::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--green);
+        box-shadow: 0 0 8px var(--green);
+        animation: statpulse 2s ease-in-out infinite;
+      }
+      .pg-status.running::before {
+        background: var(--accent);
+        box-shadow: 0 0 8px var(--accent);
+      }
+      @keyframes statpulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.4;
+        }
+      }
+
+      /* PG BODY - split */
+      .pg-body {
+        display: grid;
+        grid-template-columns: 1.25fr 1fr;
+        min-height: 420px;
+      }
+      .pg-chat {
+        display: flex;
+        flex-direction: column;
+        border-right: 1px solid var(--border);
+      }
+      .pg-messages {
+        flex: 1;
+        padding: 22px 26px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+      .empty-state {
+        padding-top: 20px;
+      }
+      .empty-state .empty-hd {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--text-dim);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        margin-bottom: 14px;
+      }
+      .suggestions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .suggestion {
+        padding: 9px 14px;
+        border-radius: 8px;
+        font-size: 13px;
+        color: var(--text);
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        transition: all 0.15s;
+        text-align: left;
+        line-height: 1.3;
+      }
+      .suggestion:hover {
+        border-color: var(--accent);
+        color: var(--text);
+        background: var(--accent-soft);
+      }
+      .suggestion .sg-label {
+        color: var(--text-dim);
+        font-family: var(--mono);
+        font-size: 10px;
+        margin-right: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .msg {
+        display: flex;
+        gap: 12px;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+      .msg .avatar {
+        width: 26px;
+        height: 26px;
+        border-radius: 6px;
+        flex-shrink: 0;
+        display: grid;
+        place-items: center;
+        font-size: 11px;
+        font-weight: 600;
+        font-family: var(--mono);
+        margin-top: 2px;
+      }
+      .msg.user .avatar {
+        background: var(--bg-card);
+        color: var(--text-muted);
+        border: 1px solid var(--border);
+      }
+      .msg .body {
+        flex: 1;
+        color: var(--text);
+      }
+      .msg .body .mdr-name {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--text-dim);
+        margin-bottom: 5px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .msg .body pre {
+        font-family: var(--mono);
+        font-size: 12.5px;
+        line-height: 1.6;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 12px 14px;
+        margin: 8px 0;
+        overflow-x: auto;
+        color: var(--text);
+      }
+      .msg .body p {
+        margin-bottom: 10px;
+      }
+      .msg .body p:last-child {
+        margin-bottom: 0;
+      }
+      .cursor {
+        display: inline-block;
+        width: 8px;
+        height: 14px;
+        background: var(--accent);
+        vertical-align: -2px;
+        animation: blink 1s step-end infinite;
+      }
+      @keyframes blink {
+        50% {
+          opacity: 0;
+        }
+      }
+
+      .pg-input {
+        border-top: 1px solid var(--border);
+        padding: 14px 18px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: var(--bg);
+      }
+      .pg-input input {
+        flex: 1;
+        font-size: 14px;
+        color: var(--text);
+        padding: 6px 0;
+      }
+      .pg-input input::placeholder {
+        color: var(--text-dim);
+      }
+      .pg-input .send {
+        width: 32px;
+        height: 32px;
+        border-radius: 7px;
+        background: var(--accent);
+        color: #140800;
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+        transition: background 0.15s;
+      }
+      .pg-input .send:hover {
+        background: var(--accent-hot);
+      }
+      .pg-input .send:disabled {
+        background: var(--border-strong);
+        color: var(--text-dim);
+        cursor: not-allowed;
+      }
+
+      /* code side */
+      .pg-code {
+        background: var(--bg-input);
+        display: flex;
+        flex-direction: column;
+      }
+      .pg-code-hd {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 13px 18px;
+        border-bottom: 1px solid var(--border);
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--text-dim);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      .pg-code-hd .cp {
+        color: var(--text-muted);
+        text-transform: none;
+        letter-spacing: 0;
+        font-size: 11.5px;
+        padding: 3px 8px;
+        border-radius: 5px;
+      }
+      .pg-code-hd .cp:hover {
+        color: var(--text);
+        background: var(--bg-hover);
+      }
+      .pg-code pre {
+        flex: 1;
+        padding: 20px;
+        font-family: var(--mono);
+        font-size: 12.5px;
+        line-height: 1.75;
+        overflow: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .pg-code .cm {
+        color: var(--text-dim);
+      }
+      .pg-code .kw {
+        color: var(--purple);
+      }
+      .pg-code .st {
+        color: #86efac;
+      }
+      .pg-code .ky {
+        color: var(--blue);
+      }
+      .pg-code .nm {
+        color: var(--accent);
+      }
+
+      .pg-footer {
+        display: flex;
+        gap: 28px;
+        padding: 12px 18px;
+        border-top: 1px solid var(--border);
+        background: var(--bg-card);
+        font-family: var(--mono);
+        font-size: 11.5px;
+        color: var(--text-dim);
+      }
+      .pg-footer .metric {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .pg-footer .metric strong {
+        color: var(--text);
+        font-weight: 500;
+        font-variant-numeric: tabular-nums;
+      }
+      .pg-footer .right {
+        margin-left: auto;
+        color: var(--text-dim);
+      }
+
+      /* Hero CTAs after playground */
+      .hero-ctas {
+        margin-top: 40px;
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .hero-subtle {
+        margin-top: 18px;
+        text-align: center;
+        font-family: var(--mono);
+        font-size: 11.5px;
+        color: var(--text-dim);
+        letter-spacing: 0.04em;
+      }
+
+      /* SECTION shell */
+      section.block {
+        padding: 120px 0;
+        position: relative;
+      }
+      section.block.tight {
+        padding: 80px 0;
+      }
+      .section-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        margin-bottom: 48px;
+        gap: 40px;
+      }
+      .section-head .head-text {
+        max-width: 580px;
+      }
+      .section-head h2 {
+        font-size: clamp(34px, 4vw, 54px);
+        font-weight: 500;
+        line-height: 1.02;
+        letter-spacing: -0.03em;
+        margin-top: 16px;
+      }
+      .section-head h2 em {
+        font-family: var(--serif);
+        font-style: italic;
+        font-weight: 400;
+        color: var(--text-muted);
+      }
+      .section-head p {
+        margin-top: 14px;
+        font-size: 16px;
+        color: var(--text-muted);
+        max-width: 500px;
+      }
+      .section-head .head-aside {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+      .section-head .head-aside a {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--text);
+        border-bottom: 1px solid var(--border-strong);
+        padding-bottom: 2px;
+        transition: border-color 0.15s;
+      }
+      .section-head .head-aside a:hover {
+        border-color: var(--text);
+      }
+
+      /* MARQUEE — provider wordmarks */
+      .marquee-wrap {
+        padding: 40px 0;
+        border-top: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+        background: var(--bg-elev);
+        overflow: hidden;
+        position: relative;
+      }
+      .marquee-wrap::before,
+      .marquee-wrap::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 100px;
+        z-index: 2;
+        pointer-events: none;
+      }
+      .marquee-wrap::before {
+        left: 0;
+        background: linear-gradient(90deg, var(--bg-elev), transparent);
+      }
+      .marquee-wrap::after {
+        right: 0;
+        background: linear-gradient(-90deg, var(--bg-elev), transparent);
+      }
+      .marquee-label {
+        text-align: center;
+        margin-bottom: 20px;
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--text-dim);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+      .marquee {
+        display: flex;
+        gap: 60px;
+        animation: marquee 40s linear infinite;
+        width: max-content;
+      }
+      .marquee-item {
+        font-family: var(--serif);
+        font-size: 28px;
+        color: var(--text-dim);
+        letter-spacing: -0.02em;
+        white-space: nowrap;
+        font-style: italic;
+      }
+      @keyframes marquee {
+        to {
+          transform: translateX(-50%);
+        }
+      }
+
+      /* BIG STATEMENT */
+      .statement {
+        padding: 160px 0 120px;
+        text-align: center;
+      }
+      .statement h2 {
+        font-size: clamp(44px, 6vw, 88px);
+        font-weight: 400;
+        line-height: 1;
+        letter-spacing: -0.035em;
+        max-width: 1000px;
+        margin: 0 auto;
+      }
+      .statement h2 strong {
+        font-weight: 500;
+        color: var(--text);
+      }
+      .statement h2 em {
+        font-family: var(--serif);
+        font-style: italic;
+        font-weight: 400;
+        color: var(--text-muted);
+      }
+      .statement .st-highlight {
+        color: var(--accent);
+        font-weight: 500;
+      }
+      .statement p {
+        max-width: 560px;
+        margin: 40px auto 0;
+        font-size: 17px;
+        color: var(--text-muted);
+      }
+
+      /* MODELS COMPACT */
+      .models-compact {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        overflow: hidden;
+        background: var(--bg-elev);
+      }
+      .model-row-c {
+        display: grid;
+        grid-template-columns: 34px 1fr 130px 180px 60px;
+        align-items: center;
+        gap: 18px;
+        padding: 14px 20px;
+        border-bottom: 1px solid var(--border);
+        transition: background 0.15s;
+      }
+      .model-row-c:last-child {
+        border-bottom: none;
+      }
+      .model-row-c:hover {
+        background: var(--bg-hover);
+      }
+      .pi {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        display: grid;
+        place-items: center;
+        font-family: var(--mono);
+        font-size: 11px;
+        font-weight: 700;
+      }
+      .pi.anthropic {
+        background: #3d2817;
+        color: #ffb38a;
+      }
+      .pi.openai {
+        background: #0d3c2e;
+        color: #74e8c2;
+      }
+      .pi.google {
+        background: #1c2d4a;
+        color: #8ab4f8;
+      }
+      .pi.deepseek {
+        background: #1a2c3d;
+        color: #5eb8ff;
+      }
+      .pi.meta {
+        background: #1e3a5f;
+        color: #8ab4f8;
+      }
+      .pi.xai {
+        background: #2a2a2a;
+        color: #e5e5e5;
+      }
+      .pi.mistral {
+        background: #402817;
+        color: #ffb88a;
+      }
+      .pi.qwen {
+        background: #2d1f3d;
+        color: #c695ff;
+      }
+      .model-name-c {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text);
+      }
+      .model-name-c small {
+        color: var(--text-dim);
+        font-weight: 400;
+        margin-left: 8px;
+      }
+      .ctx-c {
+        font-family: var(--mono);
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+      .tput-c {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        font-family: var(--mono);
+        font-size: 11.5px;
+      }
+      .tput-c .v {
+        color: var(--text);
+      }
+      .tput-c .bar {
+        height: 2px;
+        background: var(--border);
+        border-radius: 2px;
+        overflow: hidden;
+      }
+      .tput-c .bar::after {
+        content: '';
+        display: block;
+        height: 100%;
+        background: linear-gradient(90deg, var(--text-dim), var(--text-muted));
+        width: var(--w, 50%);
+      }
+      .model-arrow {
+        color: var(--text-dim);
+        text-align: right;
+        font-family: var(--mono);
+      }
+
+      /* PILLARS */
+      .pillars {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        border-top: 1px solid var(--border);
+      }
+      .pillar {
+        padding: 48px 36px 48px 0;
+        border-right: 1px solid var(--border);
+      }
+      .pillar:last-child {
+        border-right: none;
+        padding-right: 0;
+        padding-left: 0;
+      }
+      .pillar:not(:first-child):not(:last-child) {
+        padding-left: 36px;
+        padding-right: 36px;
+      }
+      .pillar:first-child {
+        padding-left: 0;
+      }
+      .pillar .p-num {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--text-dim);
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        margin-bottom: 28px;
+      }
+      .pillar h3 {
+        font-size: 22px;
+        font-weight: 500;
+        line-height: 1.2;
+        letter-spacing: -0.015em;
+        margin-bottom: 14px;
+      }
+      .pillar h3 em {
+        font-family: var(--serif);
+        font-style: italic;
+        color: var(--text-muted);
+        font-weight: 400;
+      }
+      .pillar p {
+        font-size: 14.5px;
+        color: var(--text-muted);
+        line-height: 1.6;
+      }
+      .pillar .p-diagram {
+        margin-top: 32px;
+        height: 130px;
+        background: var(--bg-elev);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* APPS */
+      .apps-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1px;
+        background: var(--border);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        overflow: hidden;
+      }
+      .app-card {
+        background: var(--bg-elev);
+        padding: 24px 22px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        transition: background 0.15s;
+        cursor: pointer;
+      }
+      .app-card:hover {
+        background: var(--bg-hover);
+      }
+      .app-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 9px;
+        display: grid;
+        place-items: center;
+        font-weight: 600;
+        color: var(--text);
+        font-size: 15px;
+        font-family: var(--mono);
+      }
+      .app-icon.g {
+        background: linear-gradient(135deg, #2d1f3d, #1a2c3d);
+        color: #c695ff;
+      }
+      .app-icon.b {
+        background: linear-gradient(135deg, #0d3c2e, #1a2c3d);
+        color: #74e8c2;
+      }
+      .app-icon.r {
+        background: linear-gradient(135deg, #3d2817, #402817);
+        color: #ffb38a;
+      }
+      .app-icon.p {
+        background: linear-gradient(135deg, #2a2a2a, #1d1d22);
+        color: #e5e5e5;
+      }
+      .app-icon.m {
+        background: linear-gradient(135deg, #1e3a5f, #2d1f3d);
+        color: #8ab4f8;
+      }
+      .app-icon.o {
+        background: linear-gradient(135deg, #402817, #3d2817);
+        color: #ffb88a;
+      }
+      .app-icon.s {
+        background: linear-gradient(135deg, #1a2c3d, #0d3c2e);
+        color: #5eb8ff;
+      }
+      .app-icon.w {
+        background: linear-gradient(135deg, #3d1a2e, #2d1f3d);
+        color: #ff95c8;
+      }
+      .app-card .app-name {
+        font-size: 14.5px;
+        font-weight: 500;
+        color: var(--text);
+        letter-spacing: -0.005em;
+      }
+      .app-card .app-desc {
+        font-size: 12.5px;
+        color: var(--text-dim);
+        line-height: 1.5;
+      }
+      .app-card .app-stat {
+        margin-top: auto;
+        padding-top: 12px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+      .app-card .app-stat .n {
+        color: var(--text);
+      }
+
+      /* TRUST STRIP */
+      .trust-strip {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: var(--bg-elev);
+      }
+      .trust-item {
+        padding: 28px 24px;
+        border-right: 1px solid var(--border);
+      }
+      .trust-item:last-child {
+        border-right: none;
+      }
+      .trust-item .t-label {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--text-dim);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      .trust-item .t-value {
+        font-size: 17px;
+        font-weight: 500;
+        color: var(--text);
+        letter-spacing: -0.01em;
+        margin-top: 6px;
+      }
+      .trust-item .t-sub {
+        font-size: 12.5px;
+        color: var(--text-muted);
+        margin-top: 3px;
+      }
+
+      /* FINAL CTA */
+      .final-cta {
+        text-align: center;
+        padding: 180px 0;
+        position: relative;
+        border-top: 1px solid var(--border);
+        overflow: hidden;
+      }
+      .final-cta::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 900px;
+        height: 500px;
+        background: radial-gradient(
+          ellipse 50% 50% at center,
+          rgba(255, 154, 60, 0.1),
+          transparent 70%
+        );
+        pointer-events: none;
+      }
+      .final-cta h2 {
+        position: relative;
+        font-size: clamp(52px, 7vw, 104px);
+        font-weight: 500;
+        line-height: 0.95;
+        letter-spacing: -0.04em;
+        max-width: 1000px;
+        margin: 0 auto;
+      }
+      .final-cta h2 em {
+        font-family: var(--serif);
+        font-style: italic;
+        color: var(--text-muted);
+        font-weight: 400;
+      }
+      .final-cta p {
+        position: relative;
+        margin-top: 28px;
+        font-size: 18px;
+        color: var(--text-muted);
+      }
+      .final-cta .ctas {
+        position: relative;
+        margin-top: 44px;
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      /* FOOTER */
+      footer {
+        padding: 80px 0 48px;
+        border-top: 1px solid var(--border);
+        color: var(--text-muted);
+        font-size: 13px;
+      }
+      .footer-grid {
+        display: grid;
+        grid-template-columns: 2.5fr 1fr 1fr 1fr 1fr;
+        gap: 40px;
+        margin-bottom: 64px;
+      }
+      .footer-grid h5 {
+        font-family: var(--mono);
+        font-size: 10.5px;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: var(--text-dim);
+        margin-bottom: 18px;
+        font-weight: 500;
+      }
+      .footer-grid ul {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .footer-grid a {
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+      .footer-grid a:hover {
+        color: var(--text);
+      }
+      .footer-about p {
+        margin-top: 18px;
+        max-width: 320px;
+        line-height: 1.6;
+        font-size: 13px;
+      }
+      .footer-bottom {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 28px;
+        border-top: 1px solid var(--border);
+        font-family: var(--mono);
+        font-size: 11.5px;
+        color: var(--text-dim);
+        letter-spacing: 0.02em;
+      }
+      .footer-bottom .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .footer-bottom .status::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--green);
+        box-shadow: 0 0 8px var(--green);
+      }
+
+      /* SDK TABS (replaces playground interactive) */
+      .sdk-tabs {
+        display: flex;
+        gap: 2px;
+      }
+      .sdk-tab {
+        padding: 9px 18px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text-muted);
+        transition: all 0.15s;
+        letter-spacing: -0.005em;
+      }
+      .sdk-tab:hover {
+        color: var(--text);
+        background: var(--bg-hover);
+      }
+      .sdk-tab.active {
+        background: var(--bg-card);
+        color: var(--text);
+        box-shadow: inset 0 0 0 1px var(--border-strong);
+      }
+
+      /* Language dropdown */
+      .lang-select {
+        position: relative;
+        margin-left: auto;
+      }
+      .lang-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 12px 7px 14px;
+        border-radius: 7px;
+        font-family: var(--mono);
+        font-size: 12.5px;
+        color: var(--text);
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        transition: all 0.15s;
+        min-width: 96px;
+        justify-content: space-between;
+      }
+      .lang-btn:hover {
+        border-color: var(--border-strong);
+        background: var(--bg-hover);
+      }
+      .lang-btn .caret {
+        color: var(--text-dim);
+        font-size: 10px;
+        font-family: var(--sans);
+        transition: transform 0.15s;
+      }
+      .lang-select.open .lang-btn .caret {
+        transform: rotate(180deg);
+      }
+      .lang-dropdown {
+        position: absolute;
+        top: calc(100% + 6px);
+        right: 0;
+        z-index: 30;
+        min-width: 160px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-strong);
+        border-radius: 9px;
+        padding: 5px;
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+        display: none;
+      }
+      .lang-select.open .lang-dropdown {
+        display: block;
+      }
+      .lang-opt {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-family: var(--mono);
+        font-size: 12.5px;
+        color: var(--text-muted);
+        cursor: pointer;
+        text-align: left;
+        transition: background 0.1s;
+      }
+      .lang-opt:hover {
+        color: var(--text);
+        background: var(--bg-hover);
+      }
+      .lang-opt.active {
+        color: var(--text);
+      }
+      .lang-opt::before {
+        content: '';
+        display: inline-block;
+        width: 14px;
+        margin-right: 6px;
+        color: var(--accent);
+      }
+      .lang-opt.active::before {
+        content: '✓';
+      }
+
+      .replay-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 11px;
+        border-radius: 6px;
+        font-family: var(--mono);
+        font-size: 11.5px;
+        color: var(--text-muted);
+        border: 1px solid var(--border);
+        background: var(--bg-elev);
+        transition: all 0.15s;
+      }
+      .replay-btn:hover {
+        color: var(--text);
+        border-color: var(--border-strong);
+      }
+      .replay-btn .icon {
+        display: inline-block;
+        transition: transform 0.4s;
+      }
+      .replay-btn.playing .icon {
+        transform: rotate(360deg);
+      }
+
+      /* Code main panel */
+      .pg-code-main {
+        background: var(--bg-input);
+        display: flex;
+        flex-direction: column;
+        border-right: 1px solid var(--border);
+        min-height: 460px;
+      }
+      .pg-code-main .pg-code-hd .file {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--text-muted);
+        font-size: 11.5px;
+        text-transform: none;
+        letter-spacing: 0;
+      }
+      .pg-code-main .pg-code-hd .file::before {
+        content: '';
+        width: 11px;
+        height: 13px;
+        display: inline-block;
+        background: var(--text-dim);
+        opacity: 0.4;
+        clip-path: polygon(0 0, 70% 0, 100% 30%, 100% 100%, 0 100%);
+      }
+      .pg-code-main pre {
+        flex: 1;
+        padding: 22px 24px;
+        font-family: var(--mono);
+        font-size: 13px;
+        line-height: 1.75;
+        color: var(--text);
+        overflow-x: auto;
+        white-space: pre;
+      }
+      .pg-code-main pre .cm {
+        color: var(--text-dim);
+      }
+      .pg-code-main pre .kw {
+        color: var(--purple);
+      }
+      .pg-code-main pre .st {
+        color: #86efac;
+      }
+      .pg-code-main pre .ky {
+        color: var(--blue);
+      }
+      .pg-code-main pre .nm {
+        color: var(--accent);
+      }
+      .pg-code-main pre .fn {
+        color: #fca5a5;
+      }
+      .pg-code-main pre .var {
+        color: var(--text);
+      }
+
+      /* Terminal output panel */
+      .pg-terminal {
+        background: var(--bg);
+        display: flex;
+        flex-direction: column;
+        min-height: 460px;
+      }
+      .pg-term-hd {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 13px 20px;
+        border-bottom: 1px solid var(--border);
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--text-dim);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      .pg-term-hd .dots {
+        display: flex;
+        gap: 5px;
+      }
+      .pg-term-hd .dots span {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--border-strong);
+      }
+      .pg-term-hd .t-title {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--text-dim);
+        letter-spacing: 0.04em;
+        text-transform: none;
+      }
+      .pg-term-body {
+        flex: 1;
+        padding: 22px 24px;
+        font-family: var(--mono);
+        font-size: 13px;
+        line-height: 1.7;
+        overflow-y: auto;
+        color: var(--text);
+      }
+      .term-line {
+        margin-bottom: 6px;
+      }
+      .term-line.cmd {
+        color: var(--text);
+      }
+      .term-line.cmd .prompt {
+        color: var(--green);
+        margin-right: 8px;
+      }
+      .term-line.info {
+        color: var(--text-dim);
+        font-size: 12px;
+      }
+      .term-line.info strong {
+        color: var(--text-muted);
+        font-weight: 400;
+      }
+      .term-line.label {
+        color: var(--accent);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        margin-top: 14px;
+        margin-bottom: 8px;
+      }
+      .term-line.out {
+        color: var(--text);
+        white-space: pre-wrap;
+        word-wrap: break-word;
+      }
+      .term-line.out pre {
+        margin-top: 8px;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 12px 14px;
+        font-family: var(--mono);
+        font-size: 12.5px;
+        line-height: 1.6;
+        overflow-x: auto;
+      }
+      .term-line.done {
+        color: var(--green);
+        font-size: 12px;
+        margin-top: 14px;
+        padding-top: 12px;
+        border-top: 1px dashed var(--border);
+      }
+      .term-line.done .muted {
+        color: var(--text-dim);
+      }
+      .cursor-blink {
+        display: inline-block;
+        width: 7px;
+        height: 14px;
+        background: var(--accent);
+        vertical-align: -2px;
+        animation: blink 1s step-end infinite;
+      }
+      @keyframes blink {
+        50% {
+          opacity: 0;
+        }
+      }
+
+      @media (max-width: 900px) {
+        .nav-links {
+          display: none;
+        }
+        .hero {
+          padding: 60px 0 40px;
+        }
+        .pg-body {
+          grid-template-columns: 1fr;
+        }
+        .pg-chat {
+          border-right: none;
+          border-bottom: 1px solid var(--border);
+        }
+        .pg-code-main {
+          border-right: none;
+          border-bottom: 1px solid var(--border);
+          min-height: 300px;
+        }
+        .pg-terminal {
+          min-height: 320px;
+        }
+        .sdk-tabs {
+          flex-wrap: wrap;
+        }
+        .sdk-tab .sdk-sub {
+          display: none;
+        }
+        .pg-toolbar {
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+        .pg-status {
+          margin-left: 0;
+        }
+        section.block {
+          padding: 80px 0;
+        }
+        .section-head {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        .pillars {
+          grid-template-columns: 1fr;
+        }
+        .pillar {
+          padding: 36px 0 !important;
+          border-right: none;
+          border-bottom: 1px solid var(--border);
+        }
+        .pillar:last-child {
+          border-bottom: none;
+        }
+        .apps-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .trust-strip {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .trust-item:nth-child(2) {
+          border-right: none;
+        }
+        .trust-item:nth-child(1),
+        .trust-item:nth-child(2) {
+          border-bottom: 1px solid var(--border);
+        }
+        .footer-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+        .model-row-c {
+          grid-template-columns: 28px 1fr auto;
+          gap: 12px;
+          padding: 14px;
+        }
+        .model-row-c .ctx-c,
+        .model-row-c .tput-c {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- NAV -->
+    <header class="nav">
+      <div class="nav-inner container">
+        <div class="logo">
+          <span class="logo-mark">E</span>
+          <span>EZLINK</span>
+        </div>
+        <nav class="nav-links">
+          <a href="#">Models</a>
+          <a href="#">Pricing</a>
+          <a href="#">Docs</a>
+          <a href="#">Changelog</a>
+          <a href="#">Enterprise</a>
+        </nav>
+        <div class="nav-cta">
+          <a href="#" class="btn btn-ghost">Sign in</a>
+          <a href="#" class="btn btn-primary">Start building</a>
+        </div>
+      </div>
+    </header>
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="container">
+        <div class="hero-head">
+          <a href="#" class="hero-badge">
+            <span class="tag">New</span>
+            <span><strong>Claude Opus 4.7</strong> is live</span>
+            <span class="arrow">→</span>
+          </a>
+          <h1>
+            One gateway.<br />
+            <em>Every native SDK.</em>
+          </h1>
+          <p class="lede">
+            EZLINK speaks the native protocols of OpenAI, Anthropic and Google
+            &mdash; drop it into the SDK you already use. No translation layer,
+            no rewrites, no lock-in.
+          </p>
+        </div>
+
+        <!-- SDK SHOWCASE -->
+        <div class="playground">
+          <div class="pg-toolbar">
+            <div class="sdk-tabs" id="sdk-tabs">
+              <button class="sdk-tab active" data-sdk="openai">OpenAI</button>
+              <button class="sdk-tab" data-sdk="claude">Claude</button>
+              <button class="sdk-tab" data-sdk="gemini">Gemini</button>
+            </div>
+            <div class="lang-select" id="lang-select">
+              <button class="lang-btn" id="lang-btn">
+                <span id="lang-label">curl</span>
+                <span class="caret">▾</span>
+              </button>
+              <div class="lang-dropdown" id="lang-dropdown">
+                <button data-lang="curl" class="lang-opt active">curl</button>
+                <button data-lang="python" class="lang-opt">python</button>
+                <button data-lang="javascript" class="lang-opt">
+                  javascript
+                </button>
+              </div>
+            </div>
+            <button class="replay-btn" id="replay-btn">
+              <span class="icon">↻</span> Replay
+            </button>
+            <div class="pg-status" id="pg-status">Ready</div>
+          </div>
+
+          <div class="pg-body">
+            <!-- LEFT: Code -->
+            <div class="pg-code-main">
+              <div class="pg-code-hd">
+                <span class="file" id="code-file">request.sh</span>
+                <button class="cp" id="copy-btn">Copy</button>
+              </div>
+              <pre id="code-display"></pre>
+            </div>
+
+            <!-- RIGHT: Terminal output -->
+            <div class="pg-terminal">
+              <div class="pg-term-hd">
+                <div class="dots"><span></span><span></span><span></span></div>
+                <span class="t-title" id="term-title"
+                  >~/ezlink $ bash request.sh</span
+                >
+                <span></span>
+              </div>
+              <div class="pg-term-body" id="term-body">
+                <!-- content injected by JS -->
+              </div>
+            </div>
+          </div>
+
+          <div class="pg-footer">
+            <div class="metric">
+              provider <strong id="m-sdk">openai</strong>
+            </div>
+            <div class="metric">
+              model <strong id="m-model">gpt-5.4</strong>
+            </div>
+            <div class="metric">tokens <strong id="m-tokens">247</strong></div>
+            <div class="metric">
+              latency <strong id="m-latency">842ms</strong>
+            </div>
+            <div class="metric">cost <strong id="m-cost">$0.0062</strong></div>
+            <div class="right">Native protocol &middot; zero translation</div>
+          </div>
+        </div>
+
+        <div class="hero-ctas">
+          <a href="#" class="btn btn-accent btn-lg">Create free account →</a>
+          <a href="#" class="btn btn-outline btn-lg">Read the docs</a>
+        </div>
+        <div class="hero-subtle">
+          $5 in free credits · No credit card required · Cancel anytime
+        </div>
+      </div>
+    </section>
+
+    <!-- PROVIDER MARQUEE -->
+    <div class="marquee-wrap">
+      <div class="marquee-label">· One API · Every provider ·</div>
+      <div class="marquee" id="marquee">
+        <span class="marquee-item">OpenAI</span>
+        <span class="marquee-item">Anthropic</span>
+        <span class="marquee-item">Google</span>
+        <span class="marquee-item">DeepSeek</span>
+        <span class="marquee-item">Meta</span>
+        <span class="marquee-item">xAI</span>
+        <span class="marquee-item">Mistral</span>
+        <span class="marquee-item">Qwen</span>
+        <span class="marquee-item">Cohere</span>
+        <span class="marquee-item">Perplexity</span>
+        <span class="marquee-item">01.AI</span>
+        <span class="marquee-item">Moonshot</span>
+        <!-- duplicate for seamless loop -->
+        <span class="marquee-item">OpenAI</span>
+        <span class="marquee-item">Anthropic</span>
+        <span class="marquee-item">Google</span>
+        <span class="marquee-item">DeepSeek</span>
+        <span class="marquee-item">Meta</span>
+        <span class="marquee-item">xAI</span>
+        <span class="marquee-item">Mistral</span>
+        <span class="marquee-item">Qwen</span>
+        <span class="marquee-item">Cohere</span>
+        <span class="marquee-item">Perplexity</span>
+        <span class="marquee-item">01.AI</span>
+        <span class="marquee-item">Moonshot</span>
+      </div>
+    </div>
+
+    <!-- BIG STATEMENT -->
+    <section class="statement">
+      <div class="container">
+        <h2>
+          <strong>One key.</strong> <em>Every model.</em><br />
+          <em>Zero lock-in.</em>
+        </h2>
+        <p>
+          Built for teams who ship. Automatic failover, production
+          observability, and enterprise SLAs — out of the box.
+        </p>
+      </div>
+    </section>
+
+    <!-- MODELS COMPACT -->
+    <section class="tight block" style="padding-top: 0">
+      <div class="container">
+        <div class="section-head">
+          <div class="head-text">
+            <div class="eyebrow">
+              <span class="dot"></span>Top models · this week
+            </div>
+            <h2>The frontier, <em>in rank order.</em></h2>
+          </div>
+          <div class="head-aside">
+            <a href="#">All 180+ models <span class="mono">→</span></a>
+          </div>
+        </div>
+        <div class="models-compact">
+          <div class="model-row-c">
+            <div class="pi anthropic">A</div>
+            <div class="model-name-c">
+              Claude Opus 4.7 <small>Anthropic · reasoning + agentic</small>
+            </div>
+            <div class="ctx-c">200K ctx</div>
+            <div class="tput-c">
+              <div class="v">
+                8.42B <span style="color: var(--text-dim)">tokens</span>
+              </div>
+              <div class="bar" style="--w: 98%"></div>
+            </div>
+            <div class="model-arrow">→</div>
+          </div>
+          <div class="model-row-c">
+            <div class="pi openai">O</div>
+            <div class="model-name-c">
+              GPT-5.4 <small>OpenAI · flagship multimodal</small>
+            </div>
+            <div class="ctx-c">400K ctx</div>
+            <div class="tput-c">
+              <div class="v">
+                6.18B <span style="color: var(--text-dim)">tokens</span>
+              </div>
+              <div class="bar" style="--w: 82%"></div>
+            </div>
+            <div class="model-arrow">→</div>
+          </div>
+          <div class="model-row-c">
+            <div class="pi deepseek">D</div>
+            <div class="model-name-c">
+              DeepSeek V3.2 <small>DeepSeek · open reasoning</small>
+            </div>
+            <div class="ctx-c">128K ctx</div>
+            <div class="tput-c">
+              <div class="v">
+                4.73B <span style="color: var(--text-dim)">tokens</span>
+              </div>
+              <div class="bar" style="--w: 68%"></div>
+            </div>
+            <div class="model-arrow">→</div>
+          </div>
+          <div class="model-row-c">
+            <div class="pi google">G</div>
+            <div class="model-name-c">
+              Gemini 3.1 Pro <small>Google · 2M context, vision</small>
+            </div>
+            <div class="ctx-c">2M ctx</div>
+            <div class="tput-c">
+              <div class="v">
+                3.89B <span style="color: var(--text-dim)">tokens</span>
+              </div>
+              <div class="bar" style="--w: 56%"></div>
+            </div>
+            <div class="model-arrow">→</div>
+          </div>
+          <div class="model-row-c">
+            <div class="pi xai">X</div>
+            <div class="model-name-c">
+              Grok 4 <small>xAI · real-time web access</small>
+            </div>
+            <div class="ctx-c">256K ctx</div>
+            <div class="tput-c">
+              <div class="v">
+                1.94B <span style="color: var(--text-dim)">tokens</span>
+              </div>
+              <div class="bar" style="--w: 32%"></div>
+            </div>
+            <div class="model-arrow">→</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PILLARS -->
+    <section class="block">
+      <div class="container">
+        <div class="section-head">
+          <div class="head-text">
+            <div class="eyebrow">
+              <span class="dot"></span>Built for production
+            </div>
+            <h2>Not a reseller. <em>Infrastructure.</em></h2>
+            <p>
+              Everything you need to run AI in production, without running your
+              own gateway.
+            </p>
+          </div>
+        </div>
+        <div class="pillars">
+          <div class="pillar">
+            <div class="p-num">01 · Integration</div>
+            <h3>Every model, <em>one key.</em></h3>
+            <p>
+              Switch between 180+ models by changing a single string. No SDK
+              rewrites, no vendor lock-in, no weekend migrations.
+            </p>
+            <div class="p-diagram">
+              <svg width="100%" height="100%" viewBox="0 0 260 100" fill="none">
+                <text
+                  x="20"
+                  y="24"
+                  font-family="Geist Mono, monospace"
+                  font-size="10"
+                  fill="#8a8a93"
+                >
+                  model:
+                </text>
+                <text
+                  x="20"
+                  y="44"
+                  font-family="Geist Mono, monospace"
+                  font-size="11"
+                  fill="#f2f2f4"
+                >
+                  "claude-opus-4-7"
+                </text>
+                <line
+                  x1="20"
+                  y1="52"
+                  x2="240"
+                  y2="52"
+                  stroke="#1d1d22"
+                  stroke-width="1"
+                />
+                <text
+                  x="20"
+                  y="72"
+                  font-family="Geist Mono, monospace"
+                  font-size="11"
+                  fill="#ff9a3c"
+                >
+                  "gpt-5.4"
+                </text>
+                <text
+                  x="20"
+                  y="92"
+                  font-family="Geist Mono, monospace"
+                  font-size="11"
+                  fill="#ff9a3c"
+                >
+                  "gemini-3.1-pro-preview"
+                </text>
+              </svg>
+            </div>
+          </div>
+          <div class="pillar">
+            <div class="p-num">02 · Reliability</div>
+            <h3>Automatic <em>failover.</em></h3>
+            <p>
+              If a provider goes down, we route to the next best one — same
+              model family, same endpoint. Your app doesn't blink.
+            </p>
+            <div class="p-diagram">
+              <svg width="100%" height="100%" viewBox="0 0 260 100" fill="none">
+                <circle cx="30" cy="50" r="6" fill="#ff9a3c" />
+                <line
+                  x1="36"
+                  y1="50"
+                  x2="100"
+                  y2="50"
+                  stroke="#8a8a93"
+                  stroke-width="1"
+                  stroke-dasharray="3 3"
+                />
+                <rect
+                  x="100"
+                  y="30"
+                  width="60"
+                  height="40"
+                  rx="6"
+                  fill="none"
+                  stroke="#26262d"
+                />
+                <text
+                  x="130"
+                  y="54"
+                  text-anchor="middle"
+                  font-family="Geist Mono, monospace"
+                  font-size="9"
+                  fill="#8a8a93"
+                >
+                  GATEWAY
+                </text>
+                <line
+                  x1="160"
+                  y1="38"
+                  x2="220"
+                  y2="22"
+                  stroke="#54545c"
+                  stroke-width="1"
+                  stroke-dasharray="3 3"
+                />
+                <line
+                  x1="160"
+                  y1="50"
+                  x2="220"
+                  y2="50"
+                  stroke="#ff9a3c"
+                  stroke-width="1"
+                />
+                <line
+                  x1="160"
+                  y1="62"
+                  x2="220"
+                  y2="78"
+                  stroke="#54545c"
+                  stroke-width="1"
+                  stroke-dasharray="3 3"
+                />
+                <circle cx="225" cy="22" r="4" fill="#37373e" />
+                <circle cx="225" cy="50" r="4" fill="#ff9a3c" />
+                <circle cx="225" cy="78" r="4" fill="#37373e" />
+              </svg>
+            </div>
+          </div>
+          <div class="pillar">
+            <div class="p-num">03 · Observability</div>
+            <h3>Insight, <em>by default.</em></h3>
+            <p>
+              Every request logged with cost, latency, tokens and model. Per-key
+              analytics, anomaly webhooks, usage dashboards.
+            </p>
+            <div class="p-diagram">
+              <svg width="100%" height="100%" viewBox="0 0 260 100" fill="none">
+                <polyline
+                  points="10,80 40,55 70,62 100,35 130,45 160,20 190,30 220,18 250,25"
+                  stroke="#ff9a3c"
+                  stroke-width="1.5"
+                  fill="none"
+                />
+                <polyline
+                  points="10,80 40,55 70,62 100,35 130,45 160,20 190,30 220,18 250,25 250,92 10,92"
+                  fill="rgba(255,154,60,0.05)"
+                  stroke="none"
+                />
+                <line
+                  x1="10"
+                  y1="92"
+                  x2="250"
+                  y2="92"
+                  stroke="#1d1d22"
+                  stroke-width="1"
+                />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- APPS -->
+    <section class="block">
+      <div class="container">
+        <div class="section-head">
+          <div class="head-text">
+            <div class="eyebrow">
+              <span class="dot"></span>Built with EZLINK
+            </div>
+            <h2>Teams shipping AI, <em>at scale.</em></h2>
+            <p>
+              From weekend projects to series-C companies. Here's a snapshot of
+              apps routing through EZLINK this week.
+            </p>
+          </div>
+          <div class="head-aside">
+            <a href="#">See all apps <span class="mono">→</span></a>
+          </div>
+        </div>
+        <div class="apps-grid">
+          <div class="app-card">
+            <div class="app-icon g">Gv</div>
+            <div class="app-name">Groove.ai</div>
+            <div class="app-desc">
+              AI copilot for sales. Real-time call coaching.
+            </div>
+            <div class="app-stat">
+              <span>Primary</span><span class="n">Claude 4.5</span>
+            </div>
+          </div>
+          <div class="app-card">
+            <div class="app-icon b">Bf</div>
+            <div class="app-name">BaseFrame</div>
+            <div class="app-desc">
+              Vibe-coding platform for non-technical founders.
+            </div>
+            <div class="app-stat">
+              <span>Primary</span><span class="n">GPT-5</span>
+            </div>
+          </div>
+          <div class="app-card">
+            <div class="app-icon r">Rd</div>
+            <div class="app-name">Redcap</div>
+            <div class="app-desc">
+              Document intelligence for medical research.
+            </div>
+            <div class="app-stat">
+              <span>Primary</span><span class="n">Gemini 2.5</span>
+            </div>
+          </div>
+          <div class="app-card">
+            <div class="app-icon p">Pt</div>
+            <div class="app-name">Portal</div>
+            <div class="app-desc">Internal AI assistants for finance orgs.</div>
+            <div class="app-stat">
+              <span>Primary</span><span class="n">Claude 4.5</span>
+            </div>
+          </div>
+          <div class="app-card">
+            <div class="app-icon m">Ml</div>
+            <div class="app-name">Modulo</div>
+            <div class="app-desc">Open-source agent framework. 24k stars.</div>
+            <div class="app-stat">
+              <span>Primary</span><span class="n">DeepSeek V3.2</span>
+            </div>
+          </div>
+          <div class="app-card">
+            <div class="app-icon o">On</div>
+            <div class="app-name">Onset</div>
+            <div class="app-desc">AI voice agents for healthcare intake.</div>
+            <div class="app-stat">
+              <span>Primary</span><span class="n">GPT-5 · Haiku</span>
+            </div>
+          </div>
+          <div class="app-card">
+            <div class="app-icon s">Sv</div>
+            <div class="app-name">Subverse</div>
+            <div class="app-desc">Character chat for game studios. 2M DAU.</div>
+            <div class="app-stat">
+              <span>Primary</span><span class="n">Llama 4</span>
+            </div>
+          </div>
+          <div class="app-card">
+            <div class="app-icon w">Wr</div>
+            <div class="app-name">Weave</div>
+            <div class="app-desc">Knowledge graphs from your docs.</div>
+            <div class="app-stat">
+              <span>Primary</span><span class="n">Gemini 2.5</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TRUST STRIP -->
+    <section class="tight block" style="padding-top: 0">
+      <div class="container">
+        <div class="section-head">
+          <div class="head-text">
+            <div class="eyebrow"><span class="dot"></span>Enterprise</div>
+            <h2>Ready for <em>the last mile.</em></h2>
+            <p>
+              Everything procurement, security and legal will ask for — before
+              they ask for it.
+            </p>
+          </div>
+          <div class="head-aside">
+            <a href="#">Talk to sales <span class="mono">→</span></a>
+          </div>
+        </div>
+        <div class="trust-strip">
+          <div class="trust-item">
+            <div class="t-label">Compliance</div>
+            <div class="t-value">SOC 2 Type II</div>
+            <div class="t-sub">GDPR · HIPAA-ready</div>
+          </div>
+          <div class="trust-item">
+            <div class="t-label">Availability</div>
+            <div class="t-value">99.99% SLA</div>
+            <div class="t-sub">Written, with penalties</div>
+          </div>
+          <div class="trust-item">
+            <div class="t-label">Support</div>
+            <div class="t-value">Dedicated, 24/7</div>
+            <div class="t-sub">Shared Slack · 15-min response</div>
+          </div>
+          <div class="trust-item">
+            <div class="t-label">Deployment</div>
+            <div class="t-value">Single-tenant</div>
+            <div class="t-sub">VPC · self-hosted options</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FINAL CTA -->
+    <section class="final-cta">
+      <div class="container">
+        <h2>Ship with <em>any model.</em><br />Starting today.</h2>
+        <p>Free credits on sign-up. No card required. No lock-in.</p>
+        <div class="ctas">
+          <a href="#" class="btn btn-accent btn-lg">Create free account →</a>
+          <a href="#" class="btn btn-outline btn-lg">Read the docs</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+      <div class="container">
+        <div class="footer-grid">
+          <div class="footer-about">
+            <div class="logo">
+              <span class="logo-mark">E</span><span>EZLINK</span>
+            </div>
+            <p>
+              The unified AI gateway for production. One API, every frontier
+              model, zero lock-in.
+            </p>
+          </div>
+          <div>
+            <h5>Product</h5>
+            <ul>
+              <li><a href="#">Models</a></li>
+              <li><a href="#">Pricing</a></li>
+              <li><a href="#">Dashboard</a></li>
+              <li><a href="#">Changelog</a></li>
+            </ul>
+          </div>
+          <div>
+            <h5>Developers</h5>
+            <ul>
+              <li><a href="#">Documentation</a></li>
+              <li><a href="#">API reference</a></li>
+              <li><a href="#">SDKs</a></li>
+              <li><a href="#">Status</a></li>
+            </ul>
+          </div>
+          <div>
+            <h5>Company</h5>
+            <ul>
+              <li><a href="#">Enterprise</a></li>
+              <li><a href="#">Security</a></li>
+              <li><a href="#">Blog</a></li>
+              <li><a href="#">Careers</a></li>
+            </ul>
+          </div>
+          <div>
+            <h5>Legal</h5>
+            <ul>
+              <li><a href="#">Terms</a></li>
+              <li><a href="#">Privacy</a></li>
+              <li><a href="#">SLA</a></li>
+              <li><a href="#">DPA</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <span>© 2026 EZLINK Inc. All rights reserved.</span>
+          <span class="status">All systems operational</span>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      // ===== SDK showcase =====
+      const LANG_FILES = {
+        curl: 'request.sh',
+        python: 'example.py',
+        javascript: 'example.js'
+      };
+      const LANG_RUNTIMES = {
+        curl: 'bash',
+        python: 'python',
+        javascript: 'node'
+      };
+
+      const SDKS = {
+        openai: {
+          label: 'OpenAI',
+          model: 'gpt-5.4',
+          endpoint: 'v1/chat/completions',
+          tokens: 247,
+          latency: '842ms',
+          cost: '$0.0062',
+          prompt: 'Explain transformers in one paragraph.',
+          response: `Transformers are a neural-network architecture introduced in 2017 that process sequences in parallel by letting every token attend to every other token through a mechanism called self-attention. Unlike recurrent networks, they have no built-in notion of position, so they rely on positional encodings to preserve order. This design scales remarkably well with data and compute, which is why it now underpins almost every frontier LLM &mdash; GPT, Claude, Gemini, Llama &mdash; as well as leading models in vision, audio and multimodal domains.`,
+          code: {
+            curl: `<span class="kw">curl</span> https://api.ezlinkai.com/v1/chat/completions \\
+  -H <span class="st">"Content-Type: application/json"</span> \\
+  -H <span class="st">"Authorization: Bearer $EZLINK_API_KEY"</span> \\
+  -d <span class="st">'{
+    "model": "gpt-5.4",
+    "messages": [
+      { "role": "user", "content": "Explain transformers in one paragraph." }
+    ]
+  }'</span>`,
+            python: `<span class="cm"># pip install openai</span>
+<span class="kw">import</span> os
+<span class="kw">from</span> openai <span class="kw">import</span> <span class="fn">OpenAI</span>
+
+client = <span class="fn">OpenAI</span>(
+    <span class="ky">api_key</span>=os.environ[<span class="st">"EZLINK_API_KEY"</span>],
+    <span class="ky">base_url</span>=<span class="st">"https://api.ezlinkai.com/v1"</span>,
+)
+
+response = client.chat.completions.<span class="fn">create</span>(
+    <span class="ky">model</span>=<span class="st">"gpt-5.4"</span>,
+    <span class="ky">messages</span>=[{
+        <span class="ky">"role"</span>: <span class="st">"user"</span>,
+        <span class="ky">"content"</span>: <span class="st">"Explain transformers in one paragraph."</span>
+    }],
+)
+<span class="fn">print</span>(response.choices[<span class="nm">0</span>].message.content)`,
+            javascript: `<span class="cm">// npm install openai</span>
+<span class="kw">import</span> <span class="fn">OpenAI</span> <span class="kw">from</span> <span class="st">"openai"</span>;
+
+<span class="kw">const</span> client = <span class="kw">new</span> <span class="fn">OpenAI</span>({
+  <span class="ky">apiKey</span>: process.env.<span class="var">EZLINK_API_KEY</span>,
+  <span class="ky">baseURL</span>: <span class="st">"https://api.ezlinkai.com/v1"</span>,
+});
+
+<span class="kw">const</span> res = <span class="kw">await</span> client.chat.completions.<span class="fn">create</span>({
+  <span class="ky">model</span>: <span class="st">"gpt-5.4"</span>,
+  <span class="ky">messages</span>: [{
+    <span class="ky">role</span>: <span class="st">"user"</span>,
+    <span class="ky">content</span>: <span class="st">"Explain transformers in one paragraph."</span>
+  }],
+});
+
+console.<span class="fn">log</span>(res.choices[<span class="nm">0</span>].message.content);`
+          }
+        },
+        claude: {
+          label: 'Claude',
+          model: 'claude-opus-4-7',
+          endpoint: 'v1/messages',
+          tokens: 189,
+          latency: '612ms',
+          cost: '$0.0047',
+          prompt: 'Write a Python function that checks if a number is prime.',
+          response:
+            "Here's a clean primality check that runs in O(sqrt n) and handles edge cases:\n\n```python\ndef is_prime(n: int) -> bool:\n    if n < 2:\n        return False\n    if n < 4:\n        return True         # 2 and 3\n    if n % 2 == 0 or n % 3 == 0:\n        return False\n    # Check 6k +/- 1 up to sqrt(n)\n    i = 5\n    while i * i <= n:\n        if n % i == 0 or n % (i + 2) == 0:\n            return False\n        i += 6\n    return True\n```\n\nThe 6k +/- 1 trick skips about two-thirds of candidates because every prime greater than 3 is of that form.",
+          code: {
+            curl: `<span class="kw">curl</span> https://api.ezlinkai.com/v1/messages \\
+  -H <span class="st">"Content-Type: application/json"</span> \\
+  -H <span class="st">"x-api-key: $EZLINK_API_KEY"</span> \\
+  -H <span class="st">"anthropic-version: 2023-06-01"</span> \\
+  -d <span class="st">'{
+    "model": "claude-opus-4-7",
+    "max_tokens": 1024,
+    "messages": [
+      { "role": "user", "content": "Write a Python function that checks if a number is prime." }
+    ]
+  }'</span>`,
+            python: `<span class="cm"># pip install anthropic</span>
+<span class="kw">import</span> os
+<span class="kw">from</span> anthropic <span class="kw">import</span> <span class="fn">Anthropic</span>
+
+client = <span class="fn">Anthropic</span>(
+    <span class="ky">api_key</span>=os.environ[<span class="st">"EZLINK_API_KEY"</span>],
+    <span class="ky">base_url</span>=<span class="st">"https://api.ezlinkai.com"</span>,
+)
+
+msg = client.messages.<span class="fn">create</span>(
+    <span class="ky">model</span>=<span class="st">"claude-opus-4-7"</span>,
+    <span class="ky">max_tokens</span>=<span class="nm">1024</span>,
+    <span class="ky">messages</span>=[{
+        <span class="ky">"role"</span>: <span class="st">"user"</span>,
+        <span class="ky">"content"</span>: <span class="st">"Write a Python function that checks if a number is prime."</span>
+    }],
+)
+<span class="fn">print</span>(msg.content[<span class="nm">0</span>].text)`,
+            javascript: `<span class="cm">// npm install @anthropic-ai/sdk</span>
+<span class="kw">import</span> <span class="fn">Anthropic</span> <span class="kw">from</span> <span class="st">"@anthropic-ai/sdk"</span>;
+
+<span class="kw">const</span> client = <span class="kw">new</span> <span class="fn">Anthropic</span>({
+  <span class="ky">apiKey</span>: process.env.<span class="var">EZLINK_API_KEY</span>,
+  <span class="ky">baseURL</span>: <span class="st">"https://api.ezlinkai.com"</span>,
+});
+
+<span class="kw">const</span> msg = <span class="kw">await</span> client.messages.<span class="fn">create</span>({
+  <span class="ky">model</span>: <span class="st">"claude-opus-4-7"</span>,
+  <span class="ky">max_tokens</span>: <span class="nm">1024</span>,
+  <span class="ky">messages</span>: [{
+    <span class="ky">role</span>: <span class="st">"user"</span>,
+    <span class="ky">content</span>: <span class="st">"Write a Python function that checks if a number is prime."</span>
+  }],
+});
+
+console.<span class="fn">log</span>(msg.content[<span class="nm">0</span>].text);`
+          }
+        },
+        gemini: {
+          label: 'Gemini',
+          model: 'gemini-3.1-pro-preview',
+          endpoint: 'v1beta/models/gemini-3.1-pro-preview:generateContent',
+          tokens: 203,
+          latency: '721ms',
+          cost: '$0.0051',
+          prompt: 'Summarize the French Revolution in three sentences.',
+          response: `The French Revolution (1789&ndash;1799) began as a financial and social crisis that toppled the absolute monarchy after centuries of aristocratic privilege, driven by the bourgeoisie, urban workers, and radical clubs inspired by Enlightenment ideas. It passed through escalating phases &mdash; constitutional monarchy, republic, the Reign of Terror under Robespierre, and then the moderate Directory &mdash; producing landmark documents like the Declaration of the Rights of Man and deeply restructuring law, land, and religion. It collapsed into Napoleon Bonaparte's coup of 18 Brumaire, but its ideals of liberty, equality, and popular sovereignty reshaped European politics and inspired revolutions for two centuries afterward.`,
+          code: {
+            curl: `<span class="kw">curl</span> <span class="st">"https://api.ezlinkai.com/v1beta/models/gemini-3.1-pro-preview:generateContent"</span> \\
+  -H <span class="st">"Content-Type: application/json"</span> \\
+  -H <span class="st">"x-goog-api-key: $EZLINK_API_KEY"</span> \\
+  -d <span class="st">'{
+    "contents": [
+      { "parts": [{ "text": "Summarize the French Revolution in three sentences." }] }
+    ]
+  }'</span>`,
+            python: `<span class="cm"># pip install google-genai</span>
+<span class="kw">import</span> os
+<span class="kw">from</span> google <span class="kw">import</span> genai
+
+client = genai.<span class="fn">Client</span>(
+    <span class="ky">api_key</span>=os.environ[<span class="st">"EZLINK_API_KEY"</span>],
+    <span class="ky">http_options</span>={<span class="st">"base_url"</span>: <span class="st">"https://api.ezlinkai.com"</span>},
+)
+
+response = client.models.<span class="fn">generate_content</span>(
+    <span class="ky">model</span>=<span class="st">"gemini-3.1-pro-preview"</span>,
+    <span class="ky">contents</span>=<span class="st">"Summarize the French Revolution in three sentences."</span>,
+)
+<span class="fn">print</span>(response.text)`,
+            javascript: `<span class="cm">// npm install @google/genai</span>
+<span class="kw">import</span> { <span class="fn">GoogleGenAI</span> } <span class="kw">from</span> <span class="st">"@google/genai"</span>;
+
+<span class="kw">const</span> client = <span class="kw">new</span> <span class="fn">GoogleGenAI</span>({
+  <span class="ky">apiKey</span>: process.env.<span class="var">EZLINK_API_KEY</span>,
+  <span class="ky">httpOptions</span>: { <span class="ky">baseUrl</span>: <span class="st">"https://api.ezlinkai.com"</span> },
+});
+
+<span class="kw">const</span> response = <span class="kw">await</span> client.models.<span class="fn">generateContent</span>({
+  <span class="ky">model</span>: <span class="st">"gemini-3.1-pro-preview"</span>,
+  <span class="ky">contents</span>: <span class="st">"Summarize the French Revolution in three sentences."</span>,
+});
+
+console.<span class="fn">log</span>(response.text);`
+          }
+        }
+      };
+
+      const codeDisplay = document.getElementById('code-display');
+      const codeFile = document.getElementById('code-file');
+      const termBody = document.getElementById('term-body');
+      const termTitle = document.getElementById('term-title');
+      const statusEl = document.getElementById('pg-status');
+      const replayBtn = document.getElementById('replay-btn');
+      const mSdk = document.getElementById('m-sdk');
+      const mModel = document.getElementById('m-model');
+      const mTokens = document.getElementById('m-tokens');
+      const mLatency = document.getElementById('m-latency');
+      const mCost = document.getElementById('m-cost');
+      const copyBtn = document.getElementById('copy-btn');
+      const langSelect = document.getElementById('lang-select');
+      const langBtn = document.getElementById('lang-btn');
+      const langLabel = document.getElementById('lang-label');
+      const langDropdown = document.getElementById('lang-dropdown');
+
+      let currentSdk = 'openai';
+      let currentLang = 'curl';
+      let streamingCancelled = false;
+      let isStreaming = false;
+
+      function renderCode(sdk, lang) {
+        codeDisplay.innerHTML = SDKS[sdk].code[lang];
+        codeFile.textContent = LANG_FILES[lang];
+        termTitle.textContent = `~/ezlink $ ${LANG_RUNTIMES[lang]} ${LANG_FILES[lang]}`;
+      }
+
+      function escapeHtml(s) {
+        return s.replace(
+          /[&<>"']/g,
+          (c) =>
+            ({
+              '&': '&amp;',
+              '<': '&lt;',
+              '>': '&gt;',
+              '"': '&quot;',
+              "'": '&#39;'
+            })[c]
+        );
+      }
+      function formatResponse(text) {
+        const parts = text.split(/```[\w]*\n?/);
+        return parts
+          .map((chunk, i) => {
+            if (i % 2 === 1) return `<pre>${chunk.trimEnd()}</pre>`;
+            return chunk
+              .split('\n\n')
+              .filter(Boolean)
+              .map((p) => `<div style="margin-bottom:10px;">${p}</div>`)
+              .join('');
+          })
+          .join('');
+      }
+
+      async function streamResponse(sdk) {
+        if (isStreaming) {
+          streamingCancelled = true;
+          await new Promise((r) => setTimeout(r, 80));
+        }
+        streamingCancelled = false;
+        isStreaming = true;
+
+        const data = SDKS[sdk];
+        termBody.innerHTML = '';
+        statusEl.textContent = 'Streaming…';
+        statusEl.classList.add('running');
+
+        // Command line
+        const cmdLine = document.createElement('div');
+        cmdLine.className = 'term-line cmd';
+        cmdLine.innerHTML = `<span class="prompt">$</span>${LANG_RUNTIMES[currentLang]} ${LANG_FILES[currentLang]}`;
+        termBody.appendChild(cmdLine);
+
+        await new Promise((r) => setTimeout(r, 280));
+        if (streamingCancelled) {
+          isStreaming = false;
+          return;
+        }
+
+        // Info lines
+        const info1 = document.createElement('div');
+        info1.className = 'term-line info';
+        info1.innerHTML = `<strong>&rarr; POST</strong> api.ezlinkai.com/${data.endpoint} <strong>[${data.model}]</strong>`;
+        termBody.appendChild(info1);
+
+        await new Promise((r) => setTimeout(r, 200));
+        if (streamingCancelled) {
+          isStreaming = false;
+          return;
+        }
+
+        // Prompt label
+        const promptLabel = document.createElement('div');
+        promptLabel.className = 'term-line label';
+        promptLabel.textContent = '>  prompt';
+        termBody.appendChild(promptLabel);
+
+        const promptLine = document.createElement('div');
+        promptLine.className = 'term-line out';
+        promptLine.style.color = 'var(--text-muted)';
+        promptLine.textContent = data.prompt;
+        termBody.appendChild(promptLine);
+
+        await new Promise((r) => setTimeout(r, 380));
+        if (streamingCancelled) {
+          isStreaming = false;
+          return;
+        }
+
+        // Response label
+        const respLabel = document.createElement('div');
+        respLabel.className = 'term-line label';
+        respLabel.innerHTML = `&larr;  ${data.model}`;
+        termBody.appendChild(respLabel);
+
+        // Streaming response
+        const respLine = document.createElement('div');
+        respLine.className = 'term-line out';
+        termBody.appendChild(respLine);
+
+        const text = data.response;
+        let shown = '';
+        let tokensStreamed = 0;
+        const charsPerToken = 4;
+
+        for (let i = 0; i < text.length; i++) {
+          if (streamingCancelled) {
+            isStreaming = false;
+            return;
+          }
+          shown += text[i];
+          respLine.innerHTML =
+            formatResponse(shown) + '<span class="cursor-blink"></span>';
+          termBody.scrollTop = termBody.scrollHeight;
+
+          if (i % charsPerToken === 0) {
+            tokensStreamed = Math.floor(i / charsPerToken);
+            mTokens.textContent = tokensStreamed;
+          }
+
+          const ch = text[i];
+          const delay =
+            ch === '\n' ? 18 : ch === ' ' ? 2 : 5 + Math.random() * 10;
+          await new Promise((r) => setTimeout(r, delay));
+        }
+        respLine.innerHTML = formatResponse(shown);
+
+        // Done line
+        const done = document.createElement('div');
+        done.className = 'term-line done';
+        done.innerHTML = `✓ Completed <span class="muted">&middot;</span> ${data.tokens} tokens <span class="muted">&middot;</span> ${data.latency} <span class="muted">&middot;</span> ${data.cost}`;
+        termBody.appendChild(done);
+
+        // Final metrics
+        mTokens.textContent = data.tokens;
+
+        statusEl.textContent = 'Ready';
+        statusEl.classList.remove('running');
+        isStreaming = false;
+      }
+
+      function selectSdk(sdk, replay = true) {
+        currentSdk = sdk;
+        const data = SDKS[sdk];
+        document.querySelectorAll('.sdk-tab').forEach((t) => {
+          t.classList.toggle('active', t.dataset.sdk === sdk);
+        });
+        mSdk.textContent = sdk;
+        mModel.textContent = data.model;
+        mLatency.textContent = data.latency;
+        mCost.textContent = data.cost;
+        mTokens.textContent = '0';
+        renderCode(sdk, currentLang);
+        if (replay) streamResponse(sdk);
+      }
+
+      function selectLang(lang) {
+        currentLang = lang;
+        langLabel.textContent = lang;
+        document.querySelectorAll('.lang-opt').forEach((o) => {
+          o.classList.toggle('active', o.dataset.lang === lang);
+        });
+        renderCode(currentSdk, lang);
+        langSelect.classList.remove('open');
+      }
+
+      document.querySelectorAll('.sdk-tab').forEach((tab) => {
+        tab.addEventListener('click', () => selectSdk(tab.dataset.sdk));
+      });
+
+      langBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        langSelect.classList.toggle('open');
+      });
+      document.addEventListener('click', () =>
+        langSelect.classList.remove('open')
+      );
+      langDropdown.addEventListener('click', (e) => e.stopPropagation());
+      document.querySelectorAll('.lang-opt').forEach((opt) => {
+        opt.addEventListener('click', () => selectLang(opt.dataset.lang));
+      });
+
+      replayBtn.addEventListener('click', () => {
+        replayBtn.classList.add('playing');
+        streamResponse(currentSdk);
+        setTimeout(() => replayBtn.classList.remove('playing'), 400);
+      });
+
+      copyBtn.addEventListener('click', (e) => {
+        navigator.clipboard.writeText(codeDisplay.innerText);
+        e.target.textContent = 'Copied';
+        setTimeout(() => (e.target.textContent = 'Copy'), 1400);
+      });
+
+      // Initial render + auto-play on load when in viewport
+      renderCode('openai', 'curl');
+      mSdk.textContent = 'openai';
+      mModel.textContent = SDKS.openai.model;
+      mLatency.textContent = SDKS.openai.latency;
+      mCost.textContent = SDKS.openai.cost;
+      mTokens.textContent = '0';
+
+      // Kick off streaming after a brief delay for initial page render
+      setTimeout(() => streamResponse('openai'), 600);
+    </script>
+  </body>
+</html>

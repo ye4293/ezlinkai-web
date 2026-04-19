@@ -166,7 +166,171 @@ const zh = {
     claudeCache5m: 'Claude 5分钟缓存创建',
     speed: '生成速率',
     collapse: '收起详情',
-    expand: '展开详情'
+    expand: '展开详情',
+    discountBreakdown: '折扣分量',
+    tierRatio: '等级折扣',
+    channelDiscount: '渠道折扣',
+    userChannelDiscount: '用户渠道折扣',
+    keyIndex: 'Key 索引'
+  },
+  // v3 Landing page
+  landing: {
+    nav: {
+      models: '模型',
+      pricing: '价格',
+      docs: '文档',
+      changelog: '更新日志',
+      enterprise: '企业版',
+      signIn: '登录',
+      startBuilding: '开始构建',
+      dashboard: '控制台'
+    },
+    hero: {
+      badgeTag: '新',
+      badgeText: 'Claude Opus 4.7 已上线',
+      titleLine1: '一把密钥。',
+      titleLine2Em: '直通每个前沿模型。',
+      lede: '直接讲 OpenAI、Anthropic、Google 的原生协议——插入你正在用的 SDK 即可。没有翻译层、没有改写、没有锁定。',
+      createAccount: '免费注册 →',
+      readDocs: '阅读文档',
+      subtle: '免费额度 · 无需信用卡 · 可随时取消'
+    },
+    marquee: {
+      label: '· 一个 API · 覆盖全部供应商 ·'
+    },
+    statement: {
+      line1Strong: '一把密钥。',
+      line1Em: '每个模型。',
+      line2Em: '零锁定。',
+      sub: '为发货团队打造。自动故障切换、生产级可观测性、企业 SLA——开箱即用。'
+    },
+    models: {
+      eyebrow: '本周热门模型',
+      title: '前沿模型，',
+      titleEm: '按排名列出。',
+      viewAll: '查看全部 180+ 模型'
+    },
+    pillars: {
+      eyebrow: '为生产而生',
+      title: '不是中间商。',
+      titleEm: '而是基础设施。',
+      sub: '在生产环境跑 AI 的一切，你无需自建网关。',
+      integration: {
+        num: '01 · 集成',
+        title: '每个模型，',
+        titleEm: '一把密钥。',
+        desc: '改一个字符串即可在 180+ 模型之间切换。无需改 SDK、不被厂商锁定、周末不必加班迁移。'
+      },
+      reliability: {
+        num: '02 · 可靠性',
+        title: '自动',
+        titleEm: '故障切换。',
+        desc: '供应商宕机，我们自动路由到同一家族的下一个最佳端点。你的应用不会眨一下眼。'
+      },
+      observability: {
+        num: '03 · 可观测性',
+        title: '洞察，',
+        titleEm: '默认开启。',
+        desc: '每次请求记录成本、延迟、token 与模型。按 Key 的分析、异常 Webhook、用量仪表盘一应俱全。'
+      }
+    },
+    apps: {
+      eyebrow: '基于 EZLINK 构建',
+      title: '正在规模化交付 AI 的',
+      titleEm: '团队。',
+      sub: '从周末项目到 C 轮公司——本周这些应用正在通过 EZLINK 路由。',
+      seeAll: '查看所有应用',
+      primary: '主要模型'
+    },
+    trust: {
+      eyebrow: '企业版',
+      title: '为',
+      titleEm: '最后一公里准备好。',
+      sub: '采购、安全、法务会问到的一切——在他们开口之前已备齐。',
+      talkToSales: '联系销售',
+      compliance: {
+        label: '合规',
+        value: 'SOC 2 Type II',
+        sub: 'GDPR · 支持 HIPAA'
+      },
+      availability: {
+        label: '可用性',
+        value: '99.99% SLA',
+        sub: '书面承诺，违约赔付'
+      },
+      support: {
+        label: '技术支持',
+        value: '专属 7×24',
+        sub: '共享 Slack · 15 分钟响应'
+      },
+      deployment: {
+        label: '部署',
+        value: '单租户',
+        sub: 'VPC · 可自托管'
+      }
+    },
+    finalCta: {
+      titleLine1: '任意模型，',
+      titleEm: '',
+      titleLine2: '从今天开始发货。',
+      sub: '注册即赠免费额度。无需信用卡。不会锁定。',
+      createAccount: '免费注册 →',
+      readDocs: '阅读文档'
+    },
+    footer: {
+      aboutDesc:
+        '面向生产的统一 AI 网关。一个 API、覆盖前沿模型、零供应商锁定。',
+      sections: {
+        product: '产品',
+        developers: '开发者',
+        company: '公司',
+        legal: '法务'
+      },
+      links: {
+        models: '模型',
+        pricing: '价格',
+        dashboard: '控制台',
+        changelog: '更新日志',
+        documentation: '文档',
+        apiReference: 'API 参考',
+        sdks: 'SDK',
+        status: '服务状态',
+        enterprise: '企业版',
+        security: '安全',
+        blog: '博客',
+        careers: '招聘',
+        terms: '条款',
+        privacy: '隐私',
+        sla: 'SLA',
+        dpa: 'DPA'
+      },
+      copyright: '保留所有权利。',
+      status: '所有系统正常运行'
+    },
+    playground: {
+      replay: '重新播放',
+      copy: '复制',
+      copied: '已复制',
+      status: {
+        ready: '就绪',
+        streaming: '流式输出中…'
+      },
+      file: {
+        curl: 'request.sh',
+        python: 'example.py',
+        javascript: 'example.js'
+      },
+      metrics: {
+        provider: '供应商',
+        model: '模型',
+        tokens: 'tokens',
+        latency: '延迟',
+        cost: '成本',
+        nativeNote: '原生协议 · 零翻译'
+      },
+      promptLabel: '>  prompt',
+      doneLabel: '✓ 完成'
+    }
   }
 };
 

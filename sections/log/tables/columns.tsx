@@ -42,6 +42,13 @@ export interface BillingDetails {
   model_price?: number;
   cached_tokens?: number;
   cache_ratio?: number;
+  // 折扣分量（从 v2 起新增）
+  tier_ratio?: number; // 纯等级折扣
+  channel_discount?: number; // 渠道折扣
+  user_channel_ratio?: number; // 用户针对渠道类型的额外折扣
+  // 多 Key 渠道
+  is_multi_key?: boolean;
+  key_index?: number;
 }
 
 // usageDetails 字段名称映射（用于展示），支持 i18n

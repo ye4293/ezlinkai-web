@@ -169,7 +169,171 @@ const en: Locale = {
     claudeCache5m: 'Claude 5min Cache Creation',
     speed: 'Speed',
     collapse: 'Collapse',
-    expand: 'Details'
+    expand: 'Details',
+    discountBreakdown: 'Discount Breakdown',
+    tierRatio: 'Tier Discount',
+    channelDiscount: 'Channel Discount',
+    userChannelDiscount: 'User Channel Discount',
+    keyIndex: 'Key Index'
+  },
+  // v3 Landing page
+  landing: {
+    nav: {
+      models: 'Models',
+      pricing: 'Pricing',
+      docs: 'Docs',
+      changelog: 'Changelog',
+      enterprise: 'Enterprise',
+      signIn: 'Sign in',
+      startBuilding: 'Start building',
+      dashboard: 'Dashboard'
+    },
+    hero: {
+      badgeTag: 'New',
+      badgeText: 'Claude Opus 4.7 is live',
+      titleLine1: 'One API key.',
+      titleLine2Em: 'Every frontier model.',
+      lede: 'EZLINK speaks the native protocols of OpenAI, Anthropic and Google — drop it into the SDK you already use. No translation layer, no rewrites, no lock-in.',
+      createAccount: 'Create free account →',
+      readDocs: 'Read the docs',
+      subtle: 'Free credits · No credit card required · Cancel anytime'
+    },
+    marquee: {
+      label: '· One API · Every provider ·'
+    },
+    statement: {
+      line1Strong: 'One key.',
+      line1Em: 'Every model.',
+      line2Em: 'Zero lock-in.',
+      sub: 'Built for teams who ship. Automatic failover, production observability, and enterprise SLAs — out of the box.'
+    },
+    models: {
+      eyebrow: 'Top models · this week',
+      title: 'The frontier, ',
+      titleEm: 'in rank order.',
+      viewAll: 'All 180+ models'
+    },
+    pillars: {
+      eyebrow: 'Built for production',
+      title: 'Not a reseller. ',
+      titleEm: 'Infrastructure.',
+      sub: 'Everything you need to run AI in production, without running your own gateway.',
+      integration: {
+        num: '01 · Integration',
+        title: 'Every model, ',
+        titleEm: 'one key.',
+        desc: 'Switch between 180+ models by changing a single string. No SDK rewrites, no vendor lock-in, no weekend migrations.'
+      },
+      reliability: {
+        num: '02 · Reliability',
+        title: 'Automatic ',
+        titleEm: 'failover.',
+        desc: "If a provider goes down, we route to the next best one — same model family, same endpoint. Your app doesn't blink."
+      },
+      observability: {
+        num: '03 · Observability',
+        title: 'Insight, ',
+        titleEm: 'by default.',
+        desc: 'Every request logged with cost, latency, tokens and model. Per-key analytics, anomaly webhooks, usage dashboards.'
+      }
+    },
+    apps: {
+      eyebrow: 'Built with EZLINK',
+      title: 'Teams shipping AI, ',
+      titleEm: 'at scale.',
+      sub: "From weekend projects to series-C companies. Here's a snapshot of apps routing through EZLINK this week.",
+      seeAll: 'See all apps',
+      primary: 'Primary'
+    },
+    trust: {
+      eyebrow: 'Enterprise',
+      title: 'Ready for ',
+      titleEm: 'the last mile.',
+      sub: 'Everything procurement, security and legal will ask for — before they ask for it.',
+      talkToSales: 'Talk to sales',
+      compliance: {
+        label: 'Compliance',
+        value: 'SOC 2 Type II',
+        sub: 'GDPR · HIPAA-ready'
+      },
+      availability: {
+        label: 'Availability',
+        value: '99.99% SLA',
+        sub: 'Written, with penalties'
+      },
+      support: {
+        label: 'Support',
+        value: 'Dedicated, 24/7',
+        sub: 'Shared Slack · 15-min response'
+      },
+      deployment: {
+        label: 'Deployment',
+        value: 'Single-tenant',
+        sub: 'VPC · self-hosted options'
+      }
+    },
+    finalCta: {
+      titleLine1: 'Ship with ',
+      titleEm: 'any model.',
+      titleLine2: 'Starting today.',
+      sub: 'Free credits on sign-up. No card required. No lock-in.',
+      createAccount: 'Create free account →',
+      readDocs: 'Read the docs'
+    },
+    footer: {
+      aboutDesc:
+        'The unified AI gateway for production. One API, every frontier model, zero lock-in.',
+      sections: {
+        product: 'Product',
+        developers: 'Developers',
+        company: 'Company',
+        legal: 'Legal'
+      },
+      links: {
+        models: 'Models',
+        pricing: 'Pricing',
+        dashboard: 'Dashboard',
+        changelog: 'Changelog',
+        documentation: 'Documentation',
+        apiReference: 'API reference',
+        sdks: 'SDKs',
+        status: 'Status',
+        enterprise: 'Enterprise',
+        security: 'Security',
+        blog: 'Blog',
+        careers: 'Careers',
+        terms: 'Terms',
+        privacy: 'Privacy',
+        sla: 'SLA',
+        dpa: 'DPA'
+      },
+      copyright: 'All rights reserved.',
+      status: 'All systems operational'
+    },
+    playground: {
+      replay: 'Replay',
+      copy: 'Copy',
+      copied: 'Copied',
+      status: {
+        ready: 'Ready',
+        streaming: 'Streaming…'
+      },
+      file: {
+        curl: 'request.sh',
+        python: 'example.py',
+        javascript: 'example.js'
+      },
+      metrics: {
+        provider: 'provider',
+        model: 'model',
+        tokens: 'tokens',
+        latency: 'latency',
+        cost: 'cost',
+        nativeNote: 'Native protocol · zero translation'
+      },
+      promptLabel: '>  prompt',
+      doneLabel: '✓ Completed'
+    }
   }
 };
 

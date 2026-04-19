@@ -302,6 +302,50 @@ const ExpandedRowContent = ({ row }: { row: Row<LogStat> }) => {
               </p>
             </div>
           </div>
+
+          {/* 折扣分量拆分（等级/渠道/用户渠道） */}
+          {(billingDetails.tier_ratio !== undefined ||
+            billingDetails.channel_discount !== undefined ||
+            billingDetails.user_channel_ratio !== undefined) && (
+            <div className="space-y-1">
+              <span className="text-xs font-medium text-muted-foreground">
+                {ld.discountBreakdown}
+              </span>
+              <div className="grid grid-cols-3 gap-2 rounded bg-muted/50 p-2 text-xs">
+                <div>
+                  <p className="text-muted-foreground">{ld.tierRatio}</p>
+                  <p className="font-mono font-medium">
+                    {(billingDetails.tier_ratio ?? 1).toFixed(4)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">{ld.channelDiscount}</p>
+                  <p className="font-mono font-medium">
+                    {(billingDetails.channel_discount ?? 1).toFixed(4)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">
+                    {ld.userChannelDiscount}
+                  </p>
+                  <p className="font-mono font-medium">
+                    {(billingDetails.user_channel_ratio ?? 1).toFixed(4)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 多 Key 渠道：本次使用的 Key 索引 */}
+          {billingDetails.is_multi_key &&
+            billingDetails.key_index !== undefined && (
+              <div className="space-y-1">
+                <span className="text-xs font-medium text-muted-foreground">
+                  {ld.keyIndex}
+                </span>
+                <p className="font-mono text-sm">#{billingDetails.key_index}</p>
+              </div>
+            )}
         </div>
       )}
 

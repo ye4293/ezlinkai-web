@@ -4,11 +4,17 @@ import { Toaster } from 'sonner';
 import '@uploadthing/react/styles.css';
 import type { Metadata } from 'next';
 import NextTopLoader from 'nextjs-toploader';
-import { Inter } from 'next/font/google';
+import { Inter, JetBrains_Mono, Instrument_Serif } from 'next/font/google';
 import './globals.css';
 import { auth } from '@/auth';
 
-const inter = Inter({ subsets: ['latin'] });
+const sans = Inter({ subsets: ['latin'], variable: '--font-sans' });
+const mono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono' });
+const instrumentSerif = Instrument_Serif({
+  weight: '400',
+  subsets: ['latin'],
+  variable: '--font-serif'
+});
 
 async function fetchSystemName(): Promise<string> {
   try {
@@ -43,7 +49,10 @@ export default async function RootLayout({
   const session = await auth();
   return (
     <html lang="en">
-      <body className={`${inter.className}`} suppressHydrationWarning={true}>
+      <body
+        className={`${sans.variable} ${mono.variable} ${instrumentSerif.variable} font-sans`}
+        suppressHydrationWarning={true}
+      >
         <NextTopLoader showSpinner={false} />
         <Providers session={session}>
           <Toaster position="top-right" />
