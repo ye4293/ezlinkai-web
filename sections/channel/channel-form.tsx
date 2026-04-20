@@ -101,6 +101,8 @@ const formSchema = z.object({
     })
     .optional(),
   auto_disabled: z.boolean().default(true),
+  // 测试模型：指定自动测试渠道时使用的模型名
+  test_model: z.string().optional(),
   // 新增：支持 Token 计数功能（仅 Anthropic 和 AWS Claude 渠道）
   support_count_tokens: z.boolean().default(false)
 
@@ -135,6 +137,7 @@ interface ParamsOption extends Omit<Channel, 'type'> {
   batch_create?: boolean;
   batch_keys?: string;
   auto_disabled?: boolean;
+  test_model?: string;
   aggregate_mode?: boolean;
   key_selection_mode?: number;
   batch_import_mode?: number;
@@ -497,6 +500,7 @@ export default function ChannelForm() {
             weight: channelData.weight || 0,
             discount: channelData.discount ?? 1,
             auto_disabled: autoDisabledValue,
+            test_model: channelData.test_model || '',
             // 新增：支持 Token 计数配置
             support_count_tokens: config.support_count_tokens || false,
             aggregate_mode: channelData.aggregate_mode || false,
@@ -569,6 +573,7 @@ export default function ChannelForm() {
       weight: 0,
       discount: 1,
       auto_disabled: true,
+      test_model: '',
       support_count_tokens: false
     }
   });
@@ -1125,6 +1130,7 @@ export default function ChannelForm() {
         weight: values.weight || 0,
         discount: values.discount ?? 1,
         auto_disabled: values.auto_disabled ?? true,
+        test_model: values.test_model || '',
         key_selection_mode: values.key_selection_mode || 1,
         batch_import_mode: values.batch_import_mode || 1
       };
@@ -1281,6 +1287,7 @@ export default function ChannelForm() {
           weight: values.weight || 0,
           discount: values.discount ?? 1,
           auto_disabled: values.auto_disabled ?? true,
+          test_model: values.test_model || '',
           key_selection_mode: values.key_selection_mode ?? 1,
           batch_import_mode: values.batch_import_mode ?? 1,
           ...(channelData && { id: (channelData as any).id }),
@@ -1611,6 +1618,29 @@ export default function ChannelForm() {
                                 className="data-[state=checked]:border-gray-500 data-[state=checked]:bg-gray-500"
                               />
                             </FormControl>
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="test_model"
+                        render={({ field }) => (
+                          <FormItem className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+                            <FormLabel className="text-base font-medium text-gray-700 dark:text-gray-300">
+                              测试模型 (Test Model)
+                            </FormLabel>
+                            <div className="mb-2 text-[0.8rem] text-muted-foreground">
+                              指定自动测试本渠道时使用的模型名。留空则默认使用渠道支持的第一个模型。
+                            </div>
+                            <FormControl>
+                              <Input
+                                placeholder="例如：gpt-3.5-turbo"
+                                {...field}
+                                value={field.value ?? ''}
+                              />
+                            </FormControl>
+                            <FormMessage />
                           </FormItem>
                         )}
                       />
@@ -3173,6 +3203,29 @@ ${type2secretPrompt(form.watch('type'))}`}
                         onCheckedChange={field.onChange}
                       />
                     </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="test_model"
+                render={({ field }) => (
+                  <FormItem className="rounded-lg border p-4">
+                    <FormLabel className="text-base">
+                      测试模型 (Test Model)
+                    </FormLabel>
+                    <div className="mb-2 text-[0.8rem] text-muted-foreground">
+                      指定自动测试本渠道时使用的模型名。留空则默认使用渠道支持的第一个模型。
+                    </div>
+                    <FormControl>
+                      <Input
+                        placeholder="例如：gpt-3.5-turbo"
+                        {...field}
+                        value={field.value ?? ''}
+                      />
+                    </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )}
               />

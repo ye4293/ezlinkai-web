@@ -43,6 +43,8 @@ export default function SettingPage() {
   const [retryCount, setRetryCount] = useState(0);
   const [autoDisableEnabled, setAutoDisableEnabled] = useState(false);
   const [autoDisableKeywords, setAutoDisableKeywords] = useState('');
+  const [autoEnableEnabled, setAutoEnableEnabled] = useState(false);
+  const [autoTestFrequency, setAutoTestFrequency] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -134,6 +136,23 @@ export default function SettingPage() {
         );
         if (autoDisableKeywordsOption) {
           setAutoDisableKeywords(autoDisableKeywordsOption.value || '');
+        }
+
+        const autoEnableEnabledOption = options.find(
+          (o: Option) => o.key === 'AutomaticEnableChannelEnabled'
+        );
+        if (autoEnableEnabledOption) {
+          setAutoEnableEnabled(
+            autoEnableEnabledOption.value === 'true' ||
+              autoEnableEnabledOption.value === true
+          );
+        }
+
+        const autoTestFrequencyOption = options.find(
+          (o: Option) => o.key === 'AutoTestChannelFrequency'
+        );
+        if (autoTestFrequencyOption) {
+          setAutoTestFrequency(parseInt(autoTestFrequencyOption.value) || 0);
         }
 
         // ==================== 加载提醒设置 ====================
@@ -249,7 +268,15 @@ export default function SettingPage() {
           key: 'AutomaticDisableChannelEnabled',
           value: autoDisableEnabled.toString()
         },
-        { key: 'AutoDisableKeywords', value: autoDisableKeywords }
+        { key: 'AutoDisableKeywords', value: autoDisableKeywords },
+        {
+          key: 'AutomaticEnableChannelEnabled',
+          value: autoEnableEnabled.toString()
+        },
+        {
+          key: 'AutoTestChannelFrequency',
+          value: autoTestFrequency.toString()
+        }
       ];
 
       for (const option of generalOptions) {
@@ -605,6 +632,59 @@ export default function SettingPage() {
                 />
                 <p className="text-sm text-muted-foreground">
                   包括API密钥错误、余额不足、权限问题、账户被暂停等各种需要自动禁用的错误关键词
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>自动启用渠道</CardTitle>
+              <CardDescription>
+                定期测试被自动禁用的渠道，若测试通过则自动恢复启用。手动禁用的渠道不会被自动恢复。
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* 自动启用开关 */}
+              <div className="flex items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <Label
+                    htmlFor="auto-enable-enabled"
+                    className="text-base font-medium"
+                  >
+                    启用自动启用
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    开启后，定期测试通过的自动禁用渠道将被自动恢复为启用状态
+                  </p>
+                </div>
+                <Switch
+                  id="auto-enable-enabled"
+                  checked={autoEnableEnabled}
+                  onCheckedChange={setAutoEnableEnabled}
+                />
+              </div>
+
+              {/* 测试频率 */}
+              <div className="grid w-full items-center gap-1.5">
+                <Label htmlFor="auto-test-frequency">
+                  自动测试频率（分钟）
+                </Label>
+                <Input
+                  id="auto-test-frequency"
+                  type="number"
+                  min={0}
+                  value={autoTestFrequency}
+                  onChange={(e) => {
+                    const v = parseInt(e.target.value);
+                    setAutoTestFrequency(isNaN(v) || v < 0 ? 0 : v);
+                  }}
+                  placeholder="0 表示禁用定时测试"
+                  className="w-48"
+                />
+                <p className="text-sm text-muted-foreground">
+                  系统每隔此分钟数自动测试一次所有渠道。设为 0
+                  则不启用定时测试。修改后无需重启即可生效。
                 </p>
               </div>
             </CardContent>
