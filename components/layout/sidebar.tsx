@@ -69,7 +69,7 @@ export default function Sidebar({ className }: SidebarProps) {
         )}
         onClick={handleToggle}
       />
-      <div className="space-y-4 py-4">
+      <div className="flex h-[calc(100vh-80px)] flex-col space-y-4 overflow-y-auto py-4">
         <div className="px-3 py-2">
           <div className="mt-3 space-y-1">
             <DashboardNav items={filterNavItems} />

@@ -278,7 +278,7 @@ export default function ChannelTable({
       <DataTable
         columns={createColumns({
           onManageKeys: handleOpenMultiKeyModal,
-          onDataChange: () => router.refresh(), // 添加数据刷新回调
+          onDataChange: () => router.refresh(),
           channelTypes: channelTypes
         })}
         data={data}
@@ -287,9 +287,10 @@ export default function ChannelTable({
         resetSelection={resetSelection}
         currentPage={page}
         pageSize={pageSize}
-        setCurrentPage={setPage} // 修复: onPageChange -> setCurrentPage
-        setPageSize={setPageSize} // 修复: onPageSizeChange -> setPageSize
+        setCurrentPage={setPage}
+        setPageSize={setPageSize}
         pageSizeOptions={[10, 50, 100, 500]}
+        minWidth="1400px"
       />
     </>
   );
