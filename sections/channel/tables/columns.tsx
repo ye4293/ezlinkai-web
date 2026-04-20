@@ -723,23 +723,33 @@ export const createColumns = ({
   {
     accessorKey: 'name',
     header: 'Name',
-    size: 200,
+    size: 220,
     cell: ({ row }) => {
       const channel = row.original;
+      const name = row.getValue('name') as string;
       const isMultiKey = channel.multi_key_info?.is_multi_key;
       const keyCount = channel.multi_key_info?.key_count || 0;
       const activeKeyCount = channel.multi_key_info?.enabled_key_count || 0;
 
       return (
-        <div className="flex items-center gap-2">
-          <span>{row.getValue('name')}</span>
+        <div className="flex min-w-0 items-center gap-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="block max-w-[160px] truncate">{name}</span>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                <p className="max-w-xs break-all">{name}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           {isMultiKey && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Badge
                     variant="outline"
-                    className={`cursor-pointer ${
+                    className={`flex-shrink-0 cursor-pointer ${
                       activeKeyCount > 0
                         ? 'border-green-300 bg-green-50 text-green-700'
                         : 'border-red-300 bg-red-50 text-red-700'
