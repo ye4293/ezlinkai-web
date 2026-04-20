@@ -103,6 +103,53 @@ const ExpandedRowContent = ({ row }: { row: Row<LogStat> }) => {
   const hasChannelInfo = channelIds && channelIds.length > 0;
   const hasBillingDetails = billingDetails !== null;
 
+  // Claude 缓存计费行：tokens 来自 usageDetails，ratio 来自 billingDetails
+  // 只有 ratio 存在且对应 tokens > 0 时才展示。老日志（无 ratio 字段）自动跳过。
+  type CacheLine = {
+    key: string;
+    tokens: number;
+    pricePerMillion: number;
+    perMillionLabel: string;
+  };
+  const claudeCacheLines: CacheLine[] = (() => {
+    if (!billingDetails || billingDetails.billing_type !== 'token') return [];
+    const modelRatio = billingDetails.model_ratio || 0;
+    const lines: CacheLine[] = [];
+    const push = (
+      key: string,
+      tokens: number | undefined,
+      ratio: number | undefined,
+      perMillionLabel: string
+    ) => {
+      if (!tokens || tokens <= 0 || !ratio) return;
+      lines.push({
+        key,
+        tokens,
+        pricePerMillion: getTokenPrice(modelRatio * ratio),
+        perMillionLabel
+      });
+    };
+    push(
+      'cache_5m',
+      usageDetails?.claude_cache_creation_5_m_tokens,
+      billingDetails.claude_cache_5m_ratio,
+      ld.perMillionCache5m
+    );
+    push(
+      'cache_1h',
+      usageDetails?.claude_cache_creation_1_h_tokens,
+      billingDetails.claude_cache_1h_ratio,
+      ld.perMillionCache1h
+    );
+    push(
+      'cache_read',
+      usageDetails?.cache_read_input_tokens,
+      billingDetails.claude_cache_read_ratio,
+      ld.perMillionCacheRead
+    );
+    return lines;
+  })();
+
   return (
     <div className="px-6 py-4">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -259,6 +306,16 @@ const ExpandedRowContent = ({ row }: { row: Row<LogStat> }) => {
                         </span>
                       </p>
                     )}
+                  {claudeCacheLines.map((line) => (
+                    <p key={line.key}>
+                      <span className="font-medium">
+                        ${line.pricePerMillion.toFixed(6)}
+                      </span>{' '}
+                      <span className="text-muted-foreground">
+                        {line.perMillionLabel}
+                      </span>
+                    </p>
+                  ))}
                 </div>
               )}
             </div>
@@ -285,7 +342,15 @@ const ExpandedRowContent = ({ row }: { row: Row<LogStat> }) => {
                       (billingDetails.model_ratio || 0) *
                         (billingDetails.completion_ratio || 1)
                     ).toFixed(6)}
-                    /1M) × {billingDetails.group_ratio?.toFixed(2)} ={' '}
+                    /1M
+                    {claudeCacheLines.map((line) => (
+                      <React.Fragment key={line.key}>
+                        {' + '}
+                        {line.tokens.toLocaleString()} × $
+                        {line.pricePerMillion.toFixed(6)}/1M
+                      </React.Fragment>
+                    ))}
+                    ) × {billingDetails.group_ratio?.toFixed(2)} ={' '}
                     {processQuota(log.quota)}
                   </p>
                   {billingDetails.cached_tokens &&
