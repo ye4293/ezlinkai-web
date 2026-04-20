@@ -9,11 +9,12 @@ import { createColumns, ChannelType } from './columns';
 import { STATUS_OPTIONS, useTableFilters } from './use-table-filters';
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Trash, Ban, CircleSlash2 } from 'lucide-react';
+import { Trash, Ban, CircleSlash2, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AlertModal } from '@/components/modal/alert-modal';
 import { useRouter } from 'next/navigation';
 import MultiKeyManagementModal from '../multi-key-modal';
+import AffinityModal from '../affinity-modal';
 import { useSession } from 'next-auth/react';
 
 export default function ChannelTable({
@@ -70,6 +71,7 @@ export default function ChannelTable({
 
   const [isMultiKeyModalOpen, setIsMultiKeyModalOpen] = useState(false);
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
+  const [isAffinityModalOpen, setIsAffinityModalOpen] = useState(false);
 
   const handleOpenMultiKeyModal = (channel: Channel) => {
     setSelectedChannel(channel);
@@ -175,6 +177,10 @@ export default function ChannelTable({
           channel={selectedChannel}
         />
       )}
+      <AffinityModal
+        open={isAffinityModalOpen}
+        onOpenChange={setIsAffinityModalOpen}
+      />
 
       {/* 超明显居中加载指示器 */}
       {loading && (
@@ -236,6 +242,14 @@ export default function ChannelTable({
             filterKey="status"
           />
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setIsAffinityModalOpen(true)}
+        >
+          <Settings2 className="mr-2 h-4 w-4" />
+          亲和性配置
+        </Button>
         <DataTableResetFilter
           isFilterActive={isAnyFilterActive} // 修复: isFiltered -> isFilterActive
           onReset={resetFilters}
@@ -278,7 +292,7 @@ export default function ChannelTable({
       <DataTable
         columns={createColumns({
           onManageKeys: handleOpenMultiKeyModal,
-          onDataChange: () => router.refresh(), // 添加数据刷新回调
+          onDataChange: () => router.refresh(),
           channelTypes: channelTypes
         })}
         data={data}
@@ -287,9 +301,10 @@ export default function ChannelTable({
         resetSelection={resetSelection}
         currentPage={page}
         pageSize={pageSize}
-        setCurrentPage={setPage} // 修复: onPageChange -> setCurrentPage
-        setPageSize={setPageSize} // 修复: onPageSizeChange -> setPageSize
+        setCurrentPage={setPage}
+        setPageSize={setPageSize}
         pageSizeOptions={[10, 50, 100, 500]}
+        minWidth="1400px"
       />
     </>
   );
