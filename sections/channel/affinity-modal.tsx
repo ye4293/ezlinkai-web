@@ -27,6 +27,12 @@ import request from '@/app/lib/clientFetch';
 
 // ─── 类型定义 ─────────────────────────────────────────────────────────────────
 
+interface ApiResponse<T = any> {
+  success: boolean;
+  data: T;
+  message?: string;
+}
+
 interface KeySource {
   Type: string; // "context_int" | "context_string" | "gjson"
   Key: string;
@@ -264,11 +270,12 @@ export default function AffinitySection() {
 
   const fetchConfig = useCallback(async () => {
     try {
-      const res = await request.get('/api/affinity/config');
+      const res = (await request.get(
+        '/api/affinity/config'
+      )) as unknown as ApiResponse<AffinityConfig>;
       if (res?.success) {
-        const cfg = res.data as AffinityConfig;
-        setConfig(cfg);
-        setJsonText(JSON.stringify(cfg, null, 2));
+        setConfig(res.data);
+        setJsonText(JSON.stringify(res.data, null, 2));
       }
     } catch {
       toast.error('加载亲和配置失败');
@@ -277,7 +284,9 @@ export default function AffinitySection() {
 
   const fetchCacheStats = useCallback(async () => {
     try {
-      const res = await request.get('/api/affinity/cache');
+      const res = (await request.get(
+        '/api/affinity/cache'
+      )) as unknown as ApiResponse<{ count: number }>;
       if (res?.success) {
         setCacheCount(res.data?.count ?? 0);
       }
@@ -298,7 +307,10 @@ export default function AffinitySection() {
       if (jsonMode) {
         cfg = JSON.parse(jsonText);
       }
-      const res = await request.put('/api/affinity/config', cfg);
+      const res = (await request.put(
+        '/api/affinity/config',
+        cfg
+      )) as unknown as ApiResponse;
       if (res?.success) {
         toast.success('保存成功');
         setConfig(cfg);
@@ -315,9 +327,11 @@ export default function AffinitySection() {
   const handleClearCache = async () => {
     setClearing(true);
     try {
-      const res = await request.delete('/api/affinity/cache');
+      const res = (await request.delete(
+        '/api/affinity/cache'
+      )) as unknown as ApiResponse;
       if (res?.success) {
-        toast.success(res.message ?? '缓存已清空');
+        toast.success(res?.message ?? '缓存已清空');
         setCacheCount(0);
       } else {
         toast.error(res?.message ?? '清空失败');
