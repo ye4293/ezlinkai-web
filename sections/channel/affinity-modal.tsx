@@ -93,8 +93,22 @@ function RuleEditDialog({
   );
 
   useEffect(() => {
-    if (rule) setForm(rule);
-  }, [rule]);
+    setForm(
+      rule ?? {
+        Name: '',
+        ModelRegex: [],
+        PathRegex: [],
+        UserAgentInclude: [],
+        KeySources: [{ Type: 'gjson', Key: '', Path: '' }],
+        ValueRegex: '',
+        TTLSeconds: 0,
+        SkipRetryOnFailure: true,
+        IncludeRuleName: true,
+        IncludeModelName: false,
+        IncludeUsingGroup: true
+      }
+    );
+  }, [rule, open]);
 
   const handle = (field: keyof AffinityRule, value: unknown) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -235,19 +249,13 @@ function RuleEditDialog({
   );
 }
 
-// ─── 主组件 ───────────────────────────────────────────────────────────────────
+// ─── 主组件（内联，无弹框） ────────────────────────────────────────────────────
 
-export default function AffinityModal({
-  open,
-  onOpenChange
-}: {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-}) {
+export default function AffinitySection() {
   const [config, setConfig] = useState<AffinityConfig>(DEFAULT_CONFIG);
   const [jsonMode, setJsonMode] = useState(false);
   const [jsonText, setJsonText] = useState('');
-  const [cacheCount, setCacheCount] = useState<number | null>(null);
+  const [cacheCount, setCacheCount] = useState<number>(0);
   const [saving, setSaving] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [ruleDialogOpen, setRuleDialogOpen] = useState(false);
@@ -257,8 +265,8 @@ export default function AffinityModal({
   const fetchConfig = useCallback(async () => {
     try {
       const res = await request.get('/api/affinity/config');
-      if (res.data?.success) {
-        const cfg = res.data.data as AffinityConfig;
+      if (res?.success) {
+        const cfg = res.data as AffinityConfig;
         setConfig(cfg);
         setJsonText(JSON.stringify(cfg, null, 2));
       }
@@ -270,8 +278,8 @@ export default function AffinityModal({
   const fetchCacheStats = useCallback(async () => {
     try {
       const res = await request.get('/api/affinity/cache');
-      if (res.data?.success) {
-        setCacheCount(res.data.data?.count ?? 0);
+      if (res?.success) {
+        setCacheCount(res.data?.count ?? 0);
       }
     } catch {
       // ignore
@@ -279,11 +287,9 @@ export default function AffinityModal({
   }, []);
 
   useEffect(() => {
-    if (open) {
-      fetchConfig();
-      fetchCacheStats();
-    }
-  }, [open, fetchConfig, fetchCacheStats]);
+    fetchConfig();
+    fetchCacheStats();
+  }, [fetchConfig, fetchCacheStats]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -293,11 +299,11 @@ export default function AffinityModal({
         cfg = JSON.parse(jsonText);
       }
       const res = await request.put('/api/affinity/config', cfg);
-      if (res.data?.success) {
+      if (res?.success) {
         toast.success('保存成功');
         setConfig(cfg);
       } else {
-        toast.error(res.data?.message ?? '保存失败');
+        toast.error(res?.message ?? '保存失败');
       }
     } catch (e: unknown) {
       toast.error('保存失败: ' + (e instanceof Error ? e.message : String(e)));
@@ -310,11 +316,11 @@ export default function AffinityModal({
     setClearing(true);
     try {
       const res = await request.delete('/api/affinity/cache');
-      if (res.data?.success) {
-        toast.success(res.data.message ?? '缓存已清空');
+      if (res?.success) {
+        toast.success(res.message ?? '缓存已清空');
         setCacheCount(0);
       } else {
-        toast.error(res.data?.message ?? '清空失败');
+        toast.error(res?.message ?? '清空失败');
       }
     } catch {
       toast.error('清空缓存失败');
@@ -378,260 +384,245 @@ export default function AffinityModal({
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>渠道亲和性</DialogTitle>
-          </DialogHeader>
+      <div className="space-y-6">
+        <Alert className="border-blue-200 bg-blue-50">
+          <Info className="h-4 w-4 text-blue-600" />
+          <AlertDescription className="text-blue-700">
+            渠道亲和性会基于从请求上下文或 JSON Body 提取的
+            Key，优先复用上一次成功的渠道。
+          </AlertDescription>
+        </Alert>
 
-          <Alert className="border-blue-200 bg-blue-50">
-            <Info className="h-4 w-4 text-blue-600" />
-            <AlertDescription className="text-blue-700">
-              渠道亲和性会基于从请求上下文或 JSON Body 提取的
-              Key，优先复用上一次成功的渠道。
-            </AlertDescription>
-          </Alert>
-
-          {!jsonMode ? (
-            <div className="space-y-6">
-              {/* 全局开关 + 参数 */}
-              <div className="grid grid-cols-3 gap-6">
-                <div className="space-y-2">
-                  <Label className="text-base font-semibold">启用</Label>
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      checked={config.Enabled}
-                      onCheckedChange={(v) =>
-                        setConfig((prev) => ({ ...prev, Enabled: v }))
-                      }
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    启用后将优先复用上一次成功的渠道（粘滞选路）。
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-base font-semibold">最大条目数</Label>
-                  <Input
-                    type="number"
-                    value={config.MaxSize}
-                    onChange={(e) =>
-                      setConfig((prev) => ({
-                        ...prev,
-                        MaxSize: Number(e.target.value)
-                      }))
-                    }
-                    className="w-36"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    内存存储最大条目数。0 表示使用后端默认容量：100000。
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-base font-semibold">
-                    默认 TTL（秒）
-                  </Label>
-                  <Input
-                    type="number"
-                    value={config.DefaultTTLSeconds}
-                    onChange={(e) =>
-                      setConfig((prev) => ({
-                        ...prev,
-                        DefaultTTLSeconds: Number(e.target.value)
-                      }))
-                    }
-                    className="w-36"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    规则 ttl_seconds 为 0 时使用。0 表示使用后端默认 TTL：3600
-                    秒。
-                  </p>
-                </div>
-              </div>
-
-              {/* 成功后切换亲和 */}
+        {!jsonMode ? (
+          <div className="space-y-6">
+            {/* 全局开关 + 参数 */}
+            <div className="grid grid-cols-3 gap-6">
               <div className="space-y-2">
-                <Label className="text-base font-semibold">
-                  成功后切换亲和
-                </Label>
+                <Label className="text-base font-semibold">启用</Label>
                 <div className="flex items-center gap-2">
                   <Switch
-                    checked={config.SwitchAffinityOnSuccess}
+                    checked={config.Enabled}
                     onCheckedChange={(v) =>
-                      setConfig((prev) => ({
-                        ...prev,
-                        SwitchAffinityOnSuccess: v
-                      }))
+                      setConfig((prev) => ({ ...prev, Enabled: v }))
                     }
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  如果亲和到的渠道失败，重试到其他渠道成功后，将亲和更新到成功的渠道。
+                  启用后将优先复用上一次成功的渠道（粘滞选路）。
                 </p>
               </div>
-
-              {/* 工具栏 */}
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleSwitchToJson}
-                >
-                  JSON 模式
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleAddRule}>
-                  <Plus className="mr-1 h-3 w-3" /> 新增规则
-                </Button>
-                <Button size="sm" onClick={handleSave} disabled={saving}>
-                  {saving ? '保存中...' : '保存'}
-                </Button>
-                <Button variant="outline" size="sm" onClick={fetchCacheStats}>
-                  <RefreshCw className="mr-1 h-3 w-3" />
-                  刷新缓存统计
-                  {cacheCount !== null && (
-                    <span className="ml-1 text-muted-foreground">
-                      ({cacheCount})
-                    </span>
-                  )}
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={handleClearCache}
-                  disabled={clearing}
-                >
-                  {clearing ? '清空中...' : '清空全部缓存'}
-                </Button>
+              <div className="space-y-2">
+                <Label className="text-base font-semibold">最大条目数</Label>
+                <Input
+                  type="number"
+                  value={config.MaxSize}
+                  onChange={(e) =>
+                    setConfig((prev) => ({
+                      ...prev,
+                      MaxSize: Number(e.target.value)
+                    }))
+                  }
+                  className="w-36"
+                />
+                <p className="text-xs text-muted-foreground">
+                  内存存储最大条目数。0 表示使用后端默认容量：100000。
+                </p>
               </div>
+              <div className="space-y-2">
+                <Label className="text-base font-semibold">
+                  默认 TTL（秒）
+                </Label>
+                <Input
+                  type="number"
+                  value={config.DefaultTTLSeconds}
+                  onChange={(e) =>
+                    setConfig((prev) => ({
+                      ...prev,
+                      DefaultTTLSeconds: Number(e.target.value)
+                    }))
+                  }
+                  className="w-36"
+                />
+                <p className="text-xs text-muted-foreground">
+                  规则 ttl_seconds 为 0 时使用。0 表示使用后端默认 TTL：3600
+                  秒。
+                </p>
+              </div>
+            </div>
 
-              {/* 规则表格 */}
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
+            {/* 成功后切换亲和 */}
+            <div className="space-y-2">
+              <Label className="text-base font-semibold">成功后切换亲和</Label>
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={config.SwitchAffinityOnSuccess}
+                  onCheckedChange={(v) =>
+                    setConfig((prev) => ({
+                      ...prev,
+                      SwitchAffinityOnSuccess: v
+                    }))
+                  }
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                如果亲和到的渠道失败，重试到其他渠道成功后，将亲和更新到成功的渠道。
+              </p>
+            </div>
+
+            {/* 工具栏 */}
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="outline" size="sm" onClick={handleSwitchToJson}>
+                JSON 模式
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleAddRule}>
+                <Plus className="mr-1 h-3 w-3" /> 新增规则
+              </Button>
+              <Button size="sm" onClick={handleSave} disabled={saving}>
+                {saving ? '保存中...' : '保存'}
+              </Button>
+              <Button variant="outline" size="sm" onClick={fetchCacheStats}>
+                <RefreshCw className="mr-1 h-3 w-3" />
+                刷新缓存统计
+                <span className="ml-1 text-muted-foreground">
+                  ({cacheCount})
+                </span>
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleClearCache}
+                disabled={clearing}
+              >
+                {clearing ? '清空中...' : '清空全部缓存'}
+              </Button>
+            </div>
+
+            {/* 规则表格 */}
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>名称</TableHead>
+                    <TableHead>模型正则</TableHead>
+                    <TableHead>路径正则</TableHead>
+                    <TableHead>Key 来源</TableHead>
+                    <TableHead>TTL（秒）</TableHead>
+                    <TableHead>失败后是否重试</TableHead>
+                    <TableHead>操作</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(config.Rules ?? []).length === 0 ? (
                     <TableRow>
-                      <TableHead>名称</TableHead>
-                      <TableHead>模型正则</TableHead>
-                      <TableHead>路径正则</TableHead>
-                      <TableHead>Key 来源</TableHead>
-                      <TableHead>TTL（秒）</TableHead>
-                      <TableHead>失败后是否重试</TableHead>
-                      <TableHead>操作</TableHead>
+                      <TableCell
+                        colSpan={7}
+                        className="py-8 text-center text-muted-foreground"
+                      >
+                        暂无规则，点击"新增规则"添加
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(config.Rules ?? []).length === 0 ? (
-                      <TableRow>
-                        <TableCell
-                          colSpan={7}
-                          className="py-8 text-center text-muted-foreground"
-                        >
-                          暂无规则，点击"新增规则"添加
+                  ) : (
+                    (config.Rules ?? []).map((rule, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell className="font-medium">
+                          {rule.Name}
                         </TableCell>
-                      </TableRow>
-                    ) : (
-                      (config.Rules ?? []).map((rule, idx) => (
-                        <TableRow key={idx}>
-                          <TableCell className="font-medium">
-                            {rule.Name}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-wrap gap-1">
-                              {rule.ModelRegex?.map((r, i) => (
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {rule.ModelRegex?.map((r, i) => (
+                              <Badge
+                                key={i}
+                                variant="secondary"
+                                className="font-mono text-xs"
+                              >
+                                {r}
+                              </Badge>
+                            ))}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {rule.PathRegex?.length ? (
+                              rule.PathRegex.map((r, i) => (
                                 <Badge
                                   key={i}
-                                  variant="secondary"
+                                  variant="outline"
                                   className="font-mono text-xs"
                                 >
                                   {r}
                                 </Badge>
-                              ))}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-wrap gap-1">
-                              {rule.PathRegex?.length ? (
-                                rule.PathRegex.map((r, i) => (
-                                  <Badge
-                                    key={i}
-                                    variant="outline"
-                                    className="font-mono text-xs"
-                                  >
-                                    {r}
-                                  </Badge>
-                                ))
-                              ) : (
-                                <span className="text-muted-foreground">-</span>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell className="font-mono text-xs">
-                            {formatKeySource(rule.KeySources)}
-                          </TableCell>
-                          <TableCell>
-                            {rule.TTLSeconds > 0 ? rule.TTLSeconds : '-'}
-                          </TableCell>
-                          <TableCell>
-                            {rule.SkipRetryOnFailure ? (
-                              <Badge variant="destructive" className="text-xs">
-                                不重试
-                              </Badge>
+                              ))
                             ) : (
-                              <Badge variant="secondary" className="text-xs">
-                                重试
-                              </Badge>
+                              <span className="text-muted-foreground">-</span>
                             )}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7"
-                                onClick={() => handleEditRule(rule, idx)}
-                              >
-                                <Pencil className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7 text-destructive"
-                                onClick={() => handleDeleteRule(idx)}
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-mono text-xs">
+                          {formatKeySource(rule.KeySources)}
+                        </TableCell>
+                        <TableCell>
+                          {rule.TTLSeconds > 0 ? rule.TTLSeconds : '-'}
+                        </TableCell>
+                        <TableCell>
+                          {rule.SkipRetryOnFailure ? (
+                            <Badge variant="destructive" className="text-xs">
+                              不重试
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" className="text-xs">
+                              重试
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => handleEditRule(rule, idx)}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-destructive"
+                              onClick={() => handleDeleteRule(idx)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
             </div>
-          ) : (
-            /* JSON 模式 */
-            <div className="space-y-4">
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleSwitchToVisual}
-                >
-                  可视化模式
-                </Button>
-                <Button size="sm" onClick={handleSave} disabled={saving}>
-                  {saving ? '保存中...' : '保存'}
-                </Button>
-              </div>
-              <Textarea
-                className="min-h-[400px] font-mono text-sm"
-                value={jsonText}
-                onChange={(e) => setJsonText(e.target.value)}
-              />
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSwitchToVisual}
+              >
+                可视化模式
+              </Button>
+              <Button size="sm" onClick={handleSave} disabled={saving}>
+                {saving ? '保存中...' : '保存'}
+              </Button>
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
+            <Textarea
+              className="min-h-[400px] font-mono text-sm"
+              value={jsonText}
+              onChange={(e) => setJsonText(e.target.value)}
+            />
+          </div>
+        )}
+      </div>
 
       <RuleEditDialog
         open={ruleDialogOpen}
