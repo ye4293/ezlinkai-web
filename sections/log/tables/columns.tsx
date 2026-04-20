@@ -28,6 +28,7 @@ export interface UsageDetails {
   cache_read_input_tokens?: number;
   cache_creation_input_tokens?: number;
   claude_cache_creation_5_m_tokens?: number;
+  claude_cache_creation_1_h_tokens?: number;
   cached_tokens?: number;
   // 其他可能的字段
   [key: string]: number | undefined;
@@ -42,6 +43,10 @@ export interface BillingDetails {
   model_price?: number;
   cached_tokens?: number;
   cache_ratio?: number;
+  // Claude 原生三档缓存倍率（相对于输入价格）
+  claude_cache_5m_ratio?: number;
+  claude_cache_1h_ratio?: number;
+  claude_cache_read_ratio?: number;
   // 折扣分量（从 v2 起新增）
   tier_ratio?: number; // 纯等级折扣
   channel_discount?: number; // 渠道折扣
@@ -65,6 +70,7 @@ export const getUsageDetailsLabels = (
   cache_read_input_tokens: logDetail.cacheRead,
   cache_creation_input_tokens: logDetail.cacheCreation,
   claude_cache_creation_5_m_tokens: logDetail.claudeCache5m,
+  claude_cache_creation_1_h_tokens: logDetail.claudeCache1h,
   cached_tokens: logDetail.cachedTokens
 });
 
@@ -80,6 +86,7 @@ export const usageDetailsLabels: Record<string, string> = {
   cache_read_input_tokens: '缓存读取',
   cache_creation_input_tokens: '缓存创建',
   claude_cache_creation_5_m_tokens: 'Claude 5分钟缓存创建',
+  claude_cache_creation_1_h_tokens: 'Claude 1小时缓存创建',
   cached_tokens: '缓存 Token'
 };
 

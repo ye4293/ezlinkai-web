@@ -11,7 +11,6 @@ import { useLocale } from '@/components/providers/locale-provider';
 import { useDocumentTitle } from '@/hooks/use-document-title';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 
 import MetricCard from './components/metric-card';
@@ -19,6 +18,7 @@ import MetricsChart from './components/metrics-chart';
 import StatusBadge from './components/status-badge';
 import TimeRangeSelector from './components/time-range-selector';
 import ChannelDetailTable from './components/channel-detail-table';
+import ProviderLogo from './components/provider-logo';
 
 import type {
   ModelMetricsDetail,
@@ -28,19 +28,6 @@ import type {
 } from '@/lib/types/model-metrics';
 
 const isAdmin = (role: unknown) => [10, 100].includes(Number(role));
-
-// Provider 颜色映射（复用列表页配色）
-const providerColors: Record<string, string> = {
-  OpenAI:
-    'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-  Anthropic:
-    'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
-  Google: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-  DeepSeek:
-    'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300',
-  xAI: 'bg-gray-100 text-gray-800 dark:bg-gray-700/50 dark:text-gray-300',
-  Meta: 'bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-300'
-};
 
 function formatTimestamp(ts: number, period: MetricsPeriod): string {
   const date = new Date(ts * 1000);
@@ -131,10 +118,6 @@ export default function ModelDetailView() {
   const period24h = detail?.period_24h;
   const pricing = detail?.pricing;
 
-  const providerBadgeClass =
-    providerColors[detail?.provider || ''] ||
-    'bg-gray-100 text-gray-800 dark:bg-gray-700/50 dark:text-gray-300';
-
   // Prepare chart data
   const chartData = timeSeries.map((p) => ({
     time: formatTimestamp(p.timestamp, period),
@@ -162,11 +145,7 @@ export default function ModelDetailView() {
 
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-bold tracking-tight">{modelName}</h1>
-          {detail?.provider && (
-            <Badge variant="secondary" className={providerBadgeClass}>
-              {detail.provider}
-            </Badge>
-          )}
+          {detail?.provider && <ProviderLogo provider={detail.provider} />}
           {detail && current && (
             <StatusBadge
               status={

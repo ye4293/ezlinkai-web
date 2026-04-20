@@ -43,12 +43,7 @@ import {
   RefreshCcw,
   Copy
 } from 'lucide-react';
-
-const breadcrumbItems = [
-  { title: 'Dashboard', link: '/dashboard' },
-  { title: '系统设置', link: '/dashboard/setting' },
-  { title: '模型定价设置', link: '/dashboard/setting/pricing' }
-];
+import { useLocale } from '@/components/providers/locale-provider';
 
 interface Option {
   key: string;
@@ -134,6 +129,13 @@ const priceToRatio = (price: number, baseInputPrice: number): number => {
 };
 
 export default function PricingPage() {
+  const { t } = useLocale();
+  const p = t.pricing;
+  const breadcrumbItems = [
+    { title: 'Dashboard', link: '/dashboard' },
+    { title: p.breadcrumbSettings, link: '/dashboard/setting' },
+    { title: p.title, link: '/dashboard/setting/pricing' }
+  ];
   // ==================== 模型倍率设置状态 ====================
   const [perCallPricing, setPerCallPricing] = useState('');
   const [modelRatio, setModelRatio] = useState('');
@@ -205,7 +207,7 @@ export default function PricingPage() {
       JSON.parse(jsonString);
       return true;
     } catch (e) {
-      toast.error(`${fieldName} JSON格式错误，请检查语法`);
+      toast.error(p.jsonInvalid.replace('{field}', fieldName));
       return false;
     }
   };
@@ -400,14 +402,14 @@ export default function PricingPage() {
     try {
       // 验证JSON格式
       if (
-        !validateJSON(perCallPricing, '模型固定价格') ||
-        !validateJSON(modelRatio, '模型倍率') ||
-        !validateJSON(completionRatio, '模型补全倍率') ||
-        !validateJSON(cacheRatio, '缓存倍率') ||
-        !validateJSON(audioInputRatio, '音频输入倍率') ||
-        !validateJSON(audioOutputRatio, '音频输出倍率') ||
-        !validateJSON(imageInputRatio, '图片输入倍率') ||
-        !validateJSON(imageOutputRatio, '图片输出倍率')
+        !validateJSON(perCallPricing, p.fixedPrice) ||
+        !validateJSON(modelRatio, p.modelRatio) ||
+        !validateJSON(completionRatio, p.completionRatio) ||
+        !validateJSON(cacheRatio, p.cacheRatio) ||
+        !validateJSON(audioInputRatio, p.audioInputRatio) ||
+        !validateJSON(audioOutputRatio, p.audioOutputRatio) ||
+        !validateJSON(imageInputRatio, p.imageInputRatio) ||
+        !validateJSON(imageOutputRatio, p.imageOutputRatio)
       ) {
         setIsLoading(false);
         return;
@@ -431,12 +433,12 @@ export default function PricingPage() {
       await saveOption('ImageInputRatio', imageInputRatio);
       await saveOption('ImageOutputRatio', imageOutputRatio);
 
-      toast.success('模型倍率设置保存成功！');
+      toast.success(p.saveSuccess);
       fetchConfiguredModels();
       fetchUnsetModels();
     } catch (error) {
       console.error('Save error:', error);
-      toast.error('保存失败，请重试');
+      toast.error(p.saveFailed);
     } finally {
       setIsLoading(false);
     }
@@ -984,16 +986,20 @@ export default function PricingPage() {
         <Breadcrumbs items={breadcrumbItems} />
 
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold tracking-tight">模型定价设置</h2>
+          <h2 className="text-2xl font-bold tracking-tight">{p.title}</h2>
         </div>
         <Separator />
 
         <Tabs defaultValue="ratio-settings" className="space-y-4">
           <TabsList className="grid w-full grid-cols-4 lg:inline-flex lg:w-auto">
-            <TabsTrigger value="ratio-settings">模型倍率设置</TabsTrigger>
-            <TabsTrigger value="visual-pricing">可视化倍率设置</TabsTrigger>
-            <TabsTrigger value="unset-models">未设置倍率模型</TabsTrigger>
-            <TabsTrigger value="video-pricing">视频模型定价</TabsTrigger>
+            <TabsTrigger value="ratio-settings">
+              {p.tabRatioSettings}
+            </TabsTrigger>
+            <TabsTrigger value="visual-pricing">
+              {p.tabVisualPricing}
+            </TabsTrigger>
+            <TabsTrigger value="unset-models">{p.tabUnsetModels}</TabsTrigger>
+            <TabsTrigger value="video-pricing">{p.tabVideoPricing}</TabsTrigger>
           </TabsList>
 
           {/* ==================== 模型倍率设置 Tab ==================== */}
@@ -1001,13 +1007,13 @@ export default function PricingPage() {
             <div className="flex justify-end">
               <Button onClick={handleSaveRatioSettings} disabled={isLoading}>
                 <Save className="mr-2 h-4 w-4" />
-                {isLoading ? '保存中...' : '保存设置'}
+                {isLoading ? p.saving : p.save}
               </Button>
             </div>
 
             {/* 模型固定价格 */}
             <div className="space-y-2">
-              <Label className="text-base font-semibold">模型固定价格</Label>
+              <Label className="text-base font-semibold">{p.fixedPrice}</Label>
               <Textarea
                 value={perCallPricing}
                 onChange={(e) => setPerCallPricing(e.target.value)}
@@ -1015,13 +1021,13 @@ export default function PricingPage() {
                 className="h-32 font-mono text-sm"
               />
               <p className="text-sm text-muted-foreground">
-                一次调用消耗多少刀，优先级大于模型倍率
+                {p.fixedPriceHint}
               </p>
             </div>
 
             {/* 模型倍率 */}
             <div className="space-y-2">
-              <Label className="text-base font-semibold">模型倍率</Label>
+              <Label className="text-base font-semibold">{p.modelRatio}</Label>
               <Textarea
                 value={modelRatio}
                 onChange={(e) => setModelRatio(e.target.value)}
@@ -1032,7 +1038,7 @@ export default function PricingPage() {
 
             {/* 提示缓存倍率 */}
             <div className="space-y-2">
-              <Label className="text-base font-semibold">提示缓存倍率</Label>
+              <Label className="text-base font-semibold">{p.cacheRatio}</Label>
               <Textarea
                 value={cacheRatio}
                 onChange={(e) => setCacheRatio(e.target.value)}
@@ -1040,14 +1046,14 @@ export default function PricingPage() {
                 className="h-32 font-mono text-sm"
               />
               <p className="text-sm text-muted-foreground">
-                缓存读取token相对于输入token的价格倍率（如Claude缓存读取为0.1，即90%折扣）
+                {p.cacheRatioHint}
               </p>
             </div>
 
             {/* 模型补全倍率 */}
             <div className="space-y-2">
               <Label className="text-base font-semibold">
-                模型补全倍率（仅对自定义模型有效）
+                {p.completionRatio}
               </Label>
               <Textarea
                 value={completionRatio}
@@ -1056,14 +1062,14 @@ export default function PricingPage() {
                 className="h-60 font-mono text-sm"
               />
               <p className="text-sm text-muted-foreground">
-                仅对自定义模型有效
+                {p.completionRatioHint}
               </p>
             </div>
 
             {/* 图片输入倍率 */}
             <div className="space-y-2">
               <Label className="text-base font-semibold">
-                图片输入倍率（仅部分模型支持该计费）
+                {p.imageInputRatio}
               </Label>
               <Textarea
                 value={imageInputRatio}
@@ -1076,7 +1082,7 @@ export default function PricingPage() {
             {/* 图片输出倍率 */}
             <div className="space-y-2">
               <Label className="text-base font-semibold">
-                图片输出倍率（仅部分模型支持该计费）
+                {p.imageOutputRatio}
               </Label>
               <Textarea
                 value={imageOutputRatio}
@@ -1089,7 +1095,7 @@ export default function PricingPage() {
             {/* 音频输入倍率 */}
             <div className="space-y-2">
               <Label className="text-base font-semibold">
-                音频输入倍率（仅部分模型支持该计费）
+                {p.audioInputRatio}
               </Label>
               <Textarea
                 value={audioInputRatio}
@@ -1102,7 +1108,7 @@ export default function PricingPage() {
             {/* 音频输出倍率 */}
             <div className="space-y-2">
               <Label className="text-base font-semibold">
-                音频输出倍率（仅部分模型支持该计费）
+                {p.audioOutputRatio}
               </Label>
               <Textarea
                 value={audioOutputRatio}

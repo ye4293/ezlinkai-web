@@ -151,6 +151,9 @@ const zh = {
     perMillionInput: '/ 1M input tokens',
     perMillionOutput: '/ 1M output tokens',
     perMillionCached: '/ 1M cached tokens',
+    perMillionCache5m: '/ 1M 5分钟缓存创建 tokens',
+    perMillionCache1h: '/ 1M 1小时缓存创建 tokens',
+    perMillionCacheRead: '/ 1M 缓存读取 tokens',
     perRequest: '/ 次',
     referenceOnly: '仅供参考，以实际扣费为准',
     groupRatio: '分组倍率',
@@ -164,6 +167,7 @@ const zh = {
     cacheRead: '缓存读取',
     cacheCreation: '缓存创建',
     claudeCache5m: 'Claude 5分钟缓存创建',
+    claudeCache1h: 'Claude 1小时缓存创建',
     speed: '生成速率',
     collapse: '收起详情',
     expand: '展开详情',
@@ -172,6 +176,44 @@ const zh = {
     channelDiscount: '渠道折扣',
     userChannelDiscount: '用户渠道折扣',
     keyIndex: 'Key 索引'
+  },
+  // 计费/定价设置页
+  pricing: {
+    title: '模型定价设置',
+    tabRatioSettings: '模型倍率设置',
+    tabVisualPricing: '可视化倍率设置',
+    tabUnsetModels: '未设置倍率模型',
+    tabVideoPricing: '视频模型定价',
+    saving: '保存中...',
+    save: '保存设置',
+    saveSuccess: '模型倍率设置保存成功！',
+    saveFailed: '保存失败，请重试',
+    jsonInvalid: '{field} JSON 格式错误，请检查语法',
+    fixedPrice: '模型固定价格',
+    fixedPriceHint: '一次调用消耗多少刀，优先级大于模型倍率',
+    modelRatio: '模型倍率',
+    cacheRatio: '提示缓存倍率',
+    cacheRatioHint:
+      '缓存读取 token 相对于输入 token 的价格倍率（如 Claude 缓存读取为 0.1，即 90% 折扣）',
+    completionRatio: '模型补全倍率（仅对自定义模型有效）',
+    completionRatioHint: '仅对自定义模型有效',
+    imageInputRatio: '图片输入倍率（仅部分模型支持该计费）',
+    imageOutputRatio: '图片输出倍率（仅部分模型支持该计费）',
+    audioInputRatio: '音频输入倍率（仅部分模型支持该计费）',
+    audioOutputRatio: '音频输出倍率（仅部分模型支持该计费）',
+    breadcrumbSettings: '系统设置'
+  },
+  // 渠道表单（计费相关）
+  channelForm: {
+    discountLabel: '渠道折扣倍率',
+    discountPlaceholder: '1.0 表示无折扣，0.7 表示七折'
+  },
+  // 用户 × 渠道类型折扣编辑器
+  channelRatios: {
+    title: '渠道类型折扣',
+    descriptionPrefix: '设置后与渠道折扣、等级折扣相乘。例：设为 0.8，最终按',
+    formulaCode: '模型官方价 × 渠道折扣 × 等级折扣 × 0.8',
+    descriptionSuffix: '计费。留空视为 1.0。'
   },
   // v3 Landing page
   landing: {

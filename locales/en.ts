@@ -154,6 +154,9 @@ const en: Locale = {
     perMillionInput: '/ 1M input tokens',
     perMillionOutput: '/ 1M output tokens',
     perMillionCached: '/ 1M cached tokens',
+    perMillionCache5m: '/ 1M 5min cache creation tokens',
+    perMillionCache1h: '/ 1M 1h cache creation tokens',
+    perMillionCacheRead: '/ 1M cache read tokens',
     perRequest: '/ request',
     referenceOnly: 'For reference only, actual charges may vary',
     groupRatio: 'Group Ratio',
@@ -167,6 +170,7 @@ const en: Locale = {
     cacheRead: 'Cache Read',
     cacheCreation: 'Cache Creation',
     claudeCache5m: 'Claude 5min Cache Creation',
+    claudeCache1h: 'Claude 1h Cache Creation',
     speed: 'Speed',
     collapse: 'Collapse',
     expand: 'Details',
@@ -175,6 +179,46 @@ const en: Locale = {
     channelDiscount: 'Channel Discount',
     userChannelDiscount: 'User Channel Discount',
     keyIndex: 'Key Index'
+  },
+  // Pricing settings page
+  pricing: {
+    title: 'Model Pricing Settings',
+    tabRatioSettings: 'Ratio Settings',
+    tabVisualPricing: 'Visual Pricing',
+    tabUnsetModels: 'Unset Models',
+    tabVideoPricing: 'Video Pricing',
+    saving: 'Saving...',
+    save: 'Save',
+    saveSuccess: 'Pricing settings saved successfully.',
+    saveFailed: 'Failed to save. Please try again.',
+    jsonInvalid: '{field} is not valid JSON — please check the syntax.',
+    fixedPrice: 'Fixed Price',
+    fixedPriceHint:
+      'Per-call charge in USD. Takes precedence over the model ratio.',
+    modelRatio: 'Model Ratio',
+    cacheRatio: 'Prompt Cache Ratio',
+    cacheRatioHint:
+      'Price ratio of cached-read tokens vs. input tokens (e.g. Claude cached read = 0.1, a 90% discount).',
+    completionRatio: 'Completion Ratio (custom models only)',
+    completionRatioHint: 'Applies to custom models only.',
+    imageInputRatio: 'Image Input Ratio (supported on selected models)',
+    imageOutputRatio: 'Image Output Ratio (supported on selected models)',
+    audioInputRatio: 'Audio Input Ratio (supported on selected models)',
+    audioOutputRatio: 'Audio Output Ratio (supported on selected models)',
+    breadcrumbSettings: 'Settings'
+  },
+  // Channel form (billing-related)
+  channelForm: {
+    discountLabel: 'Channel Discount',
+    discountPlaceholder: '1.0 = no discount, 0.7 = 30% off'
+  },
+  // User × channel-type discount editor
+  channelRatios: {
+    title: 'Channel-Type Discount',
+    descriptionPrefix:
+      'Multiplied with the channel discount and tier discount. Example: 0.8 will charge',
+    formulaCode: 'model price × channel discount × tier discount × 0.8',
+    descriptionSuffix: '. Leave blank for 1.0.'
   },
   // v3 Landing page
   landing: {
