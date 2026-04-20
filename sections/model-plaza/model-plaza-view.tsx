@@ -19,7 +19,10 @@ import {
   Hash,
   ChevronLeft,
   ChevronRight,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Sparkles,
+  Users,
+  Receipt
 } from 'lucide-react';
 import type {
   ModelPlazaItem,
@@ -29,35 +32,8 @@ import type {
 } from '@/lib/types/model-plaza';
 import type { ModelMetricsMini } from '@/lib/types/model-metrics';
 import StatusBadge from './components/status-badge';
+import ProviderLogo, { ProviderLogoMark } from './components/provider-logo';
 import { get } from '@/app/lib/clientFetch';
-
-// --- 供应商颜色 ---
-const providerColors: Record<string, string> = {
-  OpenAI:
-    'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30',
-  Anthropic:
-    'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30',
-  Google: 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/30',
-  DeepSeek:
-    'bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border-cyan-500/30',
-  xAI: 'bg-neutral-500/10 text-neutral-700 dark:text-neutral-300 border-neutral-500/30',
-  Alibaba:
-    'bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/30',
-  Zhipu:
-    'bg-violet-500/10 text-violet-700 dark:text-violet-400 border-violet-500/30',
-  Baidu: 'bg-blue-600/10 text-blue-800 dark:text-blue-300 border-blue-600/30',
-  Moonshot:
-    'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/30',
-  Mistral:
-    'bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border-indigo-500/30',
-  Meta: 'bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-500/30',
-  Groq: 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/30',
-  Other: 'bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/30'
-};
-
-function getProviderColor(provider: string) {
-  return providerColors[provider] || providerColors['Other'];
-}
 
 function formatPrice(price: number): string {
   if (price === 0) return '$0';
@@ -141,14 +117,7 @@ function ModelPriceCard({
             />
           </div>
           <div className="mt-2 flex items-center gap-1.5">
-            <Badge
-              variant="outline"
-              className={`text-[10px] leading-none ${getProviderColor(
-                model.provider
-              )}`}
-            >
-              {model.provider}
-            </Badge>
+            <ProviderLogo provider={model.provider} />
             <Badge
               variant="secondary"
               className="gap-0.5 text-[10px] leading-none"
@@ -170,18 +139,15 @@ function ModelPriceCard({
         <div className="ml-2 flex shrink-0 items-center gap-1.5">
           {metrics && <StatusBadge status={metrics.status} />}
           {hasDiscount && (
-            <Badge
-              variant="destructive"
-              className="text-[10px] font-bold leading-none"
-            >
+            <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold leading-none text-emerald-700 ring-1 ring-inset ring-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-500/30">
               -{discountPercent}%
-            </Badge>
+            </span>
           )}
         </div>
       </div>
 
       {/* 价格区域 */}
-      <div className="mt-auto border-t border-dashed border-border/50 bg-muted/30 px-4 py-3">
+      <div className="mt-auto border-t border-border/60 px-4 py-3.5">
         {model.price_type === 'fixed' ? (
           <div className="flex items-baseline justify-between">
             <span className="text-xs text-muted-foreground">
@@ -193,7 +159,7 @@ function ModelPriceCard({
                   {formatPrice(model.base_fixed_price)}
                 </span>
               )}
-              <span className="text-base font-bold tabular-nums text-foreground">
+              <span className="text-lg font-bold tabular-nums tracking-tight text-foreground">
                 {formatPrice(finalFixedPrice)}
               </span>
             </div>
@@ -204,15 +170,15 @@ function ModelPriceCard({
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
                 {t.modelPlaza.input}
               </span>
-              <div className="mt-0.5 flex items-baseline gap-1">
+              <div className="mt-1 flex items-baseline gap-1">
                 {hasDiscount && (
                   <span className="text-[10px] text-muted-foreground/70 line-through">
                     {formatPrice(model.base_input_price)}
                   </span>
                 )}
-                <span className="text-sm font-bold tabular-nums text-foreground">
+                <span className="text-base font-bold tabular-nums tracking-tight text-foreground">
                   {formatPrice(finalInputPrice)}
-                  <span className="text-[10px] font-normal text-muted-foreground">
+                  <span className="ml-0.5 text-[10px] font-normal text-muted-foreground">
                     /M
                   </span>
                 </span>
@@ -222,15 +188,15 @@ function ModelPriceCard({
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
                 {t.modelPlaza.output}
               </span>
-              <div className="mt-0.5 flex items-baseline gap-1">
+              <div className="mt-1 flex items-baseline gap-1">
                 {hasDiscount && (
                   <span className="text-[10px] text-muted-foreground/70 line-through">
                     {formatPrice(model.base_output_price)}
                   </span>
                 )}
-                <span className="text-sm font-bold tabular-nums text-foreground">
+                <span className="text-base font-bold tabular-nums tracking-tight text-foreground">
                   {formatPrice(finalOutputPrice)}
-                  <span className="text-[10px] font-normal text-muted-foreground">
+                  <span className="ml-0.5 text-[10px] font-normal text-muted-foreground">
                     /M
                   </span>
                 </span>
@@ -254,18 +220,64 @@ function ModelPriceCard({
 // --- 筛选项组件 ---
 function FilterSection({
   title,
+  icon: Icon,
   children
 }: {
   title: string;
+  icon?: React.ComponentType<{ className?: string }>;
   children: React.ReactNode;
 }) {
   return (
-    <div className="mb-5">
-      <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        {title}
-      </h4>
-      <div className="flex flex-wrap gap-1.5">{children}</div>
+    <div className="mb-6">
+      <div className="mb-2 flex items-center gap-1.5 px-1.5">
+        {Icon && <Icon className="h-3.5 w-3.5 text-muted-foreground/70" />}
+        <h4 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+          {title}
+        </h4>
+      </div>
+      {children}
     </div>
+  );
+}
+
+function FilterRow({
+  active,
+  onClick,
+  icon,
+  label,
+  count
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon?: React.ReactNode;
+  label: React.ReactNode;
+  count?: number;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] transition-colors ${
+        active
+          ? 'bg-accent font-medium text-accent-foreground'
+          : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground'
+      }`}
+    >
+      {icon && (
+        <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+          {icon}
+        </span>
+      )}
+      <span className="flex-1 truncate">{label}</span>
+      {count !== undefined && (
+        <span
+          className={`shrink-0 text-[11px] tabular-nums ${
+            active ? 'text-accent-foreground/60' : 'text-muted-foreground/60'
+          }`}
+        >
+          {count}
+        </span>
+      )}
+    </button>
   );
 }
 
@@ -383,80 +395,87 @@ export default function ModelPlazaView() {
   // --- 筛选栏内容 ---
   const filterContent = (
     <>
-      <FilterSection title={t.modelPlaza.providers}>
-        <FilterBadge
-          active={selectedProvider === ''}
-          onClick={() => {
-            setSelectedProvider('');
-            setPage(1);
-          }}
-        >
-          {t.modelPlaza.all}
-        </FilterBadge>
-        {providers.map((p) => (
-          <FilterBadge
-            key={p.name}
-            active={selectedProvider === p.name}
+      <FilterSection title={t.modelPlaza.providers} icon={Sparkles}>
+        <div className="space-y-0.5">
+          <FilterRow
+            active={selectedProvider === ''}
             onClick={() => {
-              setSelectedProvider(selectedProvider === p.name ? '' : p.name);
+              setSelectedProvider('');
               setPage(1);
             }}
-          >
-            {p.name}
-            <span className="ml-1 opacity-50">{p.count}</span>
-          </FilterBadge>
-        ))}
+            label={t.modelPlaza.all}
+            count={total}
+          />
+          {providers.map((p) => (
+            <FilterRow
+              key={p.name}
+              active={selectedProvider === p.name}
+              onClick={() => {
+                setSelectedProvider(selectedProvider === p.name ? '' : p.name);
+                setPage(1);
+              }}
+              icon={<ProviderLogoMark provider={p.name} size={14} />}
+              label={p.name}
+              count={p.count}
+            />
+          ))}
+        </div>
       </FilterSection>
 
       {groups.length > 0 && (
-        <FilterSection title={t.modelPlaza.userTier}>
-          {groups.map((g) => (
-            <FilterBadge
-              key={g.group_key}
-              active={selectedGroup === g.group_key}
-              onClick={() => setSelectedGroup(g.group_key)}
-            >
-              {g.display_name}
-              {g.discount < 1 && (
-                <span className="ml-1 opacity-50">
-                  {Math.round(g.discount * 100)}%
-                </span>
-              )}
-            </FilterBadge>
-          ))}
+        <FilterSection title={t.modelPlaza.userTier} icon={Users}>
+          <div className="flex flex-wrap gap-1.5 px-1.5">
+            {groups.map((g) => (
+              <FilterBadge
+                key={g.group_key}
+                active={selectedGroup === g.group_key}
+                onClick={() => setSelectedGroup(g.group_key)}
+              >
+                {g.display_name}
+                {g.discount < 1 && (
+                  <span className="ml-1 opacity-60">
+                    {Math.round(g.discount * 100)}%
+                  </span>
+                )}
+              </FilterBadge>
+            ))}
+          </div>
         </FilterSection>
       )}
 
-      <FilterSection title={t.modelPlaza.billingType}>
-        <FilterBadge
-          active={selectedPriceType === ''}
-          onClick={() => {
-            setSelectedPriceType('');
-            setPage(1);
-          }}
-        >
-          {t.modelPlaza.all}
-        </FilterBadge>
-        <FilterBadge
-          active={selectedPriceType === 'ratio'}
-          onClick={() => {
-            setSelectedPriceType(selectedPriceType === 'ratio' ? '' : 'ratio');
-            setPage(1);
-          }}
-        >
-          <Zap className="mr-1 h-3 w-3" />
-          {t.modelPlaza.tokenBased}
-        </FilterBadge>
-        <FilterBadge
-          active={selectedPriceType === 'fixed'}
-          onClick={() => {
-            setSelectedPriceType(selectedPriceType === 'fixed' ? '' : 'fixed');
-            setPage(1);
-          }}
-        >
-          <Hash className="mr-1 h-3 w-3" />
-          {t.modelPlaza.perCall}
-        </FilterBadge>
+      <FilterSection title={t.modelPlaza.billingType} icon={Receipt}>
+        <div className="space-y-0.5">
+          <FilterRow
+            active={selectedPriceType === ''}
+            onClick={() => {
+              setSelectedPriceType('');
+              setPage(1);
+            }}
+            label={t.modelPlaza.all}
+          />
+          <FilterRow
+            active={selectedPriceType === 'ratio'}
+            onClick={() => {
+              setSelectedPriceType(
+                selectedPriceType === 'ratio' ? '' : 'ratio'
+              );
+              setPage(1);
+            }}
+            icon={<Zap className="h-3.5 w-3.5" />}
+            label={t.modelPlaza.tokenBased}
+          />
+          <FilterRow
+            active={selectedPriceType === 'fixed'}
+            onClick={() => {
+              setSelectedPriceType(
+                selectedPriceType === 'fixed' ? '' : 'fixed'
+              );
+              setPage(1);
+            }}
+            icon={<Hash className="h-3.5 w-3.5" />}
+            label={t.modelPlaza.perCall}
+          />
+        </div>
       </FilterSection>
     </>
   );
@@ -554,7 +573,7 @@ export default function ModelPlazaView() {
                     <Skeleton className="mb-2 h-4 w-3/4" />
                     <Skeleton className="h-5 w-1/3" />
                   </div>
-                  <div className="border-t bg-muted/30 p-4">
+                  <div className="border-t border-border/60 p-4">
                     <Skeleton className="h-5 w-full" />
                   </div>
                 </Card>
@@ -632,14 +651,7 @@ export default function ModelPlazaView() {
                           </div>
                         </td>
                         <td className="px-4 py-3">
-                          <Badge
-                            variant="outline"
-                            className={`text-[10px] ${getProviderColor(
-                              model.provider
-                            )}`}
-                          >
-                            {model.provider}
-                          </Badge>
+                          <ProviderLogo provider={model.provider} />
                         </td>
                         <td className="px-4 py-3 text-muted-foreground">
                           {model.price_type === 'fixed'
@@ -698,12 +710,9 @@ export default function ModelPlazaView() {
                         </td>
                         <td className="px-4 py-3 text-right">
                           {hasDiscount ? (
-                            <Badge
-                              variant="destructive"
-                              className="text-[10px] font-bold"
-                            >
+                            <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold leading-none text-emerald-700 ring-1 ring-inset ring-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-500/30">
                               -{discountPercent}%
-                            </Badge>
+                            </span>
                           ) : (
                             <span className="text-muted-foreground">-</span>
                           )}

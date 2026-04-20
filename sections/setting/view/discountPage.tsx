@@ -109,7 +109,7 @@ export default function DiscountPage() {
     setFormData({
       group_key: group.group_key,
       display_name: group.display_name,
-      discount: group.discount,
+      discount: Math.round(group.discount * 100),
       sort_order: group.sort_order,
       description: group.description
     });
@@ -133,7 +133,12 @@ export default function DiscountPage() {
     try {
       setIsSaving(true);
       const isEdit = editingGroup !== null;
-      const body = isEdit ? { ...formData, id: editingGroup.id } : formData;
+      // 表单里 discount 是百分比（0-100），后端/计费语义是乘数（0-1），API 边界处转一次
+      const payload = {
+        ...formData,
+        discount: formData.discount / 100
+      };
+      const body = isEdit ? { ...payload, id: editingGroup.id } : payload;
 
       const response = await fetch('/api/group-config', {
         method: isEdit ? 'PUT' : 'POST',
@@ -260,10 +265,10 @@ export default function DiscountPage() {
                         <TableCell>
                           <Badge
                             variant={
-                              group.discount < 100 ? 'default' : 'secondary'
+                              group.discount < 1 ? 'default' : 'secondary'
                             }
                           >
-                            {group.discount}%
+                            {Math.round(group.discount * 100)}%
                           </Badge>
                         </TableCell>
                         <TableCell>{group.sort_order}</TableCell>

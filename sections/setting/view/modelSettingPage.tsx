@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Save, RefreshCcw } from 'lucide-react';
+import AffinitySection from '@/sections/channel/affinity-modal';
 
 const breadcrumbItems = [
   { title: 'Dashboard', link: '/dashboard' },
@@ -344,6 +345,20 @@ export default function ModelSettingPage() {
                 示例: {JSON.stringify(defaultReasoningEffortMap)}
               </p>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* 渠道亲和性 */}
+        <Card>
+          <CardHeader>
+            <CardTitle>渠道亲和性</CardTitle>
+            <CardDescription>
+              基于请求上下文或 JSON Body 中的
+              Key，优先复用上一次成功的渠道（粘滞选路）
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AffinitySection />
           </CardContent>
         </Card>
       </div>

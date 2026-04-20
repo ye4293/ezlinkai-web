@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useLocale } from '@/components/providers/locale-provider';
 
 interface ChannelTypeOption {
   key: number;
@@ -28,6 +29,7 @@ interface Props {
  * 留空视为 1.0（不打折）。
  */
 export default function ChannelRatiosEditor({ control }: Props) {
+  const { t } = useLocale();
   const [channelTypes, setChannelTypes] = useState<ChannelTypeOption[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -91,11 +93,11 @@ export default function ChannelRatiosEditor({ control }: Props) {
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-base font-semibold">渠道类型折扣</h3>
+        <h3 className="text-base font-semibold">{t.channelRatios.title}</h3>
         <p className="mt-1 text-sm text-muted-foreground">
-          设置后与渠道折扣、等级折扣相乘。例：设为 0.8，最终按
-          <code className="mx-1">模型官方价 × 渠道折扣 × 等级折扣 × 0.8</code>
-          计费。留空视为 1.0。
+          {t.channelRatios.descriptionPrefix}
+          <code className="mx-1">{t.channelRatios.formulaCode}</code>
+          {t.channelRatios.descriptionSuffix}
         </p>
       </div>
 

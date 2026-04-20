@@ -26,7 +26,7 @@ const LocaleContext = createContext<LocaleContextValue>({
   setLang: () => {}
 });
 
-const STORAGE_KEY = 'ezlink-locale';
+const STORAGE_KEY = 'ezlink-locale-v2';
 
 export function LocaleProvider({ children }: { children: React.ReactNode }) {
   const [lang, setLangState] = useState<Lang>('en');

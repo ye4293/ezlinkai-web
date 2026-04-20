@@ -28,6 +28,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FileUploader } from '@/components/file-uploader';
 import { Channel } from '@/lib/types/channel';
+import { useLocale } from '@/components/providers/locale-provider';
 import request from '@/app/lib/clientFetch';
 import JSONEditor from '@/components/json-editor';
 import { ModelSelectModal } from './model-select-modal';
@@ -146,6 +147,7 @@ interface ParamsOption extends Omit<Channel, 'type'> {
 export default function ChannelForm() {
   const router = useRouter();
   const { channelId } = useParams();
+  const { t } = useLocale();
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -3162,14 +3164,14 @@ ${type2secretPrompt(form.watch('type'))}`}
                 name="discount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>渠道折扣倍率</FormLabel>
+                    <FormLabel>{t.channelForm.discountLabel}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
                         min="0.01"
                         max="1"
                         step="0.01"
-                        placeholder="1.0 表示无折扣，0.7 表示七折"
+                        placeholder={t.channelForm.discountPlaceholder}
                         {...field}
                         value={field.value ?? 1}
                         onChange={(e) => {
