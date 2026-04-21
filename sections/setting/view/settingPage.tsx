@@ -45,6 +45,8 @@ export default function SettingPage() {
   const [autoDisableKeywords, setAutoDisableKeywords] = useState('');
   const [autoEnableEnabled, setAutoEnableEnabled] = useState(false);
   const [autoTestFrequency, setAutoTestFrequency] = useState(0);
+  // 响应时间阈值（秒）：自动启用时若渠道响应时间超过此值则跳过启用
+  const [channelDisableThreshold, setChannelDisableThreshold] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -153,6 +155,15 @@ export default function SettingPage() {
         );
         if (autoTestFrequencyOption) {
           setAutoTestFrequency(parseInt(autoTestFrequencyOption.value) || 0);
+        }
+
+        const channelDisableThresholdOption = options.find(
+          (o: Option) => o.key === 'ChannelDisableThreshold'
+        );
+        if (channelDisableThresholdOption) {
+          setChannelDisableThreshold(
+            parseFloat(channelDisableThresholdOption.value) || 0
+          );
         }
 
         // ==================== 加载提醒设置 ====================
@@ -276,6 +287,10 @@ export default function SettingPage() {
         {
           key: 'AutoTestChannelFrequency',
           value: autoTestFrequency.toString()
+        },
+        {
+          key: 'ChannelDisableThreshold',
+          value: channelDisableThreshold.toString()
         }
       ];
 
@@ -685,6 +700,30 @@ export default function SettingPage() {
                 <p className="text-sm text-muted-foreground">
                   系统每隔此分钟数自动测试一次所有渠道。设为 0
                   则不启用定时测试。修改后无需重启即可生效。
+                </p>
+              </div>
+
+              {/* 响应时间阈值 */}
+              <div className="grid w-full items-center gap-1.5">
+                <Label htmlFor="channel-disable-threshold">
+                  响应时间阈值（秒）
+                </Label>
+                <Input
+                  id="channel-disable-threshold"
+                  type="number"
+                  min={0}
+                  step="0.1"
+                  value={channelDisableThreshold}
+                  onChange={(e) => {
+                    const v = parseFloat(e.target.value);
+                    setChannelDisableThreshold(isNaN(v) || v < 0 ? 0 : v);
+                  }}
+                  placeholder="例如：5"
+                  className="w-48"
+                />
+                <p className="text-sm text-muted-foreground">
+                  自动测试时，若渠道响应时间超过此秒数则跳过自动启用（防止把响应过慢的渠道误恢复）。设为
+                  0 表示不校验响应时间。
                 </p>
               </div>
             </CardContent>

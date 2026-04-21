@@ -102,6 +102,7 @@ const formSchema = z.object({
     })
     .optional(),
   auto_disabled: z.boolean().default(true),
+  auto_enabled: z.boolean().default(true),
   // 测试模型：指定自动测试渠道时使用的模型名
   test_model: z.string().optional(),
   // 新增：支持 Token 计数功能（仅 Anthropic 和 AWS Claude 渠道）
@@ -138,6 +139,7 @@ interface ParamsOption extends Omit<Channel, 'type'> {
   batch_create?: boolean;
   batch_keys?: string;
   auto_disabled?: boolean;
+  auto_enabled?: boolean;
   test_model?: string;
   aggregate_mode?: boolean;
   key_selection_mode?: number;
@@ -459,14 +461,24 @@ export default function ChannelForm() {
           if (channelData.hasOwnProperty('auto_disabled')) {
             const rawValue = channelData.auto_disabled;
             if (typeof rawValue === 'boolean') {
-              // MySQL: 直接使用布尔值
               autoDisabledValue = rawValue;
             } else if (typeof rawValue === 'number') {
-              // SQLite: 转换数字为布尔值
               autoDisabledValue = rawValue === 1;
             } else {
-              // 其他情况：强制转换为布尔值
               autoDisabledValue = Boolean(rawValue);
+            }
+          }
+
+          // 处理 auto_enabled 字段的类型转换，同 auto_disabled
+          let autoEnabledValue = true;
+          if ((channelData as any).hasOwnProperty('auto_enabled')) {
+            const rawValue = (channelData as any).auto_enabled;
+            if (typeof rawValue === 'boolean') {
+              autoEnabledValue = rawValue;
+            } else if (typeof rawValue === 'number') {
+              autoEnabledValue = rawValue === 1;
+            } else {
+              autoEnabledValue = Boolean(rawValue);
             }
           }
 
@@ -502,6 +514,7 @@ export default function ChannelForm() {
             weight: channelData.weight || 0,
             discount: channelData.discount ?? 1,
             auto_disabled: autoDisabledValue,
+            auto_enabled: autoEnabledValue,
             test_model: channelData.test_model || '',
             // 新增：支持 Token 计数配置
             support_count_tokens: config.support_count_tokens || false,
@@ -575,6 +588,7 @@ export default function ChannelForm() {
       weight: 0,
       discount: 1,
       auto_disabled: true,
+      auto_enabled: true,
       test_model: '',
       support_count_tokens: false
     }
@@ -1132,6 +1146,7 @@ export default function ChannelForm() {
         weight: values.weight || 0,
         discount: values.discount ?? 1,
         auto_disabled: values.auto_disabled ?? true,
+        auto_enabled: values.auto_enabled ?? true,
         test_model: values.test_model || '',
         key_selection_mode: values.key_selection_mode || 1,
         batch_import_mode: values.batch_import_mode || 1
@@ -1289,6 +1304,7 @@ export default function ChannelForm() {
           weight: values.weight || 0,
           discount: values.discount ?? 1,
           auto_disabled: values.auto_disabled ?? true,
+          auto_enabled: values.auto_enabled ?? true,
           test_model: values.test_model || '',
           key_selection_mode: values.key_selection_mode ?? 1,
           batch_import_mode: values.batch_import_mode ?? 1,
@@ -1611,6 +1627,30 @@ export default function ChannelForm() {
                               </FormLabel>
                               <div className="text-[0.8rem] text-muted-foreground">
                                 开启后，当渠道出现错误时系统会自动禁用该渠道。关闭后，即使出现错误也不会自动禁用。
+                              </div>
+                            </div>
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                                className="data-[state=checked]:border-gray-500 data-[state=checked]:bg-gray-500"
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="auto_enabled"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+                            <div className="space-y-0.5">
+                              <FormLabel className="text-base font-medium text-gray-700 dark:text-gray-300">
+                                自动启用
+                              </FormLabel>
+                              <div className="text-[0.8rem] text-muted-foreground">
+                                开启后，被自动禁用的渠道在定时测试通过时会自动恢复为启用状态。关闭后该渠道不会被自动恢复，需手动启用。
                               </div>
                             </div>
                             <FormControl>
@@ -3197,6 +3237,27 @@ ${type2secretPrompt(form.watch('type'))}`}
                       <FormLabel className="text-base">自动禁用</FormLabel>
                       <div className="text-[0.8rem] text-muted-foreground">
                         开启后，当渠道出现错误时系统会自动禁用该渠道。关闭后，即使出现错误也不会自动禁用。
+                      </div>
+                    </div>
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="auto_enabled"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">自动启用</FormLabel>
+                      <div className="text-[0.8rem] text-muted-foreground">
+                        开启后，被自动禁用的渠道在定时测试通过时会自动恢复为启用状态。关闭后该渠道不会被自动恢复，需手动启用。
                       </div>
                     </div>
                     <FormControl>
