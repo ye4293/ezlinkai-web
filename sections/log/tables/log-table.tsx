@@ -85,7 +85,7 @@ const parseAdminInfo = (log: LogStat): number[] | null => {
 };
 
 // 展开行详情组件
-const ExpandedRowContent = ({ row }: { row: Row<LogStat> }) => {
+const ExpandedRowContentImpl = ({ row }: { row: Row<LogStat> }) => {
   const { t } = useLocale();
   const ld = t.logDetail;
   const log = row.original;
@@ -429,6 +429,12 @@ const ExpandedRowContent = ({ row }: { row: Row<LogStat> }) => {
     </div>
   );
 };
+
+// row.original 引用稳定时跳过重渲染：分页/过滤/排序不会重算已展开行
+const ExpandedRowContent = React.memo(
+  ExpandedRowContentImpl,
+  (prev, next) => prev.row.original === next.row.original
+);
 
 // 移动端卡片组件
 const MobileLogCard = ({ row }: { row: Row<LogStat> }) => {
