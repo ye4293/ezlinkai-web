@@ -2,14 +2,10 @@ import { auth } from '@/auth';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import PageContainer from '@/components/layout/page-container';
 import OptimizedChannelTable from '../tables/optimized-channel-table';
-import { buttonVariants } from '@/components/ui/button';
-import { Heading } from '@/components/ui/heading';
+import ChannelPageHeader from './channel-page-header';
 import { Separator } from '@/components/ui/separator';
 import { Channel } from '@/lib/types/channel';
 import { searchParamsCache } from '@/lib/searchparams';
-import { cn } from '@/lib/utils';
-import { Plus } from 'lucide-react';
-import Link from 'next/link';
 import { cache } from 'react';
 
 const breadcrumbItems = [
@@ -90,22 +86,7 @@ export default async function ChannelListingPage({}: TChannelListingPage) {
     <PageContainer scrollable>
       <div className="space-y-4">
         <Breadcrumbs items={breadcrumbItems} />
-
-        <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-          <div className="min-w-0 flex-1">
-            <Heading
-              title={`Channels (${totalData})`}
-              description="Manage channels (Server side table functionalities.)"
-            />
-          </div>
-
-          <Link
-            href={'/dashboard/channel/create'}
-            className={cn(buttonVariants({ variant: 'default' }), 'shrink-0')}
-          >
-            <Plus className="mr-2 h-4 w-4" /> Add New
-          </Link>
-        </div>
+        <ChannelPageHeader total={totalData} />
         <Separator />
         <OptimizedChannelTable
           initialData={channels}

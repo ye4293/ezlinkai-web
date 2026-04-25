@@ -20,12 +20,14 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { useLocale } from '@/components/providers/locale-provider';
 
 interface CellActionProps {
   data: UserSelf;
 }
 
 export const CellAction: React.FC<CellActionProps> = ({ data }) => {
+  const { t } = useLocale();
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const router = useRouter();
@@ -69,15 +71,15 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+          <DropdownMenuLabel>{t.userPage.actions.label}</DropdownMenuLabel>
 
           <DropdownMenuItem
             onClick={() => router.push(`/dashboard/user/${data.id}`)}
           >
-            <Edit className="mr-2 h-4 w-4" /> Update
+            <Edit className="mr-2 h-4 w-4" /> {t.userPage.actions.update}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setOpen(true)}>
-            <Trash className="mr-2 h-4 w-4" /> Delete
+            <Trash className="mr-2 h-4 w-4" /> {t.userPage.actions.delete}
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() =>
@@ -89,21 +91,22 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
           >
             {data.status === 1 ? (
               <>
-                <Ban className="mr-2 h-4 w-4" /> Disable
+                <Ban className="mr-2 h-4 w-4" /> {t.userPage.actions.disable}
               </>
             ) : (
               <>
-                <CircleSlash2 className="mr-2 h-4 w-4" /> Enable
+                <CircleSlash2 className="mr-2 h-4 w-4" />{' '}
+                {t.userPage.actions.enable}
               </>
             )}
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => manageUser(data.username, 'promote')}
           >
-            <MoveUp className="mr-2 h-4 w-4" /> Increase
+            <MoveUp className="mr-2 h-4 w-4" /> {t.userPage.actions.promote}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => manageUser(data.username, 'demote')}>
-            <MoveDown className="mr-2 h-4 w-4" /> Lower
+            <MoveDown className="mr-2 h-4 w-4" /> {t.userPage.actions.demote}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

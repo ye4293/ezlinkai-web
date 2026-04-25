@@ -19,6 +19,8 @@ import { CellAction } from './cell-action';
 import { toast } from 'sonner';
 import React from 'react';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
+import type { Locale } from '@/locales';
 
 // 直接使用后端返回的数据结构
 export type ChannelType = {
@@ -103,21 +105,27 @@ const formatDisableReason = (reason: string) => {
 
 // --- 单元格组件 ---
 
-// 常量化颜色映射，避免每次渲染重新创建
+// Soft pastel palette — readable in both light & dark modes
 const COLOR_CLASS_MAP: { [key: string]: string } = {
-  green: 'bg-green-500 text-white',
-  blue: 'bg-blue-500 text-white',
-  orange: 'bg-orange-500 text-white',
-  black: 'bg-gray-800 text-white',
-  olive: 'bg-lime-600 text-white',
-  brown: 'bg-amber-700 text-white',
-  violet: 'bg-violet-500 text-white',
-  purple: 'bg-purple-500 text-white',
-  teal: 'bg-teal-500 text-white',
-  red: 'bg-red-500 text-white',
-  pink: 'bg-pink-500 text-white',
-  yellow: 'bg-yellow-500 text-black',
-  gray: 'bg-gray-400 text-white'
+  green:
+    'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+  blue: 'border-blue-500/20 bg-blue-500/10 text-blue-700 dark:text-blue-300',
+  orange:
+    'border-orange-500/20 bg-orange-500/10 text-orange-700 dark:text-orange-300',
+  black: 'border-foreground/20 bg-foreground/10 text-foreground',
+  olive: 'border-lime-500/20 bg-lime-500/10 text-lime-700 dark:text-lime-300',
+  brown:
+    'border-amber-700/20 bg-amber-700/10 text-amber-800 dark:text-amber-300',
+  violet:
+    'border-violet-500/20 bg-violet-500/10 text-violet-700 dark:text-violet-300',
+  purple:
+    'border-purple-500/20 bg-purple-500/10 text-purple-700 dark:text-purple-300',
+  teal: 'border-teal-500/20 bg-teal-500/10 text-teal-700 dark:text-teal-300',
+  red: 'border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-300',
+  pink: 'border-pink-500/20 bg-pink-500/10 text-pink-700 dark:text-pink-300',
+  yellow:
+    'border-yellow-500/30 bg-yellow-500/10 text-yellow-700 dark:text-yellow-300',
+  gray: 'border-muted-foreground/20 bg-muted text-muted-foreground'
 };
 
 const TypeCell = memo(
@@ -156,7 +164,8 @@ const TypeCell = memo(
     return (
       <div className="text-center">
         <Badge
-          className={`whitespace-nowrap ${colorClasses}`}
+          variant="outline"
+          className={cn('whitespace-nowrap font-medium', colorClasses)}
           aria-label={`渠道类型: ${channelTypeInfo.text}`}
         >
           {channelTypeInfo.text}
@@ -168,22 +177,34 @@ const TypeCell = memo(
 TypeCell.displayName = 'TypeCell';
 
 const StatusCell = memo(
-  ({ row, onDataChange }: { row: Row<Channel>; onDataChange?: () => void }) => {
+  ({
+    row,
+    onDataChange,
+    t
+  }: {
+    row: Row<Channel>;
+    onDataChange?: () => void;
+    t: Locale;
+  }) => {
     const channel = row.original;
     const [isUpdating, setIsUpdating] = React.useState(false);
 
-    const handleStatusChange = async (newStatus: number) => {
-      if (isUpdating) return; // 防止重复点击
+    const statusText = (status: number) => {
+      switch (status) {
+        case 1:
+          return t.channelPage.status.enabled;
+        case 2:
+          return t.channelPage.status.manuallyDisabled;
+        case 3:
+          return t.channelPage.status.autoDisabled;
+        default:
+          return t.channelPage.status.unknown;
+      }
+    };
 
-      const oldStatus = channel.status ?? 2; // 默认为手动禁用状态
-      const getStatusText = (status: number) => {
-        const statusMap = {
-          1: '已启用',
-          2: '手动禁用',
-          3: '自动禁用'
-        };
-        return statusMap[status as keyof typeof statusMap] || '未知状态';
-      };
+    const handleStatusChange = async (newStatus: number) => {
+      if (isUpdating) return;
+      const oldStatus = channel.status ?? 2;
 
       setIsUpdating(true);
       try {
@@ -193,44 +214,33 @@ const StatusCell = memo(
         });
 
         if (result.success) {
-          toast.success(
-            `渠道状态已从「${getStatusText(oldStatus)}」变更为「${getStatusText(
-              newStatus
-            )}」`
-          );
-          onDataChange?.(); // refetch 函数已经会处理缓存失效
+          toast.success(`${statusText(oldStatus)} → ${statusText(newStatus)}`);
+          onDataChange?.();
         } else {
-          throw new Error(result.message || '状态更新失败');
+          throw new Error(result.message || 'Status update failed');
         }
       } catch (error) {
         const errorMessage =
-          error instanceof Error ? error.message : '状态更新失败';
-        toast.error(`状态更新失败: ${errorMessage}`);
+          error instanceof Error ? error.message : 'Status update failed';
+        toast.error(errorMessage);
       } finally {
         setIsUpdating(false);
       }
     };
 
-    const statusMap = {
-      1: {
-        text: '已启用',
-        color: 'bg-green-100 text-green-800',
-        switchColor: 'bg-green-500'
-      },
-      2: {
-        text: '手动禁用',
-        color: 'bg-gray-100 text-gray-800',
-        switchColor: 'bg-gray-400'
-      },
-      3: {
-        text: '自动禁用',
-        color: 'bg-orange-100 text-orange-800',
-        switchColor: 'bg-orange-500'
-      }
-    };
-    const currentStatus =
-      statusMap[channel.status as keyof typeof statusMap] || statusMap[2];
     const isEnabled = channel.status === 1;
+    const isAutoDisabled = channel.status === 3;
+
+    const dotClass = isEnabled
+      ? 'bg-emerald-500'
+      : isAutoDisabled
+      ? 'bg-orange-500'
+      : 'bg-muted-foreground/40';
+    const textClass = isEnabled
+      ? 'text-emerald-700 dark:text-emerald-400'
+      : isAutoDisabled
+      ? 'text-orange-700 dark:text-orange-400'
+      : 'text-muted-foreground';
 
     return (
       <div className="flex items-center justify-center gap-2">
@@ -238,18 +248,21 @@ const StatusCell = memo(
           checked={isEnabled}
           disabled={isUpdating}
           onCheckedChange={() => handleStatusChange(isEnabled ? 2 : 1)}
-          className={`relative h-4 w-8 cursor-pointer rounded-full p-1 transition-colors ${
-            isEnabled ? currentStatus.switchColor : 'bg-gray-300'
-          } ${isUpdating ? 'cursor-not-allowed opacity-50' : ''}`}
+          aria-label={statusText(channel.status ?? 2)}
         />
-        <Badge
-          variant="outline"
-          className={`border-transparent ${currentStatus.color} ${
-            isUpdating ? 'opacity-50' : ''
-          }`}
+        <span
+          className={cn(
+            'inline-flex items-center gap-1.5 text-xs',
+            isUpdating && 'opacity-50'
+          )}
         >
-          {isUpdating ? '更新中...' : currentStatus.text}
-        </Badge>
+          <span className={cn('h-1.5 w-1.5 rounded-full', dotClass)} />
+          <span className={textClass}>
+            {isUpdating
+              ? t.channelPage.status.updating
+              : statusText(channel.status ?? 2)}
+          </span>
+        </span>
 
         {/* 自动禁用信息 */}
         {channel.status === 3 && channel.auto_disabled_reason && (
@@ -258,17 +271,20 @@ const StatusCell = memo(
               <TooltipTrigger asChild>
                 <span className="cursor-help">⚠️</span>
               </TooltipTrigger>
-              <TooltipContent className="max-w-md shadow-lg">
-                <div className="space-y-2 p-2 font-mono text-xs">
-                  <div className="font-sans text-sm font-bold text-foreground">
+              <TooltipContent
+                side="left"
+                className="max-w-md border bg-popover p-0 text-popover-foreground shadow-lg"
+              >
+                <div className="space-y-3 p-3 text-xs">
+                  <div className="text-sm font-semibold text-foreground">
                     自动禁用详情
                   </div>
-                  <div className="space-y-1">
-                    <div className="flex">
-                      <span className="w-16 flex-shrink-0 text-muted-foreground">
+                  <div className="space-y-1.5">
+                    <div className="flex gap-3">
+                      <span className="w-12 flex-shrink-0 text-muted-foreground">
                         原因
                       </span>
-                      <span className="font-semibold text-destructive">
+                      <span className="break-all font-medium text-rose-600 dark:text-rose-400">
                         {
                           formatDisableReason(channel.auto_disabled_reason)
                             .display
@@ -276,21 +292,21 @@ const StatusCell = memo(
                       </span>
                     </div>
                     {channel.auto_disabled_model && (
-                      <div className="flex">
-                        <span className="w-16 flex-shrink-0 text-muted-foreground">
+                      <div className="flex gap-3">
+                        <span className="w-12 flex-shrink-0 text-muted-foreground">
                           模型
                         </span>
-                        <span className="font-semibold">
+                        <span className="break-all font-medium text-foreground">
                           {channel.auto_disabled_model}
                         </span>
                       </div>
                     )}
                     {channel.auto_disabled_time && (
-                      <div className="flex">
-                        <span className="w-16 flex-shrink-0 text-muted-foreground">
+                      <div className="flex gap-3">
+                        <span className="w-12 flex-shrink-0 text-muted-foreground">
                           时间
                         </span>
-                        <span className="font-semibold">
+                        <span className="font-medium tabular-nums text-foreground">
                           {dayjs
                             .unix(channel.auto_disabled_time)
                             .format('YYYY-MM-DD HH:mm:ss')}
@@ -299,10 +315,8 @@ const StatusCell = memo(
                     )}
                   </div>
                   <div>
-                    <div className="mb-1 mt-2 font-sans font-medium text-foreground">
-                      原始错误
-                    </div>
-                    <pre className="whitespace-pre-wrap rounded-md bg-muted p-2 text-xs">
+                    <div className="mb-1 text-muted-foreground">原始错误</div>
+                    <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-all rounded-md border bg-muted/50 p-2 font-mono text-[11px] leading-relaxed text-foreground">
                       <code>
                         {
                           formatDisableReason(channel.auto_disabled_reason)
@@ -322,78 +336,93 @@ const StatusCell = memo(
 );
 StatusCell.displayName = 'StatusCell';
 
-const ResponseTimeCell = memo(({ row }: { row: Row<Channel> }) => {
-  const testTime = row.original.test_time;
-  const responseTime = row.getValue('response_time') as number;
+const ResponseTimeCell = memo(
+  ({ row, t }: { row: Row<Channel>; t: Locale }) => {
+    const testTime = row.original.test_time;
+    const responseTime = row.getValue('response_time') as number;
 
-  // 数据验证
-  if (!isValidNumber(responseTime)) {
+    if (!isValidNumber(responseTime)) {
+      return (
+        <div className="text-center">
+          <span className="text-muted-foreground">—</span>
+        </div>
+      );
+    }
+
+    const getTimeDisplay = () => {
+      if (responseTime === 0) {
+        return {
+          text: t.channelPage.response.untested,
+          color: 'text-muted-foreground'
+        };
+      }
+
+      const timeInSeconds = responseTime / 1000;
+      const formattedTime = timeInSeconds.toFixed(2) + ' s';
+
+      if (timeInSeconds < 1) {
+        return {
+          text: formattedTime,
+          color: 'text-emerald-700 dark:text-emerald-400'
+        };
+      } else if (timeInSeconds < 3) {
+        return {
+          text: formattedTime,
+          color: 'text-yellow-700 dark:text-yellow-400'
+        };
+      } else if (timeInSeconds < 10) {
+        return {
+          text: formattedTime,
+          color: 'text-orange-700 dark:text-orange-400'
+        };
+      } else {
+        return {
+          text: formattedTime,
+          color: 'text-rose-700 dark:text-rose-400'
+        };
+      }
+    };
+
+    const getQualityLabel = () => {
+      if (responseTime === 0) return null;
+      if (responseTime < 1000) return t.channelPage.response.excellent;
+      if (responseTime < 3000) return t.channelPage.response.good;
+      if (responseTime < 10000) return t.channelPage.response.fair;
+      return t.channelPage.response.slow;
+    };
+
+    const timeDisplay = getTimeDisplay();
+    const testTimeFormatted = testTime
+      ? dayjs.unix(testTime).format('YYYY-MM-DD HH:mm:ss')
+      : t.channelPage.response.untested;
+
     return (
       <div className="text-center">
-        <span className="text-gray-500">无效数据</span>
+        <TooltipProvider disableHoverableContent>
+          <Tooltip delayDuration={100}>
+            <TooltipTrigger asChild>
+              <span className={cn('font-mono tabular-nums', timeDisplay.color)}>
+                {timeDisplay.text}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              <div className="text-sm">
+                <div>
+                  {t.channelPage.response.lastTest}: {testTimeFormatted}
+                </div>
+                {getQualityLabel() && (
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {getQualityLabel()}
+                  </div>
+                )}
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
     );
   }
-
-  // 格式化响应时间，添加性能指示器
-  const getTimeDisplay = () => {
-    if (responseTime === 0) {
-      return { text: '未测试', color: 'text-gray-500' };
-    }
-
-    const timeInSeconds = responseTime / 1000;
-    const formattedTime = timeInSeconds.toFixed(2) + ' s';
-
-    // 根据响应时间添加颜色指示
-    if (timeInSeconds < 1) {
-      return { text: formattedTime, color: 'text-green-600' }; // 优秀
-    } else if (timeInSeconds < 3) {
-      return { text: formattedTime, color: 'text-yellow-600' }; // 良好
-    } else if (timeInSeconds < 10) {
-      return { text: formattedTime, color: 'text-orange-600' }; // 一般
-    } else {
-      return { text: formattedTime, color: 'text-red-600' }; // 慢
-    }
-  };
-
-  const timeDisplay = getTimeDisplay();
-  const testTimeFormatted = testTime
-    ? dayjs.unix(testTime).format('YYYY-MM-DD HH:mm:ss')
-    : '未测试';
-
-  return (
-    <div className="text-center">
-      <TooltipProvider disableHoverableContent>
-        <Tooltip delayDuration={100}>
-          <TooltipTrigger asChild>
-            <span
-              className={`font-mono ${timeDisplay.color}`}
-              aria-label={`响应时间: ${timeDisplay.text}, 最后测试: ${testTimeFormatted}`}
-            >
-              {timeDisplay.text}
-            </span>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">
-            <div className="text-sm">
-              <div>最后测试: {testTimeFormatted}</div>
-              {responseTime > 0 && (
-                <div className="mt-1 text-xs text-muted-foreground">
-                  {responseTime < 1000
-                    ? '优秀'
-                    : responseTime < 3000
-                    ? '良好'
-                    : responseTime < 10000
-                    ? '一般'
-                    : '需要优化'}
-                </div>
-              )}
-            </div>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    </div>
-  );
-});
+);
 ResponseTimeCell.displayName = 'ResponseTimeCell';
 
 const UsedQuotaCell = memo(
@@ -688,11 +717,13 @@ ActionsCell.displayName = 'ActionsCell';
 export const createColumns = ({
   onManageKeys,
   onDataChange,
-  channelTypes
+  channelTypes,
+  t
 }: {
   onManageKeys: (channel: Channel) => void;
   onDataChange?: () => void;
   channelTypes: ChannelType[];
+  t: Locale;
 }): ColumnDef<Channel>[] => [
   {
     id: 'select',
@@ -717,12 +748,16 @@ export const createColumns = ({
   {
     accessorKey: 'id',
     size: 60,
-    header: () => <div className="text-center">ID</div>,
-    cell: ({ row }) => <div className="text-center">{row.getValue('id')}</div>
+    header: () => <div className="text-center">{t.channelPage.columns.id}</div>,
+    cell: ({ row }) => (
+      <div className="text-center tabular-nums text-muted-foreground">
+        {row.getValue('id')}
+      </div>
+    )
   },
   {
     accessorKey: 'name',
-    header: 'Name',
+    header: t.channelPage.columns.name,
     size: 220,
     cell: ({ row }) => {
       const channel = row.original;
@@ -736,7 +771,9 @@ export const createColumns = ({
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="block max-w-[160px] truncate">{name}</span>
+                <span className="block max-w-[160px] truncate font-medium">
+                  {name}
+                </span>
               </TooltipTrigger>
               <TooltipContent side="top">
                 <p className="max-w-xs break-all">{name}</p>
@@ -749,15 +786,16 @@ export const createColumns = ({
                 <TooltipTrigger asChild>
                   <Badge
                     variant="outline"
-                    className={`flex-shrink-0 cursor-pointer ${
+                    className={cn(
+                      'flex-shrink-0 cursor-pointer font-normal',
                       activeKeyCount > 0
-                        ? 'border-green-300 bg-green-50 text-green-700'
-                        : 'border-red-300 bg-red-50 text-red-700'
-                    }`}
+                        ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+                        : 'border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-400'
+                    )}
                     onClick={() => onManageKeys(channel)}
                   >
                     <Link className="mr-1 h-3 w-3" />
-                    聚合 {activeKeyCount}/{keyCount}
+                    {activeKeyCount}/{keyCount}
                   </Badge>
                 </TooltipTrigger>
                 <TooltipContent>
@@ -772,18 +810,32 @@ export const createColumns = ({
   },
   {
     accessorKey: 'group',
-    header: 'Group',
-    size: 150
+    header: t.channelPage.columns.group,
+    size: 150,
+    cell: ({ row }) => {
+      const v = row.getValue('group') as string;
+      return v ? (
+        <Badge variant="outline" className="font-normal">
+          {v}
+        </Badge>
+      ) : (
+        <span className="text-muted-foreground">—</span>
+      );
+    }
   },
   {
     accessorKey: 'type',
-    header: () => <div className="text-center">Type</div>,
+    header: () => (
+      <div className="text-center">{t.channelPage.columns.type}</div>
+    ),
     size: 150,
     cell: ({ row }) => <TypeCell row={row} channelTypes={channelTypes} />
   },
   {
     accessorKey: 'priority',
-    header: () => <div className="text-center">Priority</div>,
+    header: () => (
+      <div className="text-center">{t.channelPage.columns.priority}</div>
+    ),
     size: 100,
     cell: ({ row }) => (
       <EditableNumberCell
@@ -800,7 +852,9 @@ export const createColumns = ({
   },
   {
     accessorKey: 'weight',
-    header: () => <div className="text-center">Weight</div>,
+    header: () => (
+      <div className="text-center">{t.channelPage.columns.weight}</div>
+    ),
     size: 100,
     cell: ({ row }) => (
       <EditableNumberCell
@@ -817,19 +871,27 @@ export const createColumns = ({
   },
   {
     accessorKey: 'status',
-    header: () => <div className="text-center">Status</div>,
+    header: () => (
+      <div className="text-center">{t.channelPage.columns.status}</div>
+    ),
     size: 150,
-    cell: ({ row }) => <StatusCell row={row} onDataChange={onDataChange} />
+    cell: ({ row }) => (
+      <StatusCell row={row} onDataChange={onDataChange} t={t} />
+    )
   },
   {
     accessorKey: 'response_time',
-    header: () => <div className="text-center">Response Time</div>,
+    header: () => (
+      <div className="text-center">{t.channelPage.columns.responseTime}</div>
+    ),
     size: 120,
-    cell: ({ row }) => <ResponseTimeCell row={row} />
+    cell: ({ row }) => <ResponseTimeCell row={row} t={t} />
   },
   {
     accessorKey: 'used_quota',
-    header: () => <div className="text-center">Used Quota</div>,
+    header: () => (
+      <div className="text-center">{t.channelPage.columns.usedQuota}</div>
+    ),
     size: 150,
     cell: ({ row }) => <UsedQuotaCell row={row} onDataChange={onDataChange} />
   },

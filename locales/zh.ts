@@ -373,6 +373,122 @@ const zh = {
       promptLabel: '>  prompt',
       doneLabel: '✓ 完成'
     }
+  },
+  // 仪表盘
+  dashboard: {
+    welcome: '你好',
+    welcomeBack: '欢迎回来',
+    tabs: {
+      overview: '概览',
+      analytics: '数据分析'
+    },
+    cards: {
+      balance: {
+        title: '可用额度',
+        used: '已使用',
+        usedRatio: '占比'
+      },
+      throughput: {
+        title: '实时吞吐',
+        tpm: '每分钟 Tokens',
+        rpm: '每分钟请求',
+        qpm: '每分钟消耗'
+      },
+      today: {
+        title: '今日用量',
+        requests: '请求数',
+        spend: '消耗额度'
+      }
+    },
+    popularModels: {
+      title: '热门模型',
+      description: '今日共 {count} 个模型被调用'
+    }
+  },
+  // 用户管理
+  userPage: {
+    title: '用户',
+    countSuffix: '个用户',
+    description: '管理系统用户',
+    addNew: '添加用户',
+    columns: {
+      id: 'ID',
+      username: '用户名',
+      displayName: '昵称',
+      email: '邮箱',
+      group: '分组',
+      statistics: '使用统计',
+      role: '角色',
+      status: '状态',
+      actions: '操作'
+    },
+    stats: {
+      balance: '余额',
+      used: '已用',
+      requests: '请求'
+    },
+    role: {
+      user: '普通用户',
+      admin: '管理员',
+      root: '超级管理员',
+      unknown: '未知身份'
+    },
+    status: {
+      activated: '正常',
+      disabled: '已禁用',
+      unknown: '未知状态'
+    },
+    actions: {
+      label: '操作',
+      update: '编辑',
+      delete: '删除',
+      disable: '禁用',
+      enable: '启用',
+      promote: '提升角色',
+      demote: '降低角色'
+    }
+  },
+  // 渠道管理
+  channelPage: {
+    title: '渠道',
+    countSuffix: '个渠道',
+    description: '管理 AI 渠道与负载',
+    addNew: '添加渠道',
+    columns: {
+      id: 'ID',
+      name: '名称',
+      group: '分组',
+      type: '类型',
+      priority: '优先级',
+      weight: '权重',
+      status: '状态',
+      responseTime: '响应时间',
+      usedQuota: '已用配额',
+      actions: '操作'
+    },
+    status: {
+      enabled: '已启用',
+      manuallyDisabled: '手动禁用',
+      autoDisabled: '自动禁用',
+      unknown: '未知',
+      updating: '更新中…'
+    },
+    bulk: {
+      delete: '删除',
+      disable: '禁用',
+      enable: '启用'
+    },
+    response: {
+      untested: '未测试',
+      excellent: '优秀',
+      good: '良好',
+      fair: '一般',
+      slow: '需要优化',
+      lastTest: '最后测试'
+    },
+    overlay: {
+      processing: '正在处理…'
+    }
   }
 };
 

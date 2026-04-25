@@ -28,17 +28,17 @@ import {
   Twitter,
   User,
   UserCircle2Icon,
-  UserPen,
   UserX2Icon,
   X,
-  ChartNoAxesCombined,
   KeyRound,
-  Antenna,
   SquarePlay,
   Images,
   BarChart3,
-  MessageSquareCode,
-  Store
+  Store,
+  Share2,
+  FlaskConical,
+  Palette,
+  Activity
 } from 'lucide-react';
 
 export type Icon = LucideIcon;
@@ -57,7 +57,7 @@ export const Icons = {
   employee: UserX2Icon,
   post: FileText,
   page: File,
-  userPen: UserPen,
+  userPen: Palette,
   user2: UserCircle2Icon,
   media: Image,
   settings: Settings,
@@ -108,14 +108,14 @@ export const Icons = {
   ),
   twitter: Twitter,
   check: Check,
-  usage: ChartNoAxesCombined,
+  usage: Activity,
   key: KeyRound,
-  channel: Antenna,
+  channel: Share2,
   video: SquarePlay,
   images: Images,
   setting: Settings,
   file: File,
   chart: BarChart3,
-  playground: MessageSquareCode,
+  playground: FlaskConical,
   store: Store
 };

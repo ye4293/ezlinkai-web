@@ -378,6 +378,122 @@ const en: Locale = {
       promptLabel: '>  prompt',
       doneLabel: '✓ Completed'
     }
+  },
+  // Dashboard
+  dashboard: {
+    welcome: 'Hi',
+    welcomeBack: 'welcome back',
+    tabs: {
+      overview: 'Overview',
+      analytics: 'Analytics'
+    },
+    cards: {
+      balance: {
+        title: 'Available Balance',
+        used: 'Used',
+        usedRatio: 'of total'
+      },
+      throughput: {
+        title: 'Live Throughput',
+        tpm: 'Tokens / min',
+        rpm: 'Requests / min',
+        qpm: 'Spend / min'
+      },
+      today: {
+        title: "Today's Usage",
+        requests: 'Requests',
+        spend: 'Spend'
+      }
+    },
+    popularModels: {
+      title: 'Most Popular Models',
+      description: '{count} models called today'
+    }
+  },
+  // User management
+  userPage: {
+    title: 'Users',
+    countSuffix: 'users',
+    description: 'Manage system users',
+    addNew: 'Add User',
+    columns: {
+      id: 'ID',
+      username: 'Username',
+      displayName: 'Display Name',
+      email: 'Email',
+      group: 'Group',
+      statistics: 'Usage',
+      role: 'Role',
+      status: 'Status',
+      actions: 'Actions'
+    },
+    stats: {
+      balance: 'Balance',
+      used: 'Used',
+      requests: 'Requests'
+    },
+    role: {
+      user: 'User',
+      admin: 'Admin',
+      root: 'Root',
+      unknown: 'Unknown'
+    },
+    status: {
+      activated: 'Active',
+      disabled: 'Disabled',
+      unknown: 'Unknown'
+    },
+    actions: {
+      label: 'Actions',
+      update: 'Edit',
+      delete: 'Delete',
+      disable: 'Disable',
+      enable: 'Enable',
+      promote: 'Promote',
+      demote: 'Demote'
+    }
+  },
+  // Channel management
+  channelPage: {
+    title: 'Channels',
+    countSuffix: 'channels',
+    description: 'Manage AI channels & routing',
+    addNew: 'Add Channel',
+    columns: {
+      id: 'ID',
+      name: 'Name',
+      group: 'Group',
+      type: 'Type',
+      priority: 'Priority',
+      weight: 'Weight',
+      status: 'Status',
+      responseTime: 'Response Time',
+      usedQuota: 'Used Quota',
+      actions: 'Actions'
+    },
+    status: {
+      enabled: 'Enabled',
+      manuallyDisabled: 'Disabled',
+      autoDisabled: 'Auto-disabled',
+      unknown: 'Unknown',
+      updating: 'Updating…'
+    },
+    bulk: {
+      delete: 'Delete',
+      disable: 'Disable',
+      enable: 'Enable'
+    },
+    response: {
+      untested: 'Untested',
+      excellent: 'Excellent',
+      good: 'Good',
+      fair: 'Fair',
+      slow: 'Slow',
+      lastTest: 'Last test'
+    },
+    overlay: {
+      processing: 'Processing…'
+    }
   }
 };
 

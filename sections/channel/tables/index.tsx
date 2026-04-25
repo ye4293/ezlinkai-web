@@ -9,12 +9,13 @@ import { createColumns, ChannelType } from './columns';
 import { STATUS_OPTIONS, useTableFilters } from './use-table-filters';
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Trash, Ban, CircleSlash2 } from 'lucide-react';
+import { Trash, Ban, CircleSlash2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AlertModal } from '@/components/modal/alert-modal';
 import { useRouter } from 'next/navigation';
 import MultiKeyManagementModal from '../multi-key-modal';
 import { useSession } from 'next-auth/react';
+import { useLocale } from '@/components/providers/locale-provider';
 
 export default function ChannelTable({
   data,
@@ -23,6 +24,7 @@ export default function ChannelTable({
   data: Channel[];
   totalData: number;
 }) {
+  const { t } = useLocale();
   const [selectedChannels, setSelectedChannels] = useState<Channel[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -176,46 +178,13 @@ export default function ChannelTable({
         />
       )}
 
-      {/* 超明显居中加载指示器 */}
+      {/* 居中加载指示器 */}
       {loading && (
         <div className="pointer-events-none fixed inset-0 z-[9999] flex items-center justify-center">
-          {/* 半透明背景 */}
-          <div className="absolute inset-0 bg-black bg-opacity-20"></div>
-          {/* 加载提示 */}
-          <div className="relative duration-300 animate-in zoom-in-50">
-            <div className="inline-flex items-center rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-4 text-lg font-bold text-white shadow-2xl ring-4 ring-white ring-opacity-50">
-              <svg
-                className="-ml-1 mr-4 h-8 w-8 animate-spin"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                />
-              </svg>
-              <span className="text-xl">正在处理...</span>
-              <div className="ml-4 flex space-x-2">
-                <div className="h-3 w-3 animate-bounce rounded-full bg-white"></div>
-                <div
-                  className="h-3 w-3 animate-bounce rounded-full bg-white"
-                  style={{ animationDelay: '0.1s' }}
-                ></div>
-                <div
-                  className="h-3 w-3 animate-bounce rounded-full bg-white"
-                  style={{ animationDelay: '0.2s' }}
-                ></div>
-              </div>
-            </div>
+          <div className="absolute inset-0 bg-background/40 backdrop-blur-sm" />
+          <div className="relative flex items-center gap-3 rounded-lg border bg-card px-5 py-3 text-sm font-medium text-foreground shadow-lg duration-200 animate-in fade-in zoom-in-95">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            <span>{t.channelPage.overlay.processing}</span>
           </div>
         </div>
       )}
@@ -223,8 +192,8 @@ export default function ChannelTable({
       <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-1 items-center gap-4">
           <DataTableSearch
-            searchQuery={searchQuery} // 修复: value -> searchQuery
-            setSearchQuery={setSearchQuery} // 修复: onChange -> setSearchQuery
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
             setPage={setPage}
             searchKey="ID,Name,Key"
           />
@@ -232,12 +201,12 @@ export default function ChannelTable({
             filterValue={statusFilter}
             setFilterValue={setStatusFilter}
             options={STATUS_OPTIONS}
-            title="Status"
+            title={t.channelPage.columns.status}
             filterKey="status"
           />
         </div>
         <DataTableResetFilter
-          isFilterActive={isAnyFilterActive} // 修复: isFiltered -> isFilterActive
+          isFilterActive={isAnyFilterActive}
           onReset={resetFilters}
         />
       </div>
@@ -251,7 +220,7 @@ export default function ChannelTable({
               disabled={loading}
             >
               <Trash className="mr-2 h-4 w-4" />
-              删除 ({selectedChannels.length})
+              {t.channelPage.bulk.delete} ({selectedChannels.length})
             </Button>
             <Button
               variant="outline"
@@ -260,7 +229,7 @@ export default function ChannelTable({
               disabled={loading}
             >
               <Ban className="mr-2 h-4 w-4" />
-              禁用 ({selectedChannels.length})
+              {t.channelPage.bulk.disable} ({selectedChannels.length})
             </Button>
             <Button
               variant="outline"
@@ -269,7 +238,7 @@ export default function ChannelTable({
               disabled={loading}
             >
               <CircleSlash2 className="mr-2 h-4 w-4" />
-              启用 ({selectedChannels.length})
+              {t.channelPage.bulk.enable} ({selectedChannels.length})
             </Button>
           </div>
         )}
@@ -279,7 +248,8 @@ export default function ChannelTable({
         columns={createColumns({
           onManageKeys: handleOpenMultiKeyModal,
           onDataChange: () => router.refresh(),
-          channelTypes: channelTypes
+          channelTypes: channelTypes,
+          t
         })}
         data={data}
         totalItems={totalData}
