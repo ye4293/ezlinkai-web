@@ -43,6 +43,7 @@ export default function SettingPage() {
   const [retryCount, setRetryCount] = useState(0);
   const [autoDisableEnabled, setAutoDisableEnabled] = useState(false);
   const [autoDisableKeywords, setAutoDisableKeywords] = useState('');
+  const [retryKeywords, setRetryKeywords] = useState('');
   const [autoEnableEnabled, setAutoEnableEnabled] = useState(false);
   const [autoTestFrequency, setAutoTestFrequency] = useState(0);
   // 响应时间阈值（秒）：自动启用时若渠道响应时间超过此值则跳过启用
@@ -138,6 +139,13 @@ export default function SettingPage() {
         );
         if (autoDisableKeywordsOption) {
           setAutoDisableKeywords(autoDisableKeywordsOption.value || '');
+        }
+
+        const retryKeywordsOption = options.find(
+          (o: Option) => o.key === 'RetryKeywords'
+        );
+        if (retryKeywordsOption) {
+          setRetryKeywords(retryKeywordsOption.value || '');
         }
 
         const autoEnableEnabledOption = options.find(
@@ -280,6 +288,7 @@ export default function SettingPage() {
           value: autoDisableEnabled.toString()
         },
         { key: 'AutoDisableKeywords', value: autoDisableKeywords },
+        { key: 'RetryKeywords', value: retryKeywords },
         {
           key: 'AutomaticEnableChannelEnabled',
           value: autoEnableEnabled.toString()
@@ -647,6 +656,20 @@ export default function SettingPage() {
                 />
                 <p className="text-sm text-muted-foreground">
                   包括API密钥错误、余额不足、权限问题、账户被暂停等各种需要自动禁用的错误关键词
+                </p>
+              </div>
+
+              <div className="grid w-full items-center gap-1.5">
+                <Label htmlFor="retry-keywords">跨渠道重试关键词</Label>
+                <Textarea
+                  id="retry-keywords"
+                  value={retryKeywords}
+                  onChange={(e) => setRetryKeywords(e.target.value)}
+                  placeholder="一行一个关键词，例如：&#10;api key not valid&#10;billing hard limit has been reached&#10;your resource has been blocked because we detected unusual behavior"
+                  className="h-60 font-mono text-sm"
+                />
+                <p className="text-sm text-muted-foreground">
+                  上游返回的错误消息（不区分大小写）若包含任一关键词，则视为可重试错误，会自动切换到其他渠道继续尝试
                 </p>
               </div>
             </CardContent>
