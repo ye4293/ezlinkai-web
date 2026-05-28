@@ -44,65 +44,65 @@ export function useTableFilters() {
   // const [searchQuery, setSearchQuery] = useQueryState(
   //   'q',
   //   searchParams.q
-  //     .withOptions({ shallow: false, throttleMs: 1000 })
+  //     .withOptions({ shallow: true, throttleMs: 1000 })
   //     .withDefault('')
   // );
 
   const [tokenName, setTokenName] = useQueryState(
     'token_name',
     searchParams.token_name
-      .withOptions({ shallow: false, throttleMs: 1000 })
+      .withOptions({ shallow: true, throttleMs: 1000 })
       .withDefault('')
   );
 
   const [modelName, setModelName] = useQueryState(
     'model_name',
     searchParams.model_name
-      .withOptions({ shallow: false, throttleMs: 1000 })
+      .withOptions({ shallow: true, throttleMs: 1000 })
       .withDefault('')
   );
 
   const [channelId, setChannelId] = useQueryState(
     'channel',
     searchParams.channel
-      .withOptions({ shallow: false, throttleMs: 1000 })
+      .withOptions({ shallow: true, throttleMs: 1000 })
       .withDefault('')
   );
 
   const [userName, setUserName] = useQueryState(
     'username',
     searchParams.username
-      .withOptions({ shallow: false, throttleMs: 1000 })
+      .withOptions({ shallow: true, throttleMs: 1000 })
       .withDefault('')
   );
 
   const [xRequestId, setXRequestId] = useQueryState(
     'x_request_id',
     searchParams.x_request_id
-      .withOptions({ shallow: false, throttleMs: 1000 })
+      .withOptions({ shallow: true, throttleMs: 1000 })
       .withDefault('')
   );
 
   const [xResponseId, setXResponseId] = useQueryState(
     'x_response_id',
     searchParams.x_response_id
-      .withOptions({ shallow: false, throttleMs: 1000 })
+      .withOptions({ shallow: true, throttleMs: 1000 })
       .withDefault('')
   );
 
   const [typeFilter, setTypeFilter] = useQueryState(
     'type',
-    searchParams.type.withOptions({ shallow: false }).withDefault('')
+    searchParams.type.withOptions({ shallow: true }).withDefault('')
   );
 
   const [page, setPage] = useQueryState(
     'page',
-    searchParams.page.withOptions({ shallow: false }).withDefault(1)
+    searchParams.page.withOptions({ shallow: true }).withDefault(1)
   );
 
   const [pageSize, setPageSize] = useQueryState(
     'limit',
-    searchParams.limit.withOptions({ shallow: false }).withDefault(10)
+    searchParams.limit.withOptions({ shallow: true }).withDefault(10)
   );
 
   // 默认带上当天时间范围
@@ -111,14 +111,14 @@ export function useTableFilters() {
   const [startTimestamp, setStartTimestamp] = useQueryState(
     'start_timestamp',
     searchParams.start_timestamp
-      .withOptions({ shallow: false })
+      .withOptions({ shallow: true })
       .withDefault(toTimestamp(todayRange.from))
   );
 
   const [endTimestamp, setEndTimestamp] = useQueryState(
     'end_timestamp',
     searchParams.end_timestamp
-      .withOptions({ shallow: false })
+      .withOptions({ shallow: true })
       .withDefault(toTimestamp(todayRange.to))
   );
 
