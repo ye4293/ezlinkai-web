@@ -16,6 +16,9 @@ import {
   parseUsageDetails,
   parseBillingDetails,
   parseLogOther,
+  parseRetryHistory,
+  getStatusTier,
+  RetryAttempt,
   getUsageDetailsLabels,
   UsageDetails,
   getModelMappingInfo
@@ -84,6 +87,7 @@ const ExpandedRowContent = ({ row }: { row: Row<LogStat> }) => {
   const usageDetails = parseUsageDetails(log);
   const billingDetails = parseBillingDetails(log);
   const channelIds = parseAdminInfo(log);
+  const retryHistory = parseRetryHistory(log);
   const labels = getUsageDetailsLabels(ld);
 
   const getUsageEntries = (details: UsageDetails | null) => {
@@ -158,11 +162,24 @@ const ExpandedRowContent = ({ row }: { row: Row<LogStat> }) => {
             <span className="text-xs font-medium text-muted-foreground">
               {ld.channelInfo}
             </span>
-            <p className="text-sm font-medium">
-              {channelIds!.length === 1
-                ? `${channelIds![0]}`
-                : channelIds!.join(' → ')}
-            </p>
+            {retryHistory ? (
+              <p className="text-sm font-medium">
+                共 {retryHistory.length} 次尝试 ·{' '}
+                <span className="font-mono text-xs text-muted-foreground">
+                  累计{' '}
+                  {retryHistory
+                    .reduce((s, a) => s + (a.duration ?? 0), 0)
+                    .toFixed(2)}
+                  s
+                </span>
+              </p>
+            ) : (
+              <p className="text-sm font-medium">
+                {channelIds!.length === 1
+                  ? `${channelIds![0]}`
+                  : channelIds!.join(' → ')}
+              </p>
+            )}
           </div>
         )}
 
@@ -242,6 +259,95 @@ const ExpandedRowContent = ({ row }: { row: Row<LogStat> }) => {
           </div>
         )}
       </div>
+
+      {/* 重试明细表（有 retryHistory 时展示，管理员视图） */}
+      {retryHistory && (
+        <div className="mt-4 space-y-2 border-t pt-4">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-muted-foreground">
+              渠道重试明细
+            </span>
+            <span className="text-xs text-muted-foreground">
+              共 {retryHistory.length} 次 · 累计{' '}
+              {retryHistory
+                .reduce((s, a) => s + (a.duration ?? 0), 0)
+                .toFixed(2)}
+              s
+            </span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead className="text-muted-foreground">
+                <tr className="border-b">
+                  <th className="py-1.5 pr-3 text-left font-medium">#</th>
+                  <th className="py-1.5 pr-3 text-left font-medium">渠道</th>
+                  <th className="py-1.5 pr-3 text-right font-medium">耗时</th>
+                  <th className="py-1.5 pr-3 text-right font-medium">状态</th>
+                  <th className="py-1.5 text-left font-medium">报错</th>
+                </tr>
+              </thead>
+              <tbody>
+                {retryHistory.map((a: RetryAttempt, i: number) => {
+                  const isSuccess =
+                    a.status !== undefined && a.status >= 200 && a.status < 300;
+                  const isLast = i === retryHistory.length - 1;
+                  const rowBg = isLast
+                    ? isSuccess
+                      ? 'bg-emerald-50/40 dark:bg-emerald-500/5'
+                      : 'bg-rose-50/40 dark:bg-rose-500/5'
+                    : '';
+                  return (
+                    <tr
+                      key={a.attempt}
+                      className={`border-b border-muted/50 align-top last:border-b-0 ${rowBg}`}
+                    >
+                      <td className="py-1.5 pr-3">
+                        <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-muted text-[10px] font-semibold text-muted-foreground">
+                          {a.attempt}
+                        </span>
+                      </td>
+                      <td className="py-1.5 pr-3">
+                        <span className="font-medium">
+                          {a.channel_name || `#${a.channel_id}`}
+                        </span>{' '}
+                        <span className="text-muted-foreground">
+                          #{a.channel_id}
+                        </span>
+                        {typeof a.key_index === 'number' && a.key_index > 0 && (
+                          <span className="ml-1 rounded bg-muted px-1 py-0.5 text-[10px] text-muted-foreground">
+                            key{a.key_index}
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-1.5 pr-3 text-right font-mono text-[11px] text-muted-foreground">
+                        {typeof a.duration === 'number'
+                          ? `${a.duration.toFixed(2)}s`
+                          : '-'}
+                      </td>
+                      <td className="py-1.5 pr-3 text-right">
+                        <span
+                          className={`inline-flex items-center rounded px-1.5 py-0.5 font-mono text-[10px] font-medium ring-1 ring-inset ${getStatusTier(
+                            a.status
+                          )}`}
+                        >
+                          {a.status ?? '-'}
+                        </span>
+                      </td>
+                      <td className="break-words py-1.5 text-left text-muted-foreground">
+                        {a.error
+                          ? a.error
+                          : isLast && isSuccess
+                          ? '✓ 成功'
+                          : '-'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* 计费详情 */}
       {hasBillingDetails && (
