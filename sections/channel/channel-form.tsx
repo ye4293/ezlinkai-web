@@ -73,6 +73,8 @@ const formSchema = z.object({
   // Vertex AI 新增配置
   vertex_key_type: z.enum(['json', 'api_key']).optional(), // 密钥格式
   vertex_model_region: z.string().optional(), // 模型专用区域 JSON
+  // AWS Bedrock 密钥格式
+  aws_key_type: z.string().optional(), // ak_sk 或 api_key，空则自动识别
   user_id: z.string().optional(),
   model_mapping: z.string().optional(),
   header_override: z.string().optional(), // 自定义请求头覆盖
@@ -506,6 +508,8 @@ export default function ChannelForm() {
                 ? JSON.stringify(config.vertex_model_region, null, 2)
                 : config.vertex_model_region
               : '',
+            // AWS Bedrock 密钥格式
+            aws_key_type: config.aws_key_type || '',
             model_mapping: channelData.model_mapping || '',
             header_override: channelData.header_override || '',
             models: channelData.models?.split(',') || [],
@@ -579,6 +583,7 @@ export default function ChannelForm() {
       google_storage: undefined,
       vertex_key_type: 'json',
       vertex_model_region: undefined,
+      aws_key_type: undefined,
       user_id: undefined,
       model_mapping: undefined,
       header_override: undefined,
@@ -1113,6 +1118,8 @@ export default function ChannelForm() {
         // Vertex AI 新增配置
         if (values.vertex_key_type)
           config.vertex_key_type = values.vertex_key_type;
+        // AWS Bedrock 密钥格式
+        if (values.aws_key_type) config.aws_key_type = values.aws_key_type;
         if (values.vertex_model_region) {
           try {
             // 解析并存储模型区域映射
@@ -2317,6 +2324,42 @@ export default function ChannelForm() {
 
               {form.watch('type') === '33' && (
                 <>
+                  {/* 密钥格式选择 */}
+                  <FormField
+                    control={form.control}
+                    name="aws_key_type"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>密钥格式</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value || ''}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="不选则自动识别格式" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="ak_sk">
+                              AK|SK|Region（SigV4）
+                            </SelectItem>
+                            <SelectItem value="api_key">
+                              Bedrock API Key（Bearer）
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <div className="text-[0.8rem] text-muted-foreground">
+                          {!field.value
+                            ? '不选时后端按密钥内容自动识别：2段=Bedrock API Key，3段=AK|SK|Region'
+                            : field.value === 'ak_sk'
+                            ? '格式：AccessKey|SecretKey|Region，每行一个'
+                            : '格式：BedrockAPIKey|Region，每行一个（BedrockAPIKey 为 Base64 编码）'}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   <FormField
                     control={form.control}
                     name="key"
@@ -2325,7 +2368,11 @@ export default function ChannelForm() {
                         <FormLabel>密钥（Key）</FormLabel>
                         <FormControl>
                           <Textarea
-                            placeholder="请输入 AWS 密钥，每行一个，格式为：AK|SK|Region"
+                            placeholder={
+                              form.watch('aws_key_type') === 'api_key'
+                                ? '每行一个，格式：BedrockAPIKey|Region'
+                                : '每行一个，格式：AK|SK|Region'
+                            }
                             {...field}
                           />
                         </FormControl>
