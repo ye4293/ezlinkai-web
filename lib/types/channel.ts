@@ -79,6 +79,8 @@ export interface Channel {
   balance?: number;
   /** 渠道折扣倍率 */
   discount?: number;
+  /** 渠道扩展设置（JSON 字符串），含上游模型巡检配置 */
+  other_settings?: string;
 }
 
 export type ModelResult = {

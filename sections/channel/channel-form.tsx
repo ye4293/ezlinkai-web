@@ -188,6 +188,20 @@ export default function ChannelForm() {
   const [modelSelectModalOpen, setModelSelectModalOpen] = useState(false);
   const [isFetchingModels, setIsFetchingModels] = useState(false);
 
+  // 上游模型巡检相关状态
+  const [upstreamOtherSettings, setUpstreamOtherSettings] = useState<
+    Record<string, any>
+  >({});
+  const [upstreamCheckEnabled, setUpstreamCheckEnabled] = useState(false);
+  const [upstreamAutoSyncEnabled, setUpstreamAutoSyncEnabled] = useState(false);
+  const [upstreamDetectResult, setUpstreamDetectResult] = useState<{
+    addModels: string[];
+    removeModels: string[];
+    lastCheckTime: number;
+  } | null>(null);
+  const [isDetecting, setIsDetecting] = useState(false);
+  const [isApplyingUpstream, setIsApplyingUpstream] = useState(false);
+
   // 复制到剪贴板的功能
   const copyToClipboard = async (text: string) => {
     try {
@@ -317,6 +331,87 @@ export default function ChannelForm() {
       toast.error(error.message || '获取模型列表失败');
     } finally {
       setIsFetchingModels(false);
+    }
+  };
+
+  // 上游模型巡检：立即检测
+  const handleDetectUpstream = async () => {
+    setIsDetecting(true);
+    try {
+      const res = await fetch('/api/channel/upstream_updates/detect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: Number(channelId) }),
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (data.success) {
+        setUpstreamDetectResult({
+          addModels: data.data.add_models || [],
+          removeModels: data.data.remove_models || [],
+          lastCheckTime: data.data.last_check_time || 0
+        });
+        const { toast } = await import('sonner');
+        const addCount = (data.data.add_models || []).length;
+        const rmCount = (data.data.remove_models || []).length;
+        toast.success(`检测完成：新增 ${addCount} 个，待删除 ${rmCount} 个`);
+      } else {
+        const { toast } = await import('sonner');
+        toast.error(data.message || '检测失败');
+      }
+    } catch (e: any) {
+      const { toast } = await import('sonner');
+      toast.error(e.message || '检测失败');
+    } finally {
+      setIsDetecting(false);
+    }
+  };
+
+  // 上游模型巡检：应用变更
+  const handleApplyUpstream = async (
+    addModels: string[],
+    removeModels: string[],
+    ignoreModels: string[]
+  ) => {
+    setIsApplyingUpstream(true);
+    try {
+      const res = await fetch('/api/channel/upstream_updates/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: Number(channelId),
+          add_models: addModels,
+          remove_models: removeModels,
+          ignore_models: ignoreModels
+        }),
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (data.success) {
+        // 更新表单中的模型列表
+        if (data.data.models) {
+          form.setValue('models', data.data.models.split(',').filter(Boolean));
+        }
+        setUpstreamDetectResult({
+          addModels: data.data.remaining_models || [],
+          removeModels: data.data.remaining_remove_models || [],
+          lastCheckTime: Math.floor(Date.now() / 1000)
+        });
+        const { toast } = await import('sonner');
+        toast.success(
+          `已应用：新增 ${(data.data.added_models || []).length} 个，删除 ${
+            (data.data.removed_models || []).length
+          } 个`
+        );
+      } else {
+        const { toast } = await import('sonner');
+        toast.error(data.message || '应用失败');
+      }
+    } catch (e: any) {
+      const { toast } = await import('sonner');
+      toast.error(e.message || '应用失败');
+    } finally {
+      setIsApplyingUpstream(false);
     }
   };
 
@@ -528,6 +623,28 @@ export default function ChannelForm() {
             batch_import_mode:
               (channelData as any).multi_key_info?.batch_import_mode ?? 1
           });
+
+          // 解析并初始化上游模型巡检设置
+          try {
+            const raw = (channelData as any).other_settings;
+            if (raw) {
+              const os = typeof raw === 'string' ? JSON.parse(raw) : raw;
+              setUpstreamOtherSettings(os);
+              setUpstreamCheckEnabled(!!os.upstream_model_update_check_enabled);
+              setUpstreamAutoSyncEnabled(
+                !!os.upstream_model_update_auto_sync_enabled
+              );
+              const addMs = os.upstream_model_update_last_detected_models || [];
+              const rmMs = os.upstream_model_update_last_removed_models || [];
+              if (addMs.length > 0 || rmMs.length > 0) {
+                setUpstreamDetectResult({
+                  addModels: addMs,
+                  removeModels: rmMs,
+                  lastCheckTime: os.upstream_model_update_last_check_time || 0
+                });
+              }
+            }
+          } catch (_) {}
 
           // 初始化 Vertex AI 模型区域映射状态
           if (config.vertex_model_region) {
@@ -1313,6 +1430,11 @@ export default function ChannelForm() {
           auto_disabled: values.auto_disabled ?? true,
           auto_enabled: values.auto_enabled ?? true,
           test_model: values.test_model || '',
+          other_settings: JSON.stringify({
+            ...upstreamOtherSettings,
+            upstream_model_update_check_enabled: upstreamCheckEnabled,
+            upstream_model_update_auto_sync_enabled: upstreamAutoSyncEnabled
+          }),
           key_selection_mode: values.key_selection_mode ?? 1,
           batch_import_mode: values.batch_import_mode ?? 1,
           ...(channelData && { id: (channelData as any).id }),
@@ -3436,6 +3558,215 @@ ${type2secretPrompt(form.watch('type'))}`}
                   />
                 </div>
               )}
+
+              {/* 上游模型巡检配置 */}
+              <div className="rounded-lg border border-indigo-200 bg-indigo-50/50 p-5 dark:border-indigo-800 dark:bg-indigo-950/30">
+                <h3 className="mb-4 flex items-center gap-2 text-lg font-medium text-indigo-800 dark:text-indigo-200">
+                  <span>🔄</span> 上游模型巡检
+                </h3>
+                <div className="space-y-4">
+                  {/* 开启巡检开关 */}
+                  <div className="flex flex-row items-center justify-between rounded-lg border border-indigo-200 bg-white p-4 dark:border-indigo-700 dark:bg-gray-800">
+                    <div className="space-y-0.5">
+                      <div className="text-base font-medium text-gray-700 dark:text-gray-300">
+                        开启上游模型巡检
+                      </div>
+                      <div className="text-[0.8rem] text-muted-foreground">
+                        开启后，系统每 30
+                        分钟自动检测上游是否有新增或删除的模型（可通过环境变量调整间隔）
+                      </div>
+                    </div>
+                    <Checkbox
+                      checked={upstreamCheckEnabled}
+                      onCheckedChange={(v) => setUpstreamCheckEnabled(!!v)}
+                      className="data-[state=checked]:border-indigo-500 data-[state=checked]:bg-indigo-500"
+                    />
+                  </div>
+
+                  {/* 自动同步开关 - 仅当巡检开启时显示 */}
+                  {upstreamCheckEnabled && (
+                    <div className="flex flex-row items-center justify-between rounded-lg border border-indigo-200 bg-white p-4 dark:border-indigo-700 dark:bg-gray-800">
+                      <div className="space-y-0.5">
+                        <div className="text-base font-medium text-gray-700 dark:text-gray-300">
+                          自动同步新增模型
+                        </div>
+                        <div className="text-[0.8rem] text-muted-foreground">
+                          开启后，巡检发现的新增模型会自动加入到渠道的模型列表中（仅新增，不会删除）
+                        </div>
+                      </div>
+                      <Checkbox
+                        checked={upstreamAutoSyncEnabled}
+                        onCheckedChange={(v) => setUpstreamAutoSyncEnabled(!!v)}
+                        className="data-[state=checked]:border-indigo-500 data-[state=checked]:bg-indigo-500"
+                      />
+                    </div>
+                  )}
+
+                  {/* 手动检测 - 仅编辑模式 */}
+                  {channelId && channelId !== 'create' && (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={isDetecting}
+                          onClick={handleDetectUpstream}
+                          className="border-indigo-300 text-indigo-700 hover:bg-indigo-50 dark:border-indigo-600 dark:text-indigo-300"
+                        >
+                          {isDetecting ? '检测中...' : '🔍 立即检测'}
+                        </Button>
+                        {upstreamDetectResult?.lastCheckTime ? (
+                          <span className="text-xs text-muted-foreground">
+                            上次检测：
+                            {new Date(
+                              upstreamDetectResult.lastCheckTime * 1000
+                            ).toLocaleString()}
+                          </span>
+                        ) : null}
+                      </div>
+
+                      {/* 检测结果展示 */}
+                      {upstreamDetectResult &&
+                        (upstreamDetectResult.addModels.length > 0 ||
+                          upstreamDetectResult.removeModels.length > 0) && (
+                          <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-700 dark:bg-yellow-950/40">
+                            <div className="mb-3 font-medium text-yellow-800 dark:text-yellow-200">
+                              待处理变更
+                            </div>
+                            <div className="space-y-3">
+                              {upstreamDetectResult.addModels.length > 0 && (
+                                <div>
+                                  <div className="mb-1 flex items-center justify-between">
+                                    <span className="text-sm font-medium text-green-700 dark:text-green-400">
+                                      ➕ 新增模型 (
+                                      {upstreamDetectResult.addModels.length})
+                                    </span>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="outline"
+                                      disabled={isApplyingUpstream}
+                                      onClick={() =>
+                                        handleApplyUpstream(
+                                          upstreamDetectResult.addModels,
+                                          [],
+                                          []
+                                        )
+                                      }
+                                      className="h-6 border-green-300 px-2 text-xs text-green-700 hover:bg-green-50 dark:border-green-600 dark:text-green-300"
+                                    >
+                                      全部添加
+                                    </Button>
+                                  </div>
+                                  <div className="flex flex-wrap gap-1">
+                                    {upstreamDetectResult.addModels
+                                      .slice(0, 12)
+                                      .map((m) => (
+                                        <span
+                                          key={m}
+                                          className="rounded bg-green-100 px-2 py-0.5 text-xs text-green-800 dark:bg-green-900 dark:text-green-200"
+                                        >
+                                          {m}
+                                        </span>
+                                      ))}
+                                    {upstreamDetectResult.addModels.length >
+                                      12 && (
+                                      <span className="text-xs text-muted-foreground">
+                                        +
+                                        {upstreamDetectResult.addModels.length -
+                                          12}{' '}
+                                        个
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                              {upstreamDetectResult.removeModels.length > 0 && (
+                                <div>
+                                  <div className="mb-1 flex items-center justify-between">
+                                    <span className="text-sm font-medium text-red-600 dark:text-red-400">
+                                      ➖ 待删除模型 (
+                                      {upstreamDetectResult.removeModels.length}
+                                      )
+                                    </span>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="outline"
+                                      disabled={isApplyingUpstream}
+                                      onClick={() =>
+                                        handleApplyUpstream(
+                                          [],
+                                          upstreamDetectResult.removeModels,
+                                          []
+                                        )
+                                      }
+                                      className="h-6 border-red-300 px-2 text-xs text-red-600 hover:bg-red-50 dark:border-red-600 dark:text-red-400"
+                                    >
+                                      全部删除
+                                    </Button>
+                                  </div>
+                                  <div className="flex flex-wrap gap-1">
+                                    {upstreamDetectResult.removeModels
+                                      .slice(0, 12)
+                                      .map((m) => (
+                                        <span
+                                          key={m}
+                                          className="rounded bg-red-100 px-2 py-0.5 text-xs text-red-700 dark:bg-red-900 dark:text-red-300"
+                                        >
+                                          {m}
+                                        </span>
+                                      ))}
+                                    {upstreamDetectResult.removeModels.length >
+                                      12 && (
+                                      <span className="text-xs text-muted-foreground">
+                                        +
+                                        {upstreamDetectResult.removeModels
+                                          .length - 12}{' '}
+                                        个
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                              {upstreamDetectResult.addModels.length > 0 &&
+                                upstreamDetectResult.removeModels.length >
+                                  0 && (
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    disabled={isApplyingUpstream}
+                                    onClick={() =>
+                                      handleApplyUpstream(
+                                        upstreamDetectResult.addModels,
+                                        upstreamDetectResult.removeModels,
+                                        []
+                                      )
+                                    }
+                                    className="bg-indigo-600 text-white hover:bg-indigo-700"
+                                  >
+                                    {isApplyingUpstream
+                                      ? '应用中...'
+                                      : '✅ 全部应用（新增 + 删除）'}
+                                  </Button>
+                                )}
+                            </div>
+                          </div>
+                        )}
+
+                      {upstreamDetectResult &&
+                        upstreamDetectResult.addModels.length === 0 &&
+                        upstreamDetectResult.removeModels.length === 0 &&
+                        upstreamDetectResult.lastCheckTime > 0 && (
+                          <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm text-green-700 dark:border-green-700 dark:bg-green-950/30 dark:text-green-300">
+                            ✅ 上游模型列表与当前配置一致，无变更
+                          </div>
+                        )}
+                    </div>
+                  )}
+                </div>
+              </div>
 
               {/* 提交按钮区域 */}
               <div className="rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
