@@ -8,6 +8,11 @@ import {
   TooltipTrigger,
   TooltipProvider
 } from '@/components/ui/tooltip';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger
+} from '@/components/ui/popover';
 import { LogStat } from '@/lib/types/log';
 import { ColumnDef } from '@tanstack/react-table';
 import { CopyableCell } from '@/components/ui/copyable-cell';
@@ -115,28 +120,61 @@ export const parseBillingDetails = (row: LogStat): BillingDetails | null => {
 // other 字段解析缓存，避免每列每行重复解析
 const otherParseCache = new WeakMap<LogStat, Record<string, any> | null>();
 
-// 从分号分隔格式中提取 JSON 对象（如 usageDetails:{...}）
+// 从分号分隔格式中提取 JSON 对象或数组（如 usageDetails:{...} 或 retryHistory:[...]）
+// 支持 { } 和 [ ] 配对，遵循字符串字面量内的字符及反斜杠转义
 const extractJsonFromSemicolonFormat = (
   str: string,
   key: string
 ): any | null => {
   const index = str.indexOf(`${key}:`);
   if (index === -1) return null;
-  const startIndex = str.indexOf('{', index);
-  if (startIndex === -1) return null;
-  let braceCount = 0;
-  let endIndex = startIndex;
+
+  // 找到 ':' 之后第一个 '{' 或 '['
+  let startIndex = -1;
+  let openChar: '{' | '[' | null = null;
+  for (let i = index + key.length + 1; i < str.length; i++) {
+    if (str[i] === '{' || str[i] === '[') {
+      startIndex = i;
+      openChar = str[i] as '{' | '[';
+      break;
+    }
+    // 遇到分号说明没有 JSON 块
+    if (str[i] === ';') return null;
+  }
+  if (startIndex === -1 || openChar === null) return null;
+  const closeChar = openChar === '{' ? '}' : ']';
+
+  let depth = 0;
+  let inStr = false;
+  let escape = false;
+  let endIndex = -1;
   for (let i = startIndex; i < str.length; i++) {
-    if (str[i] === '{') braceCount++;
-    else if (str[i] === '}') {
-      braceCount--;
-      if (braceCount === 0) {
+    const ch = str[i];
+    if (inStr) {
+      if (escape) {
+        escape = false;
+        continue;
+      }
+      if (ch === '\\') {
+        escape = true;
+        continue;
+      }
+      if (ch === '"') inStr = false;
+      continue;
+    }
+    if (ch === '"') {
+      inStr = true;
+    } else if (ch === openChar) {
+      depth++;
+    } else if (ch === closeChar) {
+      depth--;
+      if (depth === 0) {
         endIndex = i;
         break;
       }
     }
   }
-  if (braceCount !== 0) return null;
+  if (endIndex === -1) return null;
   try {
     return JSON.parse(str.substring(startIndex, endIndex + 1));
   } catch {
@@ -192,6 +230,9 @@ export const parseLogOther = (row: LogStat): Record<string, any> | null => {
     'billingDetails'
   );
   if (billingDetails) result.billingDetails = billingDetails;
+  // retryHistory（数组）：仅管理员日志会出现，普通用户接口由 stripAdminInfoFromLogs 剥掉
+  const retryHistory = extractJsonFromSemicolonFormat(other, 'retryHistory');
+  if (Array.isArray(retryHistory)) result.retryHistory = retryHistory;
 
   const hasData = Object.keys(result).length > 0;
   otherParseCache.set(row, hasData ? result : null);
@@ -212,6 +253,26 @@ export const getModelMappingInfo = (
 // 截断字符串
 const truncateStr = (name: string, max: number) =>
   name.length > max ? `${name.substring(0, max)}...` : name;
+
+// 重试明细单条结构（与后端 util.RetryAttempt 对齐）
+export interface RetryAttempt {
+  attempt: number;
+  channel_id: number;
+  channel_name?: string;
+  key_index?: number;
+  duration?: number;
+  error?: string;
+  status?: number;
+}
+
+// 解析结构化的重试历史（管理员视图）；普通用户接口已被服务端剥离，永远返回 null
+export const parseRetryHistory = (row: LogStat): RetryAttempt[] | null => {
+  const parsed = parseLogOther(row);
+  if (!parsed) return null;
+  const list = parsed.retry_history || parsed.retryHistory;
+  if (!Array.isArray(list) || list.length === 0) return null;
+  return list as RetryAttempt[];
+};
 
 // 解析重试序列
 const parseRetrySequence = (
@@ -304,6 +365,16 @@ export const getDurationTier = (duration: number) =>
 /** Speed 颜色：越高越好 */
 export const getSpeedTier = (speed: number) =>
   speed >= 50 ? TIER_EMERALD : speed >= 20 ? TIER_AMBER : TIER_ROSE;
+
+/** HTTP 状态码颜色:2xx 绿 / 4xx 黄 / 5xx 红 / 无 灰 */
+export const getStatusTier = (status?: number) => {
+  if (!status) {
+    return 'bg-gray-100 text-gray-600 ring-gray-300 dark:bg-gray-500/10 dark:text-gray-400 dark:ring-gray-500/30';
+  }
+  if (status >= 200 && status < 300) return TIER_EMERALD;
+  if (status >= 500) return TIER_ROSE;
+  return TIER_AMBER;
+};
 
 export const columns: ColumnDef<LogStat>[] = [
   {
@@ -553,40 +624,140 @@ export const columns: ColumnDef<LogStat>[] = [
   {
     id: 'retry',
     accessorKey: 'other',
-    header: () => <div className="w-24 text-center">重试</div>,
-    size: 120,
+    header: () => <div className="w-20 text-center">重试</div>,
+    size: 100,
     cell: ({ row }) => {
       const parsed = parseRetrySequence(row.original);
+      const history = parseRetryHistory(row.original);
 
-      if (!parsed) {
-        return <div className="w-24 text-center">-</div>;
+      if (!parsed && !history) {
+        return <div className="w-20 text-center text-muted-foreground">-</div>;
       }
 
-      const { channelIds, retrySequence, displayText } = parsed;
+      const attemptCount = history?.length ?? parsed!.channelIds.length;
+      // 单次成功（attemptCount===1）不视为重试，直接显示 "-"
+      if (attemptCount <= 1) {
+        return <div className="w-20 text-center text-muted-foreground">-</div>;
+      }
+
+      // 最终结果：优先看 history 最后一条的 status，否则用 row.type==2 (Consume) 推断成功
+      const lastAttempt = history?.[history.length - 1];
+      const finalSuccess = lastAttempt
+        ? lastAttempt.status !== undefined &&
+          lastAttempt.status >= 200 &&
+          lastAttempt.status < 300
+        : row.original.type === 2;
+
+      const totalDuration = history?.reduce((s, a) => s + (a.duration ?? 0), 0);
+
+      const badgeColor = finalSuccess
+        ? 'bg-emerald-50 text-emerald-700 ring-emerald-500/30 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-500/30 dark:hover:bg-emerald-500/20'
+        : 'bg-rose-50 text-rose-700 ring-rose-500/30 hover:bg-rose-100 dark:bg-rose-500/10 dark:text-rose-400 dark:ring-rose-500/30 dark:hover:bg-rose-500/20';
 
       return (
-        <div className="w-24 text-center">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span
-                  className="inline-block max-w-full cursor-help truncate font-mono text-xs text-blue-600"
-                  title={retrySequence}
-                >
-                  {displayText}
+        <div className="w-20 text-center">
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                aria-label={`查看 ${attemptCount} 次重试明细`}
+                onClick={(e) => e.stopPropagation()}
+                className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 font-mono text-xs font-medium ring-1 ring-inset transition-colors ${badgeColor}`}
+              >
+                <span className="text-[10px]">↻</span>
+                <span>{attemptCount}</span>
+                <span>{finalSuccess ? '✓' : '✗'}</span>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent
+              side="left"
+              align="start"
+              className="w-[28rem] max-w-[90vw] p-0"
+            >
+              <div className="flex items-center justify-between border-b px-4 py-2.5">
+                <p className="text-sm font-semibold">重试明细</p>
+                <span className="text-xs text-muted-foreground">
+                  {`共 ${attemptCount} 次`}
+                  {typeof totalDuration === 'number' && totalDuration > 0
+                    ? ` · 累计 ${totalDuration.toFixed(2)}s`
+                    : ''}
                 </span>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="max-w-xs">
-                <div className="space-y-1">
-                  <p className="font-medium">渠道重试序列</p>
-                  <p className="break-all font-mono text-xs">{retrySequence}</p>
-                  <p className="text-xs text-muted-foreground">
-                    共 {channelIds.length} 次尝试
+              </div>
+
+              {history ? (
+                <div className="max-h-[24rem] overflow-y-auto">
+                  {history.map((a, i) => {
+                    const isSuccess =
+                      a.status !== undefined &&
+                      a.status >= 200 &&
+                      a.status < 300;
+                    const isLast = i === history.length - 1;
+                    const rowBg = isLast
+                      ? isSuccess
+                        ? 'bg-emerald-50/40 dark:bg-emerald-500/5'
+                        : 'bg-rose-50/40 dark:bg-rose-500/5'
+                      : '';
+                    return (
+                      <div
+                        key={a.attempt}
+                        className={`flex gap-3 px-4 py-2.5 text-xs ${
+                          i > 0 ? 'border-t' : ''
+                        } ${rowBg}`}
+                      >
+                        <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-semibold text-muted-foreground">
+                          {a.attempt}
+                        </div>
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <span className="truncate font-medium">
+                              {a.channel_name || `#${a.channel_id}`}
+                            </span>
+                            <span className="text-muted-foreground">
+                              #{a.channel_id}
+                            </span>
+                            {typeof a.key_index === 'number' &&
+                              a.key_index > 0 && (
+                                <span className="rounded bg-muted px-1 py-0.5 text-[10px] text-muted-foreground">
+                                  key{a.key_index}
+                                </span>
+                              )}
+                            <span
+                              className={`ml-auto inline-flex items-center rounded px-1.5 py-0.5 font-mono text-[10px] font-medium ring-1 ring-inset ${getStatusTier(
+                                a.status
+                              )}`}
+                            >
+                              {a.status ?? '-'}
+                            </span>
+                            <span className="font-mono text-[10px] text-muted-foreground">
+                              {typeof a.duration === 'number'
+                                ? `${a.duration.toFixed(2)}s`
+                                : '-'}
+                            </span>
+                          </div>
+                          {a.error ? (
+                            <p className="break-words text-muted-foreground">
+                              {a.error}
+                            </p>
+                          ) : isLast && isSuccess ? (
+                            <p className="text-emerald-600 dark:text-emerald-400">
+                              ✓ 成功
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="space-y-1.5 px-4 py-3">
+                  <p className="text-xs text-muted-foreground">渠道序列</p>
+                  <p className="break-all font-mono text-xs">
+                    {parsed!.channelIds.join(' → ')}
                   </p>
                 </div>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+              )}
+            </PopoverContent>
+          </Popover>
         </div>
       );
     },

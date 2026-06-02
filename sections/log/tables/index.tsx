@@ -16,13 +16,15 @@ import {
   parseUsageDetails,
   parseBillingDetails,
   parseLogOther,
+  parseRetryHistory,
+  getStatusTier,
+  RetryAttempt,
   getUsageDetailsLabels,
   UsageDetails,
   getModelMappingInfo
 } from './columns';
 import { useTableFilters } from './use-table-filters';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useScreenSize } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
@@ -85,6 +87,7 @@ const ExpandedRowContent = ({ row }: { row: Row<LogStat> }) => {
   const usageDetails = parseUsageDetails(log);
   const billingDetails = parseBillingDetails(log);
   const channelIds = parseAdminInfo(log);
+  const retryHistory = parseRetryHistory(log);
   const labels = getUsageDetailsLabels(ld);
 
   const getUsageEntries = (details: UsageDetails | null) => {
@@ -159,11 +162,24 @@ const ExpandedRowContent = ({ row }: { row: Row<LogStat> }) => {
             <span className="text-xs font-medium text-muted-foreground">
               {ld.channelInfo}
             </span>
-            <p className="text-sm font-medium">
-              {channelIds!.length === 1
-                ? `${channelIds![0]}`
-                : channelIds!.join(' → ')}
-            </p>
+            {retryHistory ? (
+              <p className="text-sm font-medium">
+                共 {retryHistory.length} 次尝试 ·{' '}
+                <span className="font-mono text-xs text-muted-foreground">
+                  累计{' '}
+                  {retryHistory
+                    .reduce((s, a) => s + (a.duration ?? 0), 0)
+                    .toFixed(2)}
+                  s
+                </span>
+              </p>
+            ) : (
+              <p className="text-sm font-medium">
+                {channelIds!.length === 1
+                  ? `${channelIds![0]}`
+                  : channelIds!.join(' → ')}
+              </p>
+            )}
           </div>
         )}
 
@@ -243,6 +259,95 @@ const ExpandedRowContent = ({ row }: { row: Row<LogStat> }) => {
           </div>
         )}
       </div>
+
+      {/* 重试明细表（有 retryHistory 时展示，管理员视图） */}
+      {retryHistory && (
+        <div className="mt-4 space-y-2 border-t pt-4">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-muted-foreground">
+              渠道重试明细
+            </span>
+            <span className="text-xs text-muted-foreground">
+              共 {retryHistory.length} 次 · 累计{' '}
+              {retryHistory
+                .reduce((s, a) => s + (a.duration ?? 0), 0)
+                .toFixed(2)}
+              s
+            </span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead className="text-muted-foreground">
+                <tr className="border-b">
+                  <th className="py-1.5 pr-3 text-left font-medium">#</th>
+                  <th className="py-1.5 pr-3 text-left font-medium">渠道</th>
+                  <th className="py-1.5 pr-3 text-right font-medium">耗时</th>
+                  <th className="py-1.5 pr-3 text-right font-medium">状态</th>
+                  <th className="py-1.5 text-left font-medium">报错</th>
+                </tr>
+              </thead>
+              <tbody>
+                {retryHistory.map((a: RetryAttempt, i: number) => {
+                  const isSuccess =
+                    a.status !== undefined && a.status >= 200 && a.status < 300;
+                  const isLast = i === retryHistory.length - 1;
+                  const rowBg = isLast
+                    ? isSuccess
+                      ? 'bg-emerald-50/40 dark:bg-emerald-500/5'
+                      : 'bg-rose-50/40 dark:bg-rose-500/5'
+                    : '';
+                  return (
+                    <tr
+                      key={a.attempt}
+                      className={`border-b border-muted/50 align-top last:border-b-0 ${rowBg}`}
+                    >
+                      <td className="py-1.5 pr-3">
+                        <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-muted text-[10px] font-semibold text-muted-foreground">
+                          {a.attempt}
+                        </span>
+                      </td>
+                      <td className="py-1.5 pr-3">
+                        <span className="font-medium">
+                          {a.channel_name || `#${a.channel_id}`}
+                        </span>{' '}
+                        <span className="text-muted-foreground">
+                          #{a.channel_id}
+                        </span>
+                        {typeof a.key_index === 'number' && a.key_index > 0 && (
+                          <span className="ml-1 rounded bg-muted px-1 py-0.5 text-[10px] text-muted-foreground">
+                            key{a.key_index}
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-1.5 pr-3 text-right font-mono text-[11px] text-muted-foreground">
+                        {typeof a.duration === 'number'
+                          ? `${a.duration.toFixed(2)}s`
+                          : '-'}
+                      </td>
+                      <td className="py-1.5 pr-3 text-right">
+                        <span
+                          className={`inline-flex items-center rounded px-1.5 py-0.5 font-mono text-[10px] font-medium ring-1 ring-inset ${getStatusTier(
+                            a.status
+                          )}`}
+                        >
+                          {a.status ?? '-'}
+                        </span>
+                      </td>
+                      <td className="break-words py-1.5 text-left text-muted-foreground">
+                        {a.error
+                          ? a.error
+                          : isLast && isSuccess
+                          ? '✓ 成功'
+                          : '-'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* 计费详情 */}
       {hasBillingDetails && (
@@ -624,16 +729,13 @@ const MobileLogCard = ({ row }: { row: LogStat }) => {
   );
 };
 
-export default function LogTable({
-  data,
-  totalData
-}: {
-  data: LogStat[];
-  totalData: number;
-}) {
+export default function LogTable() {
   const { data: session } = useSession();
-  const router = useRouter();
   const { isMobile, isTablet } = useScreenSize();
+
+  const [logData, setLogData] = useState<LogStat[]>([]);
+  const [totalData, setTotalData] = useState(0);
+  const [isFetching, setIsFetching] = useState(true);
 
   // 根据角色权限过滤
   const filterColumns = columns.filter((item) => {
@@ -667,7 +769,9 @@ export default function LogTable({
     pageSize,
     setPageSize,
     dateTimeRange,
-    setDateTimeRange
+    setDateTimeRange,
+    startTimestamp,
+    endTimestamp
   } = useTableFilters();
 
   // 本地状态用于输入框
@@ -677,9 +781,6 @@ export default function LogTable({
   const [localUserName, setLocalUserName] = useState(userName || '');
   const [localXRequestId, setLocalXRequestId] = useState(xRequestId || '');
   const [localXResponseId, setLocalXResponseId] = useState(xResponseId || '');
-
-  // 使用 useTransition 跟踪 router.refresh() 的加载状态
-  const [isSearching, startSearchTransition] = React.useTransition();
 
   // 同步 URL 参数到本地状态
   useEffect(() => {
@@ -701,6 +802,63 @@ export default function LogTable({
     setLocalXResponseId(xResponseId || '');
   }, [xResponseId]);
 
+  // 客户端直接请求后端数据
+  const fetchCurrentData = useCallback(async () => {
+    if (!session?.user?.accessToken) return;
+    setIsFetching(true);
+    try {
+      const userRole = (session.user as any).role;
+      const userApi = [10, 100].includes(Number(userRole))
+        ? `/api/log/`
+        : `/api/log/self`;
+      const params = new URLSearchParams({
+        page: String(page),
+        pagesize: String(pageSize)
+      });
+      if (tokenName) params.set('token_name', tokenName);
+      if (modelName) params.set('model_name', modelName);
+      if (channelId) params.set('channel', channelId);
+      if (userName) params.set('username', userName);
+      if (xRequestId) params.set('x_request_id', xRequestId);
+      if (xResponseId) params.set('x_response_id', xResponseId);
+      if (typeFilter) params.set('type', typeFilter);
+      if (startTimestamp) params.set('start_timestamp', startTimestamp);
+      if (endTimestamp) params.set('end_timestamp', endTimestamp);
+
+      const res = await fetch(
+        process.env.NEXT_PUBLIC_API_BASE_URL + `${userApi}?${params}`,
+        {
+          credentials: 'include',
+          headers: { Authorization: `Bearer ${session.user.accessToken}` }
+        }
+      );
+      const { data: resData } = await res.json();
+      setLogData((resData && resData.list) || []);
+      setTotalData((resData && resData.total) || 0);
+    } catch (error) {
+      console.error('Failed to fetch log data:', error);
+    } finally {
+      setIsFetching(false);
+    }
+  }, [
+    session,
+    page,
+    pageSize,
+    tokenName,
+    modelName,
+    channelId,
+    userName,
+    xRequestId,
+    xResponseId,
+    typeFilter,
+    startTimestamp,
+    endTimestamp
+  ]);
+
+  useEffect(() => {
+    fetchCurrentData();
+  }, [fetchCurrentData]);
+
   // 统一搜索处理函数
   const handleSearch = () => {
     setPage(1);
@@ -710,12 +868,6 @@ export default function LogTable({
     setUserName(localUserName || null);
     setXRequestId(localXRequestId || null);
     setXResponseId(localXResponseId || null);
-
-    // 使用 startTransition 包裹 router.refresh()，
-    // useTransition 会自动追踪刷新完成状态，避免手动管理 loading 导致卡死
-    startSearchTransition(() => {
-      router.refresh();
-    });
   };
 
   // 处理回车键
@@ -779,8 +931,8 @@ export default function LogTable({
   // 导出当前页面数据
   const exportCurrentPage = React.useCallback(() => {
     const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-    exportToCSV(data, `logs-page-${page}-${timestamp}.csv`);
-  }, [data, page, exportToCSV]);
+    exportToCSV(logData, `logs-page-${page}-${timestamp}.csv`);
+  }, [logData, page, exportToCSV]);
 
   // 导出全部数据 - 高性能并行分批请求，支持百万级数据
   const exportAllData = React.useCallback(async () => {
@@ -917,30 +1069,6 @@ export default function LogTable({
     exportToCSV
   ]);
 
-  // 当分页状态变化时，重新获取数据
-  React.useEffect(() => {
-    // 开发环境下添加调试信息
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Log页面分页状态变化:', { page, pageSize });
-    }
-
-    // 使用更高效的刷新策略
-    const refreshData = () => {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('触发Log页面数据刷新');
-      }
-      router.refresh();
-    };
-
-    // 防抖机制：避免快速连续的状态变化
-    const timeoutId = setTimeout(
-      refreshData,
-      process.env.NODE_ENV === 'development' ? 50 : 0
-    );
-
-    return () => clearTimeout(timeoutId);
-  }, [page, pageSize, router]);
-
   // 处理页面大小变化，重置到第一页
   const handlePageSizeChange = React.useCallback(
     (newPageSize: number) => {
@@ -1002,16 +1130,16 @@ export default function LogTable({
           <div className="flex-shrink-0">
             <Button
               onClick={handleSearch}
-              disabled={isSearching}
+              disabled={isFetching}
               className="gap-2"
             >
-              {isSearching ? (
+              {isFetching ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <Search className="h-4 w-4" />
               )}
               <span className="hidden sm:inline">
-                {isSearching ? 'Searching...' : 'Search'}
+                {isFetching ? 'Searching...' : 'Search'}
               </span>
             </Button>
           </div>
@@ -1041,7 +1169,7 @@ export default function LogTable({
                   <div className="flex flex-col gap-1">
                     <span>导出当前页数据</span>
                     <span className="text-xs text-muted-foreground">
-                      当前页 {data.length} 条记录
+                      当前页 {logData.length} 条记录
                     </span>
                   </div>
                 </DropdownMenuItem>
@@ -1176,7 +1304,7 @@ export default function LogTable({
       </div>
 
       {/* 查询加载遮罩 */}
-      {isSearching && (
+      {isFetching && (
         <div className="pointer-events-none fixed inset-0 z-[9999] flex items-center justify-center">
           <div className="absolute inset-0 bg-black/20"></div>
           <div className="relative duration-200 animate-in zoom-in-50">
@@ -1192,7 +1320,7 @@ export default function LogTable({
       <div className="hidden md:block">
         <DataTable
           columns={filterColumns}
-          data={data}
+          data={logData}
           totalItems={totalData}
           currentPage={page}
           pageSize={pageSize}
@@ -1234,8 +1362,8 @@ export default function LogTable({
 
       {/* Mobile View */}
       <div className="space-y-4 md:hidden">
-        {data.length > 0 ? (
-          data.map((row, index) => <MobileLogCard key={index} row={row} />)
+        {logData.length > 0 ? (
+          logData.map((row, index) => <MobileLogCard key={index} row={row} />)
         ) : (
           <div className="py-10 text-center text-muted-foreground">
             No results found.
@@ -1259,7 +1387,7 @@ export default function LogTable({
               variant="outline"
               size="sm"
               onClick={() => setPage(page + 1)}
-              disabled={data.length < pageSize}
+              disabled={logData.length < pageSize}
             >
               Next
             </Button>
