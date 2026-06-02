@@ -196,8 +196,6 @@ export default function ChannelForm() {
   const [upstreamAutoSyncEnabled, setUpstreamAutoSyncEnabled] = useState(false);
   const [upstreamAutoDeleteEnabled, setUpstreamAutoDeleteEnabled] =
     useState(false);
-  const [upstreamIntervalMinutes, setUpstreamIntervalMinutes] =
-    useState<number>(0);
   const [upstreamDetectResult, setUpstreamDetectResult] = useState<{
     addModels: string[];
     removeModels: string[];
@@ -640,9 +638,6 @@ export default function ChannelForm() {
               );
               setUpstreamAutoDeleteEnabled(
                 !!os.upstream_model_update_auto_delete_enabled
-              );
-              setUpstreamIntervalMinutes(
-                os.upstream_model_update_interval_minutes || 0
               );
               const addMs = os.upstream_model_update_last_detected_models || [];
               const rmMs = os.upstream_model_update_last_removed_models || [];
@@ -1444,10 +1439,7 @@ export default function ChannelForm() {
             ...upstreamOtherSettings,
             upstream_model_update_check_enabled: upstreamCheckEnabled,
             upstream_model_update_auto_sync_enabled: upstreamAutoSyncEnabled,
-            upstream_model_update_auto_delete_enabled:
-              upstreamAutoDeleteEnabled,
-            upstream_model_update_interval_minutes:
-              upstreamIntervalMinutes > 0 ? upstreamIntervalMinutes : undefined
+            upstream_model_update_auto_delete_enabled: upstreamAutoDeleteEnabled
           }),
           key_selection_mode: values.key_selection_mode ?? 1,
           batch_import_mode: values.batch_import_mode ?? 1,
@@ -3596,37 +3588,9 @@ ${type2secretPrompt(form.watch('type'))}`}
                     />
                   </div>
 
-                  {/* 巡检间隔 + 自动同步/删除 - 仅当巡检开启时显示 */}
+                  {/* 自动同步/删除 - 仅当巡检开启时显示 */}
                   {upstreamCheckEnabled && (
                     <div className="space-y-3">
-                      {/* 巡检间隔输入 */}
-                      <div className="rounded-lg border border-indigo-200 bg-white p-4 dark:border-indigo-700 dark:bg-gray-800">
-                        <div className="mb-2 text-base font-medium text-gray-700 dark:text-gray-300">
-                          巡检间隔（分钟）
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <Input
-                            type="number"
-                            min={1}
-                            max={1440}
-                            placeholder="默认 30（全局配置）"
-                            value={upstreamIntervalMinutes || ''}
-                            onChange={(e) => {
-                              const v = parseInt(e.target.value);
-                              setUpstreamIntervalMinutes(
-                                isNaN(v) || v < 1 ? 0 : v
-                              );
-                            }}
-                            className="w-48 border-indigo-300 focus:border-indigo-500"
-                          />
-                          <span className="text-[0.8rem] text-muted-foreground">
-                            {upstreamIntervalMinutes > 0
-                              ? `每 ${upstreamIntervalMinutes} 分钟检测一次`
-                              : '留空则使用全局默认（30 分钟）'}
-                          </span>
-                        </div>
-                      </div>
-
                       {/* 自动同步新增 */}
                       <div className="flex flex-row items-center justify-between rounded-lg border border-indigo-200 bg-white p-4 dark:border-indigo-700 dark:bg-gray-800">
                         <div className="space-y-0.5">
