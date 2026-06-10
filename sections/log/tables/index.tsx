@@ -403,7 +403,8 @@ const ExpandedRowContent = ({ row }: { row: Row<LogStat> }) => {
                         <span className="font-medium">
                           $
                           {getTokenPrice(
-                            billingDetails.cache_ratio || 0
+                            (billingDetails.model_ratio || 0) *
+                              (billingDetails.cache_ratio || 0)
                           ).toFixed(6)}
                         </span>{' '}
                         <span className="text-muted-foreground">
@@ -440,9 +441,23 @@ const ExpandedRowContent = ({ row }: { row: Row<LogStat> }) => {
               ) : (
                 <>
                   <p>
-                    ({log.prompt_tokens.toLocaleString()} × $
+                    (
+                    {Math.max(
+                      0,
+                      log.prompt_tokens - (billingDetails.cached_tokens || 0)
+                    ).toLocaleString()}{' '}
+                    × $
                     {getTokenPrice(billingDetails.model_ratio || 0).toFixed(6)}
-                    /1M + {log.completion_tokens.toLocaleString()} × $
+                    /1M
+                    {billingDetails.cached_tokens &&
+                    billingDetails.cached_tokens > 0
+                      ? ` + ${billingDetails.cached_tokens.toLocaleString()} × $${getTokenPrice(
+                          (billingDetails.model_ratio || 0) *
+                            (billingDetails.cache_ratio || 0)
+                        ).toFixed(6)}/1M`
+                      : ''}
+                    {' + '}
+                    {log.completion_tokens.toLocaleString()} × $
                     {getTokenPrice(
                       (billingDetails.model_ratio || 0) *
                         (billingDetails.completion_ratio || 1)
