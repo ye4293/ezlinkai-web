@@ -68,9 +68,19 @@ interface ModelPriceInfo {
 
 interface EditingRow {
   model_name: string;
+  // 价格输入（$/1M tokens），UI 展示与编辑用
+  input_price: string;
+  output_price: string;
+  cache_price: string;
+  image_input_price: string;
+  image_output_price: string;
+  audio_input_price: string;
+  audio_output_price: string;
+  // 按次计费（元），本就是价格，保持原样
+  fixed_price: string;
+  // 换算后的倍率，保存时发给后端（后端仍按倍率存储/计费）
   model_ratio: string;
   completion_ratio: string;
-  fixed_price: string;
   cache_ratio: string;
   image_input_ratio: string;
   image_output_ratio: string;
@@ -126,6 +136,32 @@ const priceToModelRatio = (inputPrice: number): number => {
 const priceToRatio = (price: number, baseInputPrice: number): number => {
   if (baseInputPrice === 0) return 1;
   return price / baseInputPrice;
+};
+
+// 倍率反算价格（用于编辑弹窗：把后端存的倍率显示成价格）
+// 文字输入价格 = ModelRatio × 2
+const modelRatioToInputPrice = (modelRatio: number): number => {
+  return modelRatio * 2;
+};
+
+// 子项价格 = 子倍率 × 文字输入价格 = 子倍率 × ModelRatio × 2
+const subRatioToPrice = (subRatio: number, modelRatio: number): number => {
+  return subRatio * modelRatio * 2;
+};
+
+// 把数值格式化成简洁字符串（去掉无意义的尾随小数；0/非法 → 空串）
+const formatPriceStr = (value: number): string => {
+  if (!isFinite(value) || value <= 0) return '';
+  return parseFloat(value.toFixed(6)).toString();
+};
+
+// 格式化倍率：整数显示整数，否则保留有效小数；0/非法 → 空串
+const formatRatio = (ratio: number): string => {
+  if (!isFinite(ratio) || ratio === 0) return '';
+  if (Math.abs(ratio - Math.round(ratio)) < 0.0001) {
+    return Math.round(ratio).toString();
+  }
+  return parseFloat(ratio.toFixed(6)).toString();
 };
 
 export default function PricingPage() {
@@ -446,11 +482,31 @@ export default function PricingPage() {
 
   // ==================== 可视化编辑相关 ====================
   const startEditing = (model: ModelPriceInfo) => {
+    const mr = model.model_ratio || 0;
+    // 把后端存的倍率反算成价格用于展示编辑
     setEditingRow({
       model_name: model.model_name,
-      model_ratio: model.model_ratio.toString(),
-      completion_ratio: model.completion_ratio.toString(),
+      input_price: formatPriceStr(modelRatioToInputPrice(mr)),
+      output_price: formatPriceStr(
+        subRatioToPrice(model.completion_ratio || 0, mr)
+      ),
+      cache_price: formatPriceStr(subRatioToPrice(model.cache_ratio || 0, mr)),
+      image_input_price: formatPriceStr(
+        subRatioToPrice(model.image_input_ratio || 0, mr)
+      ),
+      image_output_price: formatPriceStr(
+        subRatioToPrice(model.image_output_ratio || 0, mr)
+      ),
+      audio_input_price: formatPriceStr(
+        subRatioToPrice(model.audio_input_ratio || 0, mr)
+      ),
+      audio_output_price: formatPriceStr(
+        subRatioToPrice(model.audio_output_ratio || 0, mr)
+      ),
       fixed_price: model.fixed_price.toString(),
+      // 倍率字段保留（用户不改输入价时保存仍可直接用）
+      model_ratio: mr.toString(),
+      completion_ratio: (model.completion_ratio || 0).toString(),
       cache_ratio: (model.cache_ratio || 0).toString(),
       image_input_ratio: (model.image_input_ratio || 0).toString(),
       image_output_ratio: (model.image_output_ratio || 0).toString(),
@@ -463,6 +519,82 @@ export default function PricingPage() {
   const cancelEditing = () => {
     setEditingRow(null);
     setEditDialogOpen(false);
+  };
+
+  // 编辑弹窗：价格字段变化时，换算成后端需要的倍率
+  // 所有子项价格都相对“文字输入价格”计算（与 updateUnsetEditData 同一套口径）
+  const updateEditingPrice = (
+    field:
+      | 'input_price'
+      | 'output_price'
+      | 'cache_price'
+      | 'image_input_price'
+      | 'image_output_price'
+      | 'audio_input_price'
+      | 'audio_output_price'
+      | 'fixed_price',
+    value: string
+  ) => {
+    setEditingRow((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, [field]: value };
+
+      // 按次计费是独立价格，不参与倍率换算
+      if (field === 'fixed_price') return next;
+
+      const baseInputPrice = parseFloat(next.input_price) || 0;
+
+      // 输入价变化：重算模型倍率，并按新基准重算所有子倍率
+      if (field === 'input_price') {
+        const inputPrice = parseFloat(value);
+        if (!isNaN(inputPrice) && inputPrice > 0) {
+          next.model_ratio = formatRatio(priceToModelRatio(inputPrice));
+          const recompute = (
+            priceStr: string,
+            ratioKey:
+              | 'completion_ratio'
+              | 'cache_ratio'
+              | 'image_input_ratio'
+              | 'image_output_ratio'
+              | 'audio_input_ratio'
+              | 'audio_output_ratio'
+          ) => {
+            const price = parseFloat(priceStr);
+            if (!isNaN(price) && price > 0) {
+              next[ratioKey] = formatRatio(priceToRatio(price, inputPrice));
+            }
+          };
+          recompute(next.output_price, 'completion_ratio');
+          recompute(next.cache_price, 'cache_ratio');
+          recompute(next.image_input_price, 'image_input_ratio');
+          recompute(next.image_output_price, 'image_output_ratio');
+          recompute(next.audio_input_price, 'audio_input_ratio');
+          recompute(next.audio_output_price, 'audio_output_ratio');
+        } else {
+          next.model_ratio = '';
+        }
+        return next;
+      }
+
+      // 子项价格变化：相对当前输入价换算对应倍率
+      const subMap: Record<string, string> = {
+        output_price: 'completion_ratio',
+        cache_price: 'cache_ratio',
+        image_input_price: 'image_input_ratio',
+        image_output_price: 'image_output_ratio',
+        audio_input_price: 'audio_input_ratio',
+        audio_output_price: 'audio_output_ratio'
+      };
+      const ratioKey = subMap[field] as keyof EditingRow;
+      if (baseInputPrice > 0) {
+        const price = parseFloat(value);
+        next[ratioKey] =
+          !isNaN(price) && price > 0
+            ? formatRatio(priceToRatio(price, baseInputPrice))
+            : '';
+      }
+      return next;
+    });
   };
 
   const saveEditing = async () => {
@@ -550,17 +682,6 @@ export default function PricingPage() {
 
       // 获取文字输入价格（基准价格）
       const baseInputPrice = parseFloat(newData.input_price) || 0;
-
-      // 辅助函数：格式化倍率
-      const formatRatio = (ratio: number): string => {
-        if (ratio === 0) return '';
-        // 如果是整数或接近整数，显示整数
-        if (Math.abs(ratio - Math.round(ratio)) < 0.0001) {
-          return Math.round(ratio).toString();
-        }
-        // 否则保留合适的小数位
-        return parseFloat(ratio.toFixed(6)).toString();
-      };
 
       // 当文字输入价格变化时，重新计算所有倍率
       if (field === 'input_price') {
@@ -1152,8 +1273,6 @@ export default function PricingPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[220px]">模型名称</TableHead>
-                    <TableHead className="w-[80px]">模型倍率</TableHead>
-                    <TableHead className="w-[80px]">补全倍率</TableHead>
                     <TableHead className="w-[90px]">按次计费(元)</TableHead>
                     <TableHead className="w-[100px]">输入价格($/1M)</TableHead>
                     <TableHead className="w-[100px]">输出价格($/1M)</TableHead>
@@ -1169,13 +1288,13 @@ export default function PricingPage() {
                 <TableBody>
                   {isConfiguredLoading ? (
                     <TableRow>
-                      <TableCell colSpan={13} className="h-24 text-center">
+                      <TableCell colSpan={11} className="h-24 text-center">
                         加载中...
                       </TableCell>
                     </TableRow>
                   ) : configuredModels.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={13} className="h-24 text-center">
+                      <TableCell colSpan={11} className="h-24 text-center">
                         暂无数据
                       </TableCell>
                     </TableRow>
@@ -1184,12 +1303,6 @@ export default function PricingPage() {
                       <TableRow key={model.model_name}>
                         <TableCell className="font-mono text-xs">
                           {model.model_name}
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {formatPrice(model.model_ratio)}
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {formatPrice(model.completion_ratio)}
                         </TableCell>
                         <TableCell className="text-sm">
                           {model.fixed_price > 0
@@ -1207,28 +1320,38 @@ export default function PricingPage() {
                             : '-'}
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
-                          {model.cache_ratio > 0
-                            ? formatPrice(model.cache_ratio)
+                          {model.cache_ratio > 0 && model.input_price > 0
+                            ? `$${formatPrice(
+                                model.cache_ratio * model.input_price
+                              )}`
                             : '-'}
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
-                          {model.image_input_ratio > 0
-                            ? formatPrice(model.image_input_ratio)
+                          {model.image_input_ratio > 0 && model.input_price > 0
+                            ? `$${formatPrice(
+                                model.image_input_ratio * model.input_price
+                              )}`
                             : '-'}
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
-                          {model.image_output_ratio > 0
-                            ? formatPrice(model.image_output_ratio)
+                          {model.image_output_ratio > 0 && model.input_price > 0
+                            ? `$${formatPrice(
+                                model.image_output_ratio * model.input_price
+                              )}`
                             : '-'}
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
-                          {model.audio_input_ratio > 0
-                            ? formatPrice(model.audio_input_ratio)
+                          {model.audio_input_ratio > 0 && model.input_price > 0
+                            ? `$${formatPrice(
+                                model.audio_input_ratio * model.input_price
+                              )}`
                             : '-'}
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
-                          {model.audio_output_ratio > 0
-                            ? formatPrice(model.audio_output_ratio)
+                          {model.audio_output_ratio > 0 && model.input_price > 0
+                            ? `$${formatPrice(
+                                model.audio_output_ratio * model.input_price
+                              )}`
                             : '-'}
                         </TableCell>
                         <TableCell>
@@ -1278,7 +1401,7 @@ export default function PricingPage() {
             >
               <DialogContent className="max-w-xl">
                 <DialogHeader>
-                  <DialogTitle>编辑模型倍率</DialogTitle>
+                  <DialogTitle>编辑模型价格</DialogTitle>
                   <DialogDescription>
                     <span className="font-mono">{editingRow?.model_name}</span>
                   </DialogDescription>
@@ -1287,30 +1410,24 @@ export default function PricingPage() {
                   <div className="space-y-5 py-2">
                     <div className="grid grid-cols-3 gap-4">
                       <div className="space-y-1.5">
-                        <Label className="text-sm">模型倍率</Label>
+                        <Label className="text-sm">输入价格($/1M)</Label>
                         <Input
                           type="number"
                           step="0.001"
-                          value={editingRow.model_ratio}
+                          value={editingRow.input_price}
                           onChange={(e) =>
-                            setEditingRow({
-                              ...editingRow,
-                              model_ratio: e.target.value
-                            })
+                            updateEditingPrice('input_price', e.target.value)
                           }
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <Label className="text-sm">补全倍率</Label>
+                        <Label className="text-sm">输出价格($/1M)</Label>
                         <Input
                           type="number"
-                          step="0.01"
-                          value={editingRow.completion_ratio}
+                          step="0.001"
+                          value={editingRow.output_price}
                           onChange={(e) =>
-                            setEditingRow({
-                              ...editingRow,
-                              completion_ratio: e.target.value
-                            })
+                            updateEditingPrice('output_price', e.target.value)
                           }
                         />
                       </div>
@@ -1321,10 +1438,7 @@ export default function PricingPage() {
                           step="0.001"
                           value={editingRow.fixed_price}
                           onChange={(e) =>
-                            setEditingRow({
-                              ...editingRow,
-                              fixed_price: e.target.value
-                            })
+                            updateEditingPrice('fixed_price', e.target.value)
                           }
                         />
                       </div>
@@ -1334,85 +1448,93 @@ export default function PricingPage() {
 
                     <div className="space-y-3">
                       <p className="text-sm font-medium text-muted-foreground">
-                        扩展倍率
+                        扩展价格($/1M)
                       </p>
                       <div className="grid grid-cols-3 gap-4">
                         <div className="space-y-1.5">
-                          <Label className="text-sm">缓存倍率</Label>
+                          <Label className="text-sm">缓存价格</Label>
                           <Input
                             type="number"
-                            step="0.01"
-                            value={editingRow.cache_ratio}
+                            step="0.001"
+                            value={editingRow.cache_price}
                             onChange={(e) =>
-                              setEditingRow({
-                                ...editingRow,
-                                cache_ratio: e.target.value
-                              })
+                              updateEditingPrice('cache_price', e.target.value)
                             }
-                            placeholder="默认=补全倍率"
+                            placeholder="默认=输出价"
                           />
                         </div>
                         <div className="space-y-1.5">
-                          <Label className="text-sm">图片输入倍率</Label>
+                          <Label className="text-sm">图片输入价格</Label>
                           <Input
                             type="number"
-                            step="0.01"
-                            value={editingRow.image_input_ratio}
+                            step="0.001"
+                            value={editingRow.image_input_price}
                             onChange={(e) =>
-                              setEditingRow({
-                                ...editingRow,
-                                image_input_ratio: e.target.value
-                              })
+                              updateEditingPrice(
+                                'image_input_price',
+                                e.target.value
+                              )
                             }
-                            placeholder="默认=1"
+                            placeholder="默认=输入价"
                           />
                         </div>
                         <div className="space-y-1.5">
-                          <Label className="text-sm">图片输出倍率</Label>
+                          <Label className="text-sm">图片输出价格</Label>
                           <Input
                             type="number"
-                            step="0.01"
-                            value={editingRow.image_output_ratio}
+                            step="0.001"
+                            value={editingRow.image_output_price}
                             onChange={(e) =>
-                              setEditingRow({
-                                ...editingRow,
-                                image_output_ratio: e.target.value
-                              })
+                              updateEditingPrice(
+                                'image_output_price',
+                                e.target.value
+                              )
                             }
-                            placeholder="默认=补全倍率"
+                            placeholder="默认=输出价"
                           />
                         </div>
                         <div className="space-y-1.5">
-                          <Label className="text-sm">音频输入倍率</Label>
+                          <Label className="text-sm">音频输入价格</Label>
                           <Input
                             type="number"
-                            step="0.01"
-                            value={editingRow.audio_input_ratio}
+                            step="0.001"
+                            value={editingRow.audio_input_price}
                             onChange={(e) =>
-                              setEditingRow({
-                                ...editingRow,
-                                audio_input_ratio: e.target.value
-                              })
+                              updateEditingPrice(
+                                'audio_input_price',
+                                e.target.value
+                              )
                             }
-                            placeholder="默认=1"
+                            placeholder="默认=输入价"
                           />
                         </div>
                         <div className="space-y-1.5">
-                          <Label className="text-sm">音频输出倍率</Label>
+                          <Label className="text-sm">音频输出价格</Label>
                           <Input
                             type="number"
-                            step="0.01"
-                            value={editingRow.audio_output_ratio}
+                            step="0.001"
+                            value={editingRow.audio_output_price}
                             onChange={(e) =>
-                              setEditingRow({
-                                ...editingRow,
-                                audio_output_ratio: e.target.value
-                              })
+                              updateEditingPrice(
+                                'audio_output_price',
+                                e.target.value
+                              )
                             }
-                            placeholder="默认=补全倍率"
+                            placeholder="默认=输出价"
                           />
                         </div>
                       </div>
+                    </div>
+
+                    {/* 过渡期：展示换算出的倍率，方便核对 */}
+                    <div className="rounded bg-muted/50 p-2 font-mono text-xs text-muted-foreground">
+                      换算倍率：模型 {editingRow.model_ratio || '-'} · 补全{' '}
+                      {editingRow.completion_ratio || '-'} · 缓存{' '}
+                      {editingRow.cache_ratio || '-'} · 图入{' '}
+                      {editingRow.image_input_ratio || '-'} · 图出{' '}
+                      {editingRow.image_output_ratio || '-'} · 音入{' '}
+                      {editingRow.audio_input_ratio || '-'} · 音出{' '}
+                      {editingRow.audio_output_ratio || '-'}
                     </div>
                   </div>
                 )}
