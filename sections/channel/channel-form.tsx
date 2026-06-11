@@ -108,7 +108,9 @@ const formSchema = z.object({
   // 测试模型：指定自动测试渠道时使用的模型名
   test_model: z.string().optional(),
   // 新增：支持 Token 计数功能（仅 Anthropic 和 AWS Claude 渠道）
-  support_count_tokens: z.boolean().default(false)
+  support_count_tokens: z.boolean().default(false),
+  // Beta 过滤模式（仅 Anthropic 渠道代理到 Bedrock/Vertex 时使用）
+  beta_filter_mode: z.string().optional()
 
   // company: z.string().min(1, {
   //   message: 'Company name is required.'
@@ -619,6 +621,8 @@ export default function ChannelForm() {
             test_model: channelData.test_model || '',
             // 新增：支持 Token 计数配置
             support_count_tokens: config.support_count_tokens || false,
+            // Beta 过滤模式
+            beta_filter_mode: config.beta_filter_mode || 'none',
             aggregate_mode: channelData.aggregate_mode || false,
             key_selection_mode:
               (channelData as any).multi_key_info?.key_selection_mode ?? 1,
@@ -717,7 +721,8 @@ export default function ChannelForm() {
       auto_disabled: true,
       auto_enabled: true,
       test_model: '',
-      support_count_tokens: false
+      support_count_tokens: false,
+      beta_filter_mode: 'none'
     }
   });
 
@@ -1258,6 +1263,14 @@ export default function ChannelForm() {
           values.support_count_tokens
         ) {
           config.support_count_tokens = values.support_count_tokens;
+        }
+        // Beta 过滤模式（仅 Anthropic=14 渠道）
+        if (
+          channelType === 14 &&
+          values.beta_filter_mode &&
+          values.beta_filter_mode !== 'none'
+        ) {
+          config.beta_filter_mode = values.beta_filter_mode;
         }
         return Object.keys(config).length > 0 ? JSON.stringify(config) : '';
       };
@@ -3489,6 +3502,52 @@ ${type2secretPrompt(form.watch('type'))}`}
                           checked={field.value}
                           onCheckedChange={field.onChange}
                         />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {/* Beta 过滤模式 - 仅 Anthropic (14) 渠道显示 */}
+              {form.watch('type') === '14' && (
+                <FormField
+                  control={form.control}
+                  name="beta_filter_mode"
+                  render={({ field }) => (
+                    <FormItem className="rounded-lg border border-amber-200 bg-amber-50/50 p-4 dark:border-amber-800 dark:bg-amber-950/30">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-base">
+                          Beta Flag 过滤模式
+                        </FormLabel>
+                        <div className="text-[0.8rem] text-muted-foreground">
+                          当上游实际是 Bedrock/Vertex
+                          代理时，过滤客户端发送的不兼容 beta flag，避免 400
+                          错误。
+                        </div>
+                      </div>
+                      <FormControl>
+                        <Select
+                          value={field.value || ''}
+                          onValueChange={field.onChange}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="不过滤（直接透传）" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">
+                              不过滤（直接透传）
+                            </SelectItem>
+                            <SelectItem value="bedrock">
+                              过滤为 AWS Bedrock 兼容
+                            </SelectItem>
+                            <SelectItem value="vertex">
+                              过滤为 Vertex AI 兼容
+                            </SelectItem>
+                            <SelectItem value="bedrock_vertex">
+                              Bedrock + Vertex 兼容（最严格）
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
                       </FormControl>
                     </FormItem>
                   )}
