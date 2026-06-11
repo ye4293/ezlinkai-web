@@ -109,7 +109,7 @@ const formSchema = z.object({
   test_model: z.string().optional(),
   // 新增：支持 Token 计数功能（仅 Anthropic 和 AWS Claude 渠道）
   support_count_tokens: z.boolean().default(false),
-  // Beta 过滤模式（仅 Anthropic 渠道代理到 Bedrock/Vertex 时使用）
+  // Beta 过滤模式（Claude 相关渠道：Anthropic/AWS Claude/Vertex AI）
   beta_filter_mode: z.string().optional()
 
   // company: z.string().min(1, {
@@ -1264,9 +1264,9 @@ export default function ChannelForm() {
         ) {
           config.support_count_tokens = values.support_count_tokens;
         }
-        // Beta 过滤模式（仅 Anthropic=14 渠道）
+        // Beta 过滤模式（Claude 相关渠道：14=Anthropic, 33=AWS Claude, 48=Vertex AI）
         if (
-          channelType === 14 &&
+          (channelType === 14 || channelType === 33 || channelType === 48) &&
           values.beta_filter_mode &&
           values.beta_filter_mode !== 'none'
         ) {
@@ -3508,8 +3508,8 @@ ${type2secretPrompt(form.watch('type'))}`}
                 />
               )}
 
-              {/* Beta 过滤模式 - 仅 Anthropic (14) 渠道显示 */}
-              {form.watch('type') === '14' && (
+              {/* Beta 过滤模式 - Claude 相关渠道显示 (14/33/48) */}
+              {['14', '33', '48'].includes(form.watch('type')) && (
                 <FormField
                   control={form.control}
                   name="beta_filter_mode"
@@ -3520,8 +3520,7 @@ ${type2secretPrompt(form.watch('type'))}`}
                           Beta Flag 过滤模式
                         </FormLabel>
                         <div className="text-[0.8rem] text-muted-foreground">
-                          当上游实际是 Bedrock/Vertex
-                          代理时，过滤客户端发送的不兼容 beta flag，避免 400
+                          过滤客户端发送的不兼容 beta flag，避免上游返回 400
                           错误。
                         </div>
                       </div>
