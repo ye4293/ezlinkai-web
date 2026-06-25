@@ -23,7 +23,11 @@ export const searchParams = {
   x_response_id: parseAsString,
   type: parseAsString,
   start_timestamp: parseAsString,
-  end_timestamp: parseAsString
+  end_timestamp: parseAsString,
+  bq_x_request_id: parseAsString,
+  bq_channel_id: parseAsString,
+  bq_model: parseAsString,
+  bq_status_code: parseAsString
 };
 
 export const searchParamsCache = createSearchParamsCache(searchParams);

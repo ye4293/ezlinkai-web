@@ -7,6 +7,7 @@ import {
   CircuitBoardIcon,
   Command,
   CreditCard,
+  Database,
   File,
   FileText,
   HelpCircle,
@@ -117,5 +118,6 @@ export const Icons = {
   file: File,
   chart: BarChart3,
   playground: FlaskConical,
-  store: Store
+  store: Store,
+  database: Database
 };

@@ -200,6 +200,13 @@ export const navItems: NavItem[] = [
     label: 'image',
     roles: [1, 10, 100]
   },
+  {
+    title: 'Audit',
+    href: '/dashboard/bigquery',
+    icon: 'database',
+    label: 'bigquery',
+    roles: [10, 100]
+  },
   // {
   //   title: 'File',
   //   href: '/dashboard/file',
