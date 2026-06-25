@@ -298,16 +298,30 @@ const END_REASON_LABEL: Record<string, string> = {
   ping_fail: 'Ping失败'
 };
 
-// 流状态徽章样式
+// 流状态徽章样式（按结束原因 + 是否有软错误区分颜色）
 const getStreamStatusStyle = (ss: StreamStatusInfo) => {
   const hasErrors = (ss.error_count ?? 0) > 0;
-  if (ss.status === 'ok' && !hasErrors) {
+  const normal = ss.status === 'ok';
+
+  // 正常结束且无软错误 → 绿色
+  if (normal && !hasErrors) {
     return {
       badge:
         'bg-emerald-50 text-emerald-700 ring-emerald-500/30 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-500/30',
       icon: '✓'
     };
   }
+  // 正常结束但有软错误 → 琥珀色（结束方式本身无误，但过程有警告）
+  // 注意：当前后端在 isNormal && errCount > 0 时输出 status:"error"，
+  // 此分支在现有协议下不触发，作为防御性代码保留，以兼容未来协议调整。
+  if (normal && hasErrors) {
+    return {
+      badge:
+        'bg-amber-50 text-amber-700 ring-amber-500/30 hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:ring-amber-500/30',
+      icon: '⚠'
+    };
+  }
+  // 异常结束：按原因细分
   switch (ss.end_reason) {
     case 'client_gone':
       return {
@@ -855,19 +869,19 @@ export const columns: ColumnDef<LogStat>[] = [
   {
     id: 'stream_status',
     accessorKey: 'other',
-    header: () => <div className="w-20 text-center">流状态</div>,
-    size: 90,
-    minSize: 80,
+    header: () => <div className="text-center">流状态</div>,
+    size: 110,
+    minSize: 90,
     cell: ({ row }) => {
       const isStreamValue = row.original.is_stream;
       const isStream = (isStreamValue as any) === 1 || isStreamValue === true;
       if (!isStream) {
-        return <div className="w-20 text-center text-muted-foreground">-</div>;
+        return <div className="text-center text-muted-foreground">-</div>;
       }
 
       const ss = parseStreamStatus(row.original);
       if (!ss) {
-        return <div className="w-20 text-center text-muted-foreground">-</div>;
+        return <div className="text-center text-muted-foreground">-</div>;
       }
 
       const { badge, icon } = getStreamStatusStyle(ss);
@@ -875,37 +889,44 @@ export const columns: ColumnDef<LogStat>[] = [
       const hasErrors = (ss.error_count ?? 0) > 0;
 
       return (
-        <div className="w-20 text-center">
+        <div className="text-center">
           <Popover>
             <PopoverTrigger asChild>
               <button
                 type="button"
                 aria-label={`流状态：${label}`}
                 onClick={(e) => e.stopPropagation()}
-                className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 font-mono text-xs font-medium ring-1 ring-inset transition-colors ${badge}`}
+                className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset transition-colors ${badge}`}
               >
-                <span>{icon}</span>
+                <span className="shrink-0">{icon}</span>
                 <span>{label}</span>
               </button>
             </PopoverTrigger>
-            <PopoverContent side="left" align="start" className="w-72 p-0">
-              <div className="flex items-center justify-between border-b px-4 py-2.5">
-                <p className="text-sm font-semibold">流式结束详情</p>
+            <PopoverContent side="left" align="start" className="w-64 p-0">
+              {/* 标题栏 */}
+              <div className="flex items-center justify-between border-b px-3 py-2">
+                <p className="text-sm font-semibold">流式结束状态</p>
                 <span
                   className={`rounded px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset ${badge}`}
                 >
                   {ss.status === 'ok' ? '正常' : '异常'}
                 </span>
               </div>
-              <div className="space-y-2 px-4 py-3 text-xs">
-                <div className="flex items-center justify-between">
+              {/* 详情 */}
+              <div className="space-y-2 px-3 py-2.5 text-xs">
+                <div className="flex items-center justify-between gap-2">
                   <span className="text-muted-foreground">结束原因</span>
-                  <span className="font-mono font-medium">{ss.end_reason}</span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="font-medium">{label}</span>
+                    <span className="rounded bg-muted px-1 py-0.5 font-mono text-[10px] text-muted-foreground">
+                      {ss.end_reason}
+                    </span>
+                  </span>
                 </div>
                 {ss.end_error && (
-                  <div className="space-y-0.5">
+                  <div className="space-y-1">
                     <span className="text-muted-foreground">错误信息</span>
-                    <p className="break-words rounded bg-muted px-2 py-1 font-mono">
+                    <p className="break-words rounded bg-muted px-2 py-1 font-mono text-[11px] leading-relaxed">
                       {ss.end_error}
                     </p>
                   </div>
@@ -913,15 +934,17 @@ export const columns: ColumnDef<LogStat>[] = [
                 {hasErrors && (
                   <div className="space-y-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">软错误</span>
-                      <span className="font-mono">{ss.error_count} 条</span>
+                      <span className="text-muted-foreground">过程警告</span>
+                      <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
+                        {ss.error_count} 条
+                      </span>
                     </div>
                     {ss.errors && ss.errors.length > 0 && (
-                      <div className="max-h-32 space-y-0.5 overflow-y-auto">
+                      <div className="max-h-28 space-y-0.5 overflow-y-auto rounded border">
                         {ss.errors.map((e, i) => (
                           <p
                             key={i}
-                            className="break-words rounded bg-muted px-2 py-0.5 font-mono text-[11px] text-muted-foreground"
+                            className="break-words border-b px-2 py-1 font-mono text-[10px] text-muted-foreground last:border-b-0"
                           >
                             {e}
                           </p>
