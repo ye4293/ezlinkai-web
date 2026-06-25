@@ -233,6 +233,10 @@ export const parseLogOther = (row: LogStat): Record<string, any> | null => {
   // retryHistory（数组）：仅管理员日志会出现，普通用户接口由 stripAdminInfoFromLogs 剥掉
   const retryHistory = extractJsonFromSemicolonFormat(other, 'retryHistory');
   if (Array.isArray(retryHistory)) result.retryHistory = retryHistory;
+  // streamStatus
+  const streamStatus = extractJsonFromSemicolonFormat(other, 'streamStatus');
+  if (streamStatus && typeof streamStatus === 'object')
+    result.streamStatus = streamStatus;
 
   const hasData = Object.keys(result).length > 0;
   otherParseCache.set(row, hasData ? result : null);
@@ -253,6 +257,91 @@ export const getModelMappingInfo = (
 // 截断字符串
 const truncateStr = (name: string, max: number) =>
   name.length > max ? `${name.substring(0, max)}...` : name;
+
+// streamStatus 字段类型定义（与后端 util.StreamStatus 序列化结果对齐）
+export interface StreamStatusInfo {
+  status: 'ok' | 'error';
+  end_reason:
+    | 'done'
+    | 'eof'
+    | 'handler_stop'
+    | 'timeout'
+    | 'client_gone'
+    | 'scanner_error'
+    | 'panic'
+    | 'ping_fail'
+    | string;
+  end_error?: string;
+  error_count?: number;
+  errors?: string[];
+}
+
+// 解析 other 字段中的 streamStatus
+export const parseStreamStatus = (row: LogStat): StreamStatusInfo | null => {
+  const parsed = parseLogOther(row);
+  if (!parsed) return null;
+  const ss = parsed.stream_status || parsed.streamStatus;
+  if (ss && typeof ss === 'object' && 'end_reason' in ss)
+    return ss as StreamStatusInfo;
+  return null;
+};
+
+// 流状态结束原因中文标签
+const END_REASON_LABEL: Record<string, string> = {
+  done: '完成',
+  eof: 'EOF',
+  handler_stop: '处理停止',
+  timeout: '超时',
+  client_gone: '客户端断开',
+  scanner_error: '扫描错误',
+  panic: '程序崩溃',
+  ping_fail: 'Ping失败'
+};
+
+// 流状态徽章样式
+const getStreamStatusStyle = (ss: StreamStatusInfo) => {
+  const hasErrors = (ss.error_count ?? 0) > 0;
+  if (ss.status === 'ok' && !hasErrors) {
+    return {
+      badge:
+        'bg-emerald-50 text-emerald-700 ring-emerald-500/30 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-500/30',
+      icon: '✓'
+    };
+  }
+  switch (ss.end_reason) {
+    case 'client_gone':
+      return {
+        badge:
+          'bg-slate-100 text-slate-600 ring-slate-300 hover:bg-slate-200 dark:bg-slate-500/10 dark:text-slate-400 dark:ring-slate-500/30',
+        icon: '⊘'
+      };
+    case 'timeout':
+      return {
+        badge:
+          'bg-amber-50 text-amber-700 ring-amber-500/30 hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:ring-amber-500/30',
+        icon: '⏱'
+      };
+    case 'panic':
+    case 'scanner_error':
+      return {
+        badge:
+          'bg-rose-50 text-rose-700 ring-rose-500/30 hover:bg-rose-100 dark:bg-rose-500/10 dark:text-rose-400 dark:ring-rose-500/30',
+        icon: '⚠'
+      };
+    case 'ping_fail':
+      return {
+        badge:
+          'bg-orange-50 text-orange-700 ring-orange-500/30 hover:bg-orange-100 dark:bg-orange-500/10 dark:text-orange-400 dark:ring-orange-500/30',
+        icon: '⚠'
+      };
+    default:
+      return {
+        badge:
+          'bg-gray-100 text-gray-600 ring-gray-300 hover:bg-gray-200 dark:bg-gray-500/10 dark:text-gray-400 dark:ring-gray-500/30',
+        icon: '~'
+      };
+  }
+};
 
 // 重试明细单条结构（与后端 util.RetryAttempt 对齐）
 export interface RetryAttempt {
@@ -756,6 +845,92 @@ export const columns: ColumnDef<LogStat>[] = [
                   </p>
                 </div>
               )}
+            </PopoverContent>
+          </Popover>
+        </div>
+      );
+    },
+    enableHiding: true
+  },
+  {
+    id: 'stream_status',
+    accessorKey: 'other',
+    header: () => <div className="w-20 text-center">流状态</div>,
+    size: 90,
+    minSize: 80,
+    cell: ({ row }) => {
+      const isStreamValue = row.original.is_stream;
+      const isStream = (isStreamValue as any) === 1 || isStreamValue === true;
+      if (!isStream) {
+        return <div className="w-20 text-center text-muted-foreground">-</div>;
+      }
+
+      const ss = parseStreamStatus(row.original);
+      if (!ss) {
+        return <div className="w-20 text-center text-muted-foreground">-</div>;
+      }
+
+      const { badge, icon } = getStreamStatusStyle(ss);
+      const label = END_REASON_LABEL[ss.end_reason] ?? ss.end_reason;
+      const hasErrors = (ss.error_count ?? 0) > 0;
+
+      return (
+        <div className="w-20 text-center">
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                aria-label={`流状态：${label}`}
+                onClick={(e) => e.stopPropagation()}
+                className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 font-mono text-xs font-medium ring-1 ring-inset transition-colors ${badge}`}
+              >
+                <span>{icon}</span>
+                <span>{label}</span>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent side="left" align="start" className="w-72 p-0">
+              <div className="flex items-center justify-between border-b px-4 py-2.5">
+                <p className="text-sm font-semibold">流式结束详情</p>
+                <span
+                  className={`rounded px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset ${badge}`}
+                >
+                  {ss.status === 'ok' ? '正常' : '异常'}
+                </span>
+              </div>
+              <div className="space-y-2 px-4 py-3 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">结束原因</span>
+                  <span className="font-mono font-medium">{ss.end_reason}</span>
+                </div>
+                {ss.end_error && (
+                  <div className="space-y-0.5">
+                    <span className="text-muted-foreground">错误信息</span>
+                    <p className="break-words rounded bg-muted px-2 py-1 font-mono">
+                      {ss.end_error}
+                    </p>
+                  </div>
+                )}
+                {hasErrors && (
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">软错误</span>
+                      <span className="font-mono">{ss.error_count} 条</span>
+                    </div>
+                    {ss.errors && ss.errors.length > 0 && (
+                      <div className="max-h-32 space-y-0.5 overflow-y-auto">
+                        {ss.errors.map((e, i) => (
+                          <p
+                            key={i}
+                            className="break-words rounded bg-muted px-2 py-0.5 font-mono text-[11px] text-muted-foreground"
+                          >
+                            {e}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </PopoverContent>
           </Popover>
         </div>
