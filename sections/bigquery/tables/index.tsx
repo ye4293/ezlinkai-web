@@ -184,7 +184,7 @@ export default function AuditTable() {
         <div className="w-auto">
           <DateTimeRangePicker
             value={dateTimeRange}
-            onChange={setDateTimeRange}
+            onValueChange={setDateTimeRange}
           />
         </div>
         <div className="min-w-[200px] flex-1">
