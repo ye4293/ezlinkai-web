@@ -7,10 +7,45 @@ import {
   TooltipTrigger,
   TooltipProvider
 } from '@/components/ui/tooltip';
+import { Badge } from '@/components/ui/badge';
 import { ImageStat } from '@/lib/types/image';
 import { ColumnDef } from '@tanstack/react-table';
 import { CellAction } from './cell-action';
 import { CopyableCell } from '@/components/ui/copyable-cell';
+
+const STATUS_VARIANT_MAP: Record<
+  string,
+  {
+    variant: 'default' | 'secondary' | 'destructive' | 'outline';
+    className: string;
+  }
+> = {
+  succeeded: {
+    variant: 'outline',
+    className:
+      'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-400'
+  },
+  submitted: {
+    variant: 'outline',
+    className:
+      'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-400'
+  },
+  pending: {
+    variant: 'outline',
+    className:
+      'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400'
+  },
+  running: {
+    variant: 'outline',
+    className:
+      'border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-800 dark:bg-purple-950 dark:text-purple-400'
+  },
+  failed: {
+    variant: 'outline',
+    className:
+      'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-400'
+  }
+};
 
 const processQuota = (quota: number) => {
   // 将quota除以500000，并保留小数点后六位
@@ -142,23 +177,26 @@ export const columns: ColumnDef<ImageStat>[] = [
     header: () => <div className="text-center">Status</div>,
     cell: ({ row }) => {
       const status = row.getValue('status') as string;
-      const statusColor =
-        status === 'succeeded'
-          ? 'text-green-600'
-          : status === 'submitted'
-          ? 'text-blue-600'
-          : 'text-red-600';
+      const { variant, className } = STATUS_VARIANT_MAP[status] ?? {
+        variant: 'secondary' as const,
+        className: ''
+      };
       return (
-        <div className="text-center">
+        <div className="flex justify-center">
           <CopyableCell value={status} label="状态">
-            <div className={`text-sm font-medium ${statusColor}`}>{status}</div>
+            <Badge
+              variant={variant}
+              className={`text-xs font-medium ${className}`}
+            >
+              {status}
+            </Badge>
           </CopyableCell>
         </div>
       );
     },
-    size: 120,
-    minSize: 100,
-    maxSize: 140
+    size: 110,
+    minSize: 90,
+    maxSize: 130
   },
   {
     accessorKey: 'n',

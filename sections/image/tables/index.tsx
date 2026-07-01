@@ -1,113 +1,205 @@
 'use client';
 
 import { DataTable } from '@/components/ui/table/data-table';
-import { DataTableFilterBox } from '@/components/ui/table/data-table-filter-box';
 import { DataTableResetFilter } from '@/components/ui/table/data-table-reset-filter';
-// import { DataTableSearch } from '@/components/ui/table/data-table-search';
 import { DateTimeRangePicker } from '@/components/datetime-range-picker';
 import { ImageStat } from '@/lib/types/image';
-import { LOG_OPTIONS } from '@/constants';
 import { columns } from './columns';
-import { STATUS_OPTIONS, useTableFilters } from './use-table-filters';
+import { useTableFilters } from './use-table-filters';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Download, Search, X, Loader2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import {
+  Download,
+  Search,
+  X,
+  Loader2,
+  SlidersHorizontal,
+  ChevronDown,
+  ChevronUp,
+  RotateCcw,
+  Image as ImageIcon
+} from 'lucide-react';
 import dayjs from 'dayjs';
 
-// 移动端图片卡片
+// ─── Status config ───────────────────────────────────────────────────────────
+
+const STATUS_STYLE: Record<string, string> = {
+  succeeded: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400',
+  submitted: 'border-sky-500/30 bg-sky-500/10 text-sky-400',
+  pending: 'border-amber-500/30 bg-amber-500/10 text-amber-400',
+  running: 'border-violet-500/30 bg-violet-500/10 text-violet-400',
+  failed: 'border-red-500/30 bg-red-500/10 text-red-400'
+};
+
+// ─── Mobile card ─────────────────────────────────────────────────────────────
+
 const MobileImageCard = ({ item }: { item: ImageStat }) => {
-  const getStatusColor = (status: string) => {
-    if (status === 'success') return 'bg-green-100 text-green-800';
-    if (status === 'failed') return 'bg-red-100 text-red-800';
-    if (status === 'running') return 'bg-blue-100 text-blue-800';
-    return 'bg-gray-100 text-gray-800';
-  };
+  const statusStyle =
+    STATUS_STYLE[item.status ?? ''] ??
+    'border-border bg-muted/30 text-muted-foreground';
 
   return (
-    <Card className="mb-4 overflow-hidden text-sm">
-      <CardContent className="space-y-3 p-4">
-        <div className="flex items-center justify-between border-b pb-2">
-          <div className="text-xs text-muted-foreground">
-            {dayjs(Number(item.created_at || 0) * 1000).format(
-              'YYYY-MM-DD HH:mm:ss'
-            )}
-          </div>
-          <Badge
-            variant="outline"
-            className={getStatusColor(item.status || '')}
-          >
-            {item.status}
-          </Badge>
+    <div className="overflow-hidden rounded-xl border border-white/[0.06] bg-card shadow-sm transition-shadow hover:shadow-md">
+      {/* Status accent strip */}
+      <div
+        className={`flex items-center justify-between border-b border-white/[0.04] bg-white/[0.02] px-4 py-2.5`}
+      >
+        <span className="font-mono text-[11px] text-muted-foreground">
+          {dayjs(Number(item.created_at || 0) * 1000).format(
+            'YYYY-MM-DD HH:mm:ss'
+          )}
+        </span>
+        <span
+          className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${statusStyle}`}
+        >
+          {item.status}
+        </span>
+      </div>
+
+      <div className="space-y-3 p-4">
+        <div className="grid grid-cols-2 gap-3">
+          <MobileField label="User" value={item.username} />
+          <MobileField label="Provider" value={item.provider} />
+        </div>
+        <MobileField label="Model" value={item.model} mono />
+
+        <div className="grid grid-cols-3 divide-x divide-border/50 rounded-lg border border-white/[0.06] bg-white/[0.02]">
+          <MobileField label="Mode" value={item.mode} center padded />
+          <MobileField
+            label="Images"
+            value={String(item.n ?? 0)}
+            center
+            padded
+          />
+          <MobileField
+            label="Cost"
+            value={`$${((item.quota || 0) / 500000).toFixed(6)}`}
+            center
+            padded
+            valueClass="font-mono text-emerald-400"
+          />
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <div className="flex flex-col">
-            <span className="text-xs text-muted-foreground">User</span>
-            <span className="truncate font-medium">{item.username}</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-xs text-muted-foreground">Task ID</span>
-            <span className="truncate font-mono text-xs" title={item.task_id}>
-              {item.task_id?.substring(0, 10)}...
-            </span>
-          </div>
-        </div>
-
-        <div className="flex flex-col">
-          <span className="text-xs text-muted-foreground">Model</span>
-          <span className="break-all font-medium">{item.model}</span>
-        </div>
-
-        <div className="grid grid-cols-3 gap-2 rounded bg-muted/30 p-2">
-          <div className="flex flex-col items-center">
-            <span className="text-xs text-muted-foreground">Provider</span>
-            <span className="font-medium">{item.provider}</span>
-          </div>
-          <div className="flex flex-col items-center">
-            <span className="text-xs text-muted-foreground">Mode</span>
-            <span className="font-medium">{item.mode}</span>
-          </div>
-          <div className="flex flex-col items-center">
-            <span className="text-xs text-muted-foreground">Quota</span>
-            <span className="font-mono text-blue-600">
-              ${((item.quota || 0) / 500000).toFixed(6)}
-            </span>
-          </div>
-        </div>
-
-        {item.store_url && (
-          <div className="pt-1">
-            <a
-              href={item.store_url}
-              target="_blank"
-              rel="noreferrer"
-              className="text-xs text-blue-600 underline"
-            >
-              View Generated Image
-            </a>
-          </div>
-        )}
+        {item.store_url &&
+          (() => {
+            let urls: string[] = [];
+            try {
+              const parsed = JSON.parse(item.store_url);
+              urls = Array.isArray(parsed)
+                ? parsed.filter(
+                    (u): u is string => typeof u === 'string' && !!u
+                  )
+                : [item.store_url];
+            } catch {
+              urls = [item.store_url];
+            }
+            return (
+              <div className="flex flex-wrap gap-1.5">
+                {urls.map((url, i) => (
+                  <a
+                    key={i}
+                    href={url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-sky-500/25 bg-sky-500/10 px-3 py-1.5 text-xs font-medium text-sky-400 transition-colors hover:bg-sky-500/15"
+                  >
+                    <ImageIcon className="h-3.5 w-3.5" />
+                    {urls.length > 1 ? `Image ${i + 1}` : 'View Image'}
+                  </a>
+                ))}
+              </div>
+            );
+          })()}
 
         {item.fail_reason && (
-          <div className="break-all border-t pt-2 text-xs text-red-600">
-            Error: {item.fail_reason}
+          <div className="bg-red-500/8 rounded-lg border border-red-500/20 px-3 py-2 text-xs text-red-400">
+            <span className="font-semibold">Error: </span>
+            {item.fail_reason}
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
+
+const MobileField = ({
+  label,
+  value,
+  mono,
+  center,
+  padded,
+  valueClass
+}: {
+  label: string;
+  value?: string | null;
+  mono?: boolean;
+  center?: boolean;
+  padded?: boolean;
+  valueClass?: string;
+}) => (
+  <div
+    className={`flex flex-col gap-0.5 ${center ? 'items-center' : ''} ${
+      padded ? 'px-3 py-2.5' : ''
+    }`}
+  >
+    <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+      {label}
+    </span>
+    <span
+      className={`text-sm font-medium ${mono ? 'font-mono' : ''} ${
+        valueClass ?? ''
+      } ${!value ? 'text-muted-foreground/40' : ''}`}
+      title={value ?? '—'}
+    >
+      {value || '—'}
+    </span>
+  </div>
+);
+
+// ─── Filter input ─────────────────────────────────────────────────────────────
+
+const FilterInput = ({
+  placeholder,
+  value,
+  onChange,
+  onKeyDown
+}: {
+  placeholder: string;
+  value: string;
+  onChange: (v: string) => void;
+  onKeyDown?: (e: React.KeyboardEvent) => void;
+}) => (
+  <div className="relative">
+    <Input
+      placeholder={placeholder}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      onKeyDown={onKeyDown}
+      className="h-9 border-white/[0.08] bg-background/60 pr-8 text-sm placeholder:text-muted-foreground/40 focus-visible:border-primary/50 focus-visible:ring-1 focus-visible:ring-primary/30"
+    />
+    {value && (
+      <button
+        onClick={() => onChange('')}
+        className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground/50 transition-colors hover:text-foreground"
+      >
+        <X className="h-3.5 w-3.5" />
+      </button>
+    )}
+  </div>
+);
+
+// ─── Main component ───────────────────────────────────────────────────────────
 
 export default function ImageTable({
   data,
@@ -118,17 +210,12 @@ export default function ImageTable({
 }) {
   const { data: session } = useSession();
   const router = useRouter();
+  const isAdmin = [10, 100].includes(Number((session?.user as any)?.role));
 
-  // 根据角色权限过滤
   const filterColumns = columns.filter((item) => {
-    // 只有管理员和超级管理员才能看到channel_id, username, user_id列
-    if (!['username', 'channel_id', 'user_id'].includes(item.id as string)) {
+    if (!['username', 'channel_id', 'user_id'].includes(item.id as string))
       return true;
-    }
-
-    // 角色10和100是管理员和超级管理员
-    const userRole = (session?.user as any)?.role;
-    return [10, 100].includes(Number(userRole));
+    return isAdmin;
   });
 
   const {
@@ -154,20 +241,14 @@ export default function ImageTable({
     setDateTimeRange
   } = useTableFilters();
 
-  // 本地状态
-  const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery || '');
   const [localTaskId, setLocalTaskId] = useState(taskId || '');
   const [localProvider, setLocalProvider] = useState(provider || '');
   const [localModelName, setLocalModelName] = useState(modelName || '');
   const [localChannelId, setLocalChannelId] = useState(channelId || '');
   const [localUserName, setLocalUserName] = useState(userName || '');
-
-  // 使用 useTransition 跟踪 router.refresh() 的加载状态
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [isSearching, startSearchTransition] = React.useTransition();
 
-  useEffect(() => {
-    setLocalSearchQuery(searchQuery || '');
-  }, [searchQuery]);
   useEffect(() => {
     setLocalTaskId(taskId || '');
   }, [taskId]);
@@ -186,27 +267,24 @@ export default function ImageTable({
 
   const handleSearch = () => {
     setPage(1);
-    setSearchQuery(localSearchQuery || null);
     setTaskId(localTaskId || null);
     setProvider(localProvider || null);
     setModelName(localModelName || null);
     setChannelId(localChannelId || null);
     setUserName(localUserName || null);
-
     startSearchTransition(() => {
       router.refresh();
     });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSearch();
-    }
+    if (e.key === 'Enter') handleSearch();
   };
 
-  // 导出CSV功能
+  // ── CSV export ────────────────────────────────────────────────────────────
+
   const exportToCSV = React.useCallback(
-    (data: ImageStat[], filename: string) => {
+    (rows: ImageStat[], filename: string) => {
       const headers = [
         'Time',
         'Task ID',
@@ -220,10 +298,9 @@ export default function ImageTable({
         'Store URL',
         'Fail Reason'
       ];
-
       const csvContent = [
         headers.join(','),
-        ...data.map((row) =>
+        ...rows.map((row) =>
           [
             new Date(row.created_at * 1000).toISOString(),
             row.task_id || '',
@@ -239,7 +316,6 @@ export default function ImageTable({
           ].join(',')
         )
       ].join('\n');
-
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
@@ -250,29 +326,27 @@ export default function ImageTable({
     []
   );
 
-  // 导出当前页面数据
   const exportCurrentPage = React.useCallback(() => {
-    const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-    exportToCSV(data, `image-logs-page-${timestamp}.csv`);
+    exportToCSV(
+      data,
+      `image-logs-page-${new Date()
+        .toISOString()
+        .slice(0, 19)
+        .replace(/:/g, '-')}.csv`
+    );
   }, [data, exportToCSV]);
 
-  // 导出全部数据 - 高性能并行分批请求，支持百万级数据
   const exportAllData = React.useCallback(async () => {
     try {
       const allImageData: ImageStat[] = [];
-      const pageSizePerRequest = 10000; // 每次请求1万条
-      const concurrentRequests = 10; // 10个并发请求
+      const pageSizePerRequest = 10000;
+      const concurrentRequests = 10;
+      const userApi = isAdmin ? `/api/image` : `/api/image/self`;
 
-      const userApi = [10, 100].includes((session?.user as any).role)
-        ? `/api/image`
-        : `/api/image/self`;
-
-      // 构建通用参数
-      const buildParams = (page: number) => {
+      const buildParams = (p: number) => {
         const params = new URLSearchParams();
-        params.set('page', String(page));
+        params.set('page', String(p));
         params.set('pagesize', String(pageSizePerRequest));
-
         if (searchQuery) params.set('keyword', searchQuery);
         if (taskId) params.set('taskid', taskId);
         if (provider) params.set('provider', provider);
@@ -289,92 +363,56 @@ export default function ImageTable({
             'end_timestamp',
             String(Math.floor(dateTimeRange.to.getTime() / 1000))
           );
-
         return params;
       };
 
-      // 请求单个页面的数据
-      const fetchPage = async (page: number): Promise<ImageStat[]> => {
-        const params = buildParams(page);
-        const url =
-          process.env.NEXT_PUBLIC_API_BASE_URL + `${userApi}?${params}`;
-
-        const res = await fetch(url, {
-          credentials: 'include',
-          headers: {
-            Authorization: `Bearer ${session?.user?.accessToken}`
+      const fetchPage = async (p: number): Promise<ImageStat[]> => {
+        const res = await fetch(
+          process.env.NEXT_PUBLIC_API_BASE_URL + `${userApi}?${buildParams(p)}`,
+          {
+            credentials: 'include',
+            headers: { Authorization: `Bearer ${session?.user?.accessToken}` }
           }
-        });
-
-        const { data: responseData } = await res.json();
-        return (responseData && responseData.list) || [];
+        );
+        const { data: d } = await res.json();
+        return (d && d.list) || [];
       };
 
-      console.log('🚀 开始导出图像数据...');
-
-      // 第一次请求获取 total
       const firstList = await fetchPage(0);
-      const firstParams = buildParams(0);
-      const firstUrl =
-        process.env.NEXT_PUBLIC_API_BASE_URL + `${userApi}?${firstParams}`;
-
-      const firstRes = await fetch(firstUrl, {
-        credentials: 'include',
-        headers: {
-          Authorization: `Bearer ${session?.user?.accessToken}`
+      const firstRes = await fetch(
+        process.env.NEXT_PUBLIC_API_BASE_URL + `${userApi}?${buildParams(0)}`,
+        {
+          credentials: 'include',
+          headers: { Authorization: `Bearer ${session?.user?.accessToken}` }
         }
-      });
-
+      );
       const { data: firstData } = await firstRes.json();
       const total = firstData?.total || 0;
+      if (firstList.length > 0) allImageData.push(...firstList);
 
-      if (firstList.length > 0) {
-        allImageData.push(...firstList);
-      }
-
-      console.log(`📊 总共 ${total} 条图像记录需要导出`);
-
-      // 计算总页数
       const totalPages = Math.ceil(total / pageSizePerRequest);
-
-      // 并行分批请求剩余数据
       for (let i = 1; i < totalPages; i += concurrentRequests) {
-        const pagePromises: Promise<ImageStat[]>[] = [];
-
-        // 创建并发请求
-        for (let j = 0; j < concurrentRequests && i + j < totalPages; j++) {
-          pagePromises.push(fetchPage(i + j));
-        }
-
-        // 等待当前批次完成
-        const results = await Promise.all(pagePromises);
-
-        // 合并数据
-        results.forEach((pageData) => {
-          if (pageData.length > 0) {
-            allImageData.push(...pageData);
-          }
-        });
-
-        // 显示进度
-        const progress = Math.min(100, Math.round((i / totalPages) * 100));
-        console.log(
-          `⏳ 导出进度: ${progress}% (${allImageData.length}/${total})`
+        const results = await Promise.all(
+          Array.from(
+            { length: Math.min(concurrentRequests, totalPages - i) },
+            (_, j) => fetchPage(i + j)
+          )
         );
+        results.forEach((d) => {
+          if (d.length > 0) allImageData.push(...d);
+        });
       }
 
-      const timestamp = new Date()
-        .toISOString()
-        .slice(0, 19)
-        .replace(/:/g, '-');
-      exportToCSV(allImageData, `image-logs-all-${timestamp}.csv`);
-
-      console.log(
-        `✅ 成功导出 ${allImageData.length} 条图像记录（总计 ${total} 条）`
+      exportToCSV(
+        allImageData,
+        `image-logs-all-${new Date()
+          .toISOString()
+          .slice(0, 19)
+          .replace(/:/g, '-')}.csv`
       );
       alert(`✅ 导出完成！共导出 ${allImageData.length} 条图像记录`);
     } catch (error) {
-      console.error('❌ 导出失败:', error);
+      console.error('导出失败:', error);
       alert('导出失败，请查看控制台错误信息');
     }
   }, [
@@ -386,37 +424,20 @@ export default function ImageTable({
     userName,
     dateTimeRange,
     session,
+    isAdmin,
     exportToCSV
   ]);
 
-  // 当分页状态变化时，重新获取数据
   React.useEffect(() => {
-    // 开发环境下添加调试信息
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Image页面分页状态变化:', { page, pageSize });
-    }
-
-    // 使用更高效的刷新策略
-    const refreshData = () => {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('触发Image页面数据刷新');
-      }
-      router.refresh();
-    };
-
-    // 防抖机制：避免快速连续的状态变化
-    const timeoutId = setTimeout(
-      refreshData,
+    const id = setTimeout(
+      () => router.refresh(),
       process.env.NODE_ENV === 'development' ? 50 : 0
     );
-
-    return () => clearTimeout(timeoutId);
+    return () => clearTimeout(id);
   }, [page, pageSize, router]);
 
-  // 处理页面大小变化，重置到第一页
   const handlePageSizeChange = React.useCallback(
     (newPageSize: number) => {
-      // 使用 startTransition 来批量更新状态，避免多次触发useEffect
       React.startTransition(() => {
         setPageSize(newPageSize);
         setPage(1);
@@ -425,203 +446,210 @@ export default function ImageTable({
     [setPageSize, setPage]
   );
 
+  const activeFilterCount = [
+    localTaskId,
+    localProvider,
+    localModelName,
+    localChannelId,
+    localUserName
+  ].filter(Boolean).length;
+
+  // ── Render ────────────────────────────────────────────────────────────────
+
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        <div className="relative min-w-[200px]">
-          <Input
-            placeholder="Search..."
-            value={localSearchQuery}
-            onChange={(e) => setLocalSearchQuery(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="pr-8"
-          />
-          {localSearchQuery && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setLocalSearchQuery('')}
-              className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2 p-0 hover:bg-gray-100"
-            >
-              <X className="h-3 w-3" />
-            </Button>
-          )}
-        </div>
-        <div className="relative min-w-[200px]">
-          <Input
-            placeholder="Search Task ID..."
-            value={localTaskId}
-            onChange={(e) => setLocalTaskId(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="pr-8"
-          />
-          {localTaskId && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setLocalTaskId('')}
-              className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2 p-0 hover:bg-gray-100"
-            >
-              <X className="h-3 w-3" />
-            </Button>
-          )}
-        </div>
-        <div className="relative min-w-[200px]">
-          <Input
-            placeholder="Search Provider..."
-            value={localProvider}
-            onChange={(e) => setLocalProvider(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="pr-8"
-          />
-          {localProvider && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setLocalProvider('')}
-              className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2 p-0 hover:bg-gray-100"
-            >
-              <X className="h-3 w-3" />
-            </Button>
-          )}
-        </div>
-        <div className="relative min-w-[200px]">
-          <Input
-            placeholder="Search Model Name..."
-            value={localModelName}
-            onChange={(e) => setLocalModelName(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="pr-8"
-          />
-          {localModelName && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setLocalModelName('')}
-              className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2 p-0 hover:bg-gray-100"
-            >
-              <X className="h-3 w-3" />
-            </Button>
-          )}
-        </div>
-        {[10, 100].includes((session?.user as any).role) && (
-          <>
-            <div className="relative min-w-[200px]">
-              <Input
-                placeholder="Search Channel ID..."
-                value={localChannelId}
-                onChange={(e) => setLocalChannelId(e.target.value)}
-                onKeyDown={handleKeyDown}
-                className="pr-8"
-              />
-              {localChannelId && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setLocalChannelId('')}
-                  className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2 p-0 hover:bg-gray-100"
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              )}
+      {/* ━━ Header bar ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        {/* Title */}
+        <div className="flex items-center gap-3">
+          <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/25 to-accent-ezl/15 shadow-inner ring-1 ring-white/10">
+            <ImageIcon className="h-[18px] w-[18px] text-primary" />
+          </div>
+          <div>
+            <h2 className="text-[15px] font-semibold tracking-tight">
+              Image Logs
+            </h2>
+            <div className="mt-0.5 flex items-center gap-1.5">
+              <span className="inline-flex items-center rounded-full border border-white/[0.08] bg-white/[0.04] px-2 py-px font-mono text-[11px] text-muted-foreground">
+                {totalData.toLocaleString()}
+                <span className="ml-1 text-muted-foreground/50">records</span>
+              </span>
             </div>
-            <div className="relative min-w-[200px]">
-              <Input
-                placeholder="Search User Name..."
-                value={localUserName}
-                onChange={(e) => setLocalUserName(e.target.value)}
-                onKeyDown={handleKeyDown}
-                className="pr-8"
-              />
-              {localUserName && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setLocalUserName('')}
-                  className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2 p-0 hover:bg-gray-100"
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              )}
-            </div>
-          </>
-        )}
-        <div className="flex items-center gap-2">
-          <Button
-            onClick={handleSearch}
-            disabled={isSearching}
-            className="flex-1 gap-2 sm:flex-none"
-          >
-            {isSearching ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Search className="h-4 w-4" />
-            )}
-            <span className="sm:inline">
-              {isSearching ? 'Searching...' : 'Search'}
-            </span>
-          </Button>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex flex-wrap items-center gap-2">
+          <DateTimeRangePicker
+            value={dateTimeRange}
+            onValueChange={(r) => {
+              setDateTimeRange(r);
+              setPage(1);
+            }}
+          />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="flex-1 gap-2 sm:flex-none">
-                <Download className="h-4 w-4" />
-                导出
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 gap-1.5 border-white/[0.08] bg-white/[0.03] text-sm hover:border-white/[0.12] hover:bg-white/[0.06]"
+              >
+                <Download className="h-3.5 w-3.5 opacity-70" />
+                Export
+                <ChevronDown className="h-3 w-3 opacity-40" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="w-52">
               <DropdownMenuItem onClick={exportCurrentPage}>
-                <div className="flex flex-col gap-1">
-                  <span>导出当前页数据</span>
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-sm font-medium">Current page</span>
                   <span className="text-xs text-muted-foreground">
-                    当前页 {data.length} 条记录
+                    {data.length} records
                   </span>
                 </div>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={exportAllData}>
-                <div className="flex flex-col gap-1">
-                  <span>导出全部符合条件的数据</span>
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-sm font-medium">
+                    All matching records
+                  </span>
                   <span className="text-xs text-muted-foreground">
-                    包含所有筛选条件的完整数据
+                    With current filters applied
                   </span>
                 </div>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <div className="flex items-center gap-2">
-            <DataTableResetFilter
-              isFilterActive={isAnyFilterActive}
-              onReset={() => {
-                resetFilters();
-                setPage(1);
-              }}
-            />
-          </div>
-        </div>
-        <div className="col-span-full flex justify-end">
-          <DateTimeRangePicker
-            value={dateTimeRange}
-            onValueChange={(newRange) => {
-              setDateTimeRange(newRange);
-              setPage(1);
-            }}
-          />
         </div>
       </div>
 
-      {/* 查询加载遮罩 */}
+      {/* ━━ Filter panel ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+      <div className="overflow-hidden rounded-xl border border-white/[0.07] bg-card shadow-sm">
+        {/* Gradient accent line */}
+        <div className="h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+
+        {/* Toggle header */}
+        <button
+          onClick={() => setFiltersOpen((v) => !v)}
+          className="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-white/[0.02]"
+        >
+          <div className="flex items-center gap-2.5">
+            <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground/60" />
+            <span className="text-sm font-medium">Filters</span>
+            {activeFilterCount > 0 && (
+              <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary/20 px-1.5 font-mono text-[10px] font-semibold text-primary ring-1 ring-primary/30">
+                {activeFilterCount}
+              </span>
+            )}
+          </div>
+          <div className="text-muted-foreground/40">
+            {filtersOpen ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
+          </div>
+        </button>
+
+        {/* Filter body */}
+        {filtersOpen && (
+          <div className="border-t border-white/[0.05] px-4 pb-4 pt-4">
+            <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
+              <FilterField label="Task ID">
+                <FilterInput
+                  placeholder="e.g. task-abc123"
+                  value={localTaskId}
+                  onChange={setLocalTaskId}
+                  onKeyDown={handleKeyDown}
+                />
+              </FilterField>
+              <FilterField label="Provider">
+                <FilterInput
+                  placeholder="e.g. openai"
+                  value={localProvider}
+                  onChange={setLocalProvider}
+                  onKeyDown={handleKeyDown}
+                />
+              </FilterField>
+              <FilterField label="Model">
+                <FilterInput
+                  placeholder="e.g. dall-e-3"
+                  value={localModelName}
+                  onChange={setLocalModelName}
+                  onKeyDown={handleKeyDown}
+                />
+              </FilterField>
+              {isAdmin && (
+                <>
+                  <FilterField label="Channel ID">
+                    <FilterInput
+                      placeholder="e.g. 15543"
+                      value={localChannelId}
+                      onChange={setLocalChannelId}
+                      onKeyDown={handleKeyDown}
+                    />
+                  </FilterField>
+                  <FilterField label="Username">
+                    <FilterInput
+                      placeholder="e.g. john"
+                      value={localUserName}
+                      onChange={setLocalUserName}
+                      onKeyDown={handleKeyDown}
+                    />
+                  </FilterField>
+                </>
+              )}
+            </div>
+
+            <div className="mt-4 flex items-center gap-2 border-t border-white/[0.04] pt-4">
+              <Button
+                onClick={handleSearch}
+                disabled={isSearching}
+                size="sm"
+                className="gap-2 border-0 bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20 hover:from-blue-500 hover:to-indigo-500 focus-visible:ring-blue-500/50"
+              >
+                {isSearching ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Search className="h-3.5 w-3.5" />
+                )}
+                {isSearching ? 'Searching…' : 'Search'}
+              </Button>
+              {isAnyFilterActive && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1.5 text-muted-foreground/60 hover:text-foreground"
+                  onClick={() => {
+                    resetFilters();
+                    setPage(1);
+                  }}
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  Reset
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ━━ Search overlay ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
       {isSearching && (
         <div className="pointer-events-none fixed inset-0 z-[9999] flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/20"></div>
-          <div className="relative duration-200 animate-in zoom-in-50">
-            <div className="flex items-center gap-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-3 text-white shadow-2xl">
-              <Loader2 className="h-5 w-5 animate-spin" />
-              <span className="font-medium">正在查询...</span>
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" />
+          <div className="relative duration-150 animate-in zoom-in-90">
+            <div className="flex items-center gap-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-3 text-white shadow-2xl shadow-blue-500/30">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="text-sm font-medium tracking-tight">
+                Searching…
+              </span>
             </div>
           </div>
         </div>
       )}
 
-      {/* Desktop View */}
+      {/* ━━ Desktop table ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
       <div className="hidden md:block">
         <DataTable
           columns={filterColumns}
@@ -637,27 +665,41 @@ export default function ImageTable({
         />
       </div>
 
-      {/* Mobile View */}
-      <div className="space-y-4 md:hidden">
-        {data.map((item, index) => (
-          <MobileImageCard key={item.task_id || index} item={item} />
-        ))}
-        {/* Mobile Pagination */}
-        <div className="flex items-center justify-between border-t pt-4">
-          <div className="text-sm text-muted-foreground">Total {totalData}</div>
-          <div className="flex gap-2">
+      {/* ━━ Mobile list ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+      <div className="space-y-3 md:hidden">
+        {data.length === 0 ? (
+          <div className="rounded-xl border border-white/[0.06] py-16 text-center">
+            <ImageIcon className="mx-auto mb-3 h-8 w-8 text-muted-foreground/20" />
+            <p className="text-sm text-muted-foreground/40">No records found</p>
+          </div>
+        ) : (
+          data.map((item, index) => (
+            <MobileImageCard key={item.task_id || index} item={item} />
+          ))
+        )}
+
+        {/* Mobile pagination */}
+        <div className="flex items-center justify-between border-t border-white/[0.05] pt-4">
+          <span className="font-mono text-xs text-muted-foreground/50">
+            {totalData.toLocaleString()} total
+          </span>
+          <div className="flex items-center gap-1.5">
             <Button
               variant="outline"
               size="sm"
+              className="h-8 border-white/[0.08] bg-white/[0.02] px-3 hover:bg-white/[0.05]"
               onClick={() => setPage(Math.max(1, page - 1))}
               disabled={page <= 1}
             >
               Prev
             </Button>
-            <span className="flex items-center px-2 text-sm">{page}</span>
+            <span className="min-w-[2rem] text-center font-mono text-sm font-medium">
+              {page}
+            </span>
             <Button
               variant="outline"
               size="sm"
+              className="h-8 border-white/[0.08] bg-white/[0.02] px-3 hover:bg-white/[0.05]"
               onClick={() => setPage(page + 1)}
               disabled={data.length < pageSize}
             >
@@ -669,3 +711,20 @@ export default function ImageTable({
     </div>
   );
 }
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const FilterField = ({
+  label,
+  children
+}: {
+  label: string;
+  children: React.ReactNode;
+}) => (
+  <div className="space-y-1.5">
+    <label className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/50">
+      {label}
+    </label>
+    {children}
+  </div>
+);
