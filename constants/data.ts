@@ -283,6 +283,13 @@ export const navItems: NavItem[] = [
         icon: 'channel',
         label: 'model-setting',
         roles: [100]
+      },
+      {
+        title: '同步日志设置',
+        href: '/dashboard/setting/audit',
+        icon: 'database',
+        label: 'audit-setting',
+        roles: [100]
       }
     ]
   }

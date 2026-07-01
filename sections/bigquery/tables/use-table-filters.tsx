@@ -70,7 +70,7 @@ export function useAuditTableFilters() {
 
   const [pageSize, setPageSize] = useQueryState(
     'limit',
-    searchParams.limit.withOptions({ shallow: true }).withDefault(20)
+    searchParams.limit.withOptions({ shallow: true }).withDefault(10)
   );
 
   const todayRange = useMemo(() => getTodayRange(), []);
