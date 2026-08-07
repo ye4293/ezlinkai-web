@@ -49,6 +49,9 @@ export default function SettingPage() {
   // 响应时间阈值（秒）：自动启用时若渠道响应时间超过此值则跳过启用
   const [channelDisableThreshold, setChannelDisableThreshold] = useState(0);
   const [upstreamIntervalMinutes, setUpstreamIntervalMinutes] = useState(30);
+  const [upstreamChannelConcurrency, setUpstreamChannelConcurrency] =
+    useState(5);
+  const [upstreamModelConcurrency, setUpstreamModelConcurrency] = useState(5);
   const [isLoading, setIsLoading] = useState(false);
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -184,6 +187,24 @@ export default function SettingPage() {
           );
         }
 
+        const upstreamChannelConcurrencyOption = options.find(
+          (o: Option) => o.key === 'UpstreamModelUpdateChannelConcurrency'
+        );
+        if (upstreamChannelConcurrencyOption) {
+          setUpstreamChannelConcurrency(
+            parseInt(upstreamChannelConcurrencyOption.value) || 5
+          );
+        }
+
+        const upstreamModelConcurrencyOption = options.find(
+          (o: Option) => o.key === 'UpstreamModelProbeModelConcurrency'
+        );
+        if (upstreamModelConcurrencyOption) {
+          setUpstreamModelConcurrency(
+            parseInt(upstreamModelConcurrencyOption.value) || 5
+          );
+        }
+
         // ==================== 加载提醒设置 ====================
         // SMTP 配置
         const smtpServerOption = options.find(
@@ -314,6 +335,14 @@ export default function SettingPage() {
         {
           key: 'UpstreamModelUpdateIntervalMinutes',
           value: upstreamIntervalMinutes.toString()
+        },
+        {
+          key: 'UpstreamModelUpdateChannelConcurrency',
+          value: upstreamChannelConcurrency.toString()
+        },
+        {
+          key: 'UpstreamModelProbeModelConcurrency',
+          value: upstreamModelConcurrency.toString()
         }
       ];
 
@@ -791,6 +820,47 @@ export default function SettingPage() {
                 />
                 <p className="text-sm text-muted-foreground">
                   全局生效。每隔此分钟数对已开启巡检的渠道检测一次上游模型变化。
+                </p>
+              </div>
+              <div className="grid w-full items-center gap-1.5">
+                <Label htmlFor="upstream-channel-concurrency">渠道并发数</Label>
+                <Input
+                  id="upstream-channel-concurrency"
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={upstreamChannelConcurrency}
+                  onChange={(e) => {
+                    const v = parseInt(e.target.value);
+                    setUpstreamChannelConcurrency(isNaN(v) || v < 1 ? 1 : v);
+                  }}
+                  placeholder="默认 5"
+                  className="w-48"
+                />
+                <p className="text-sm text-muted-foreground">
+                  同时巡检的渠道数。不同渠道互不影响，调大可缩短整轮巡检耗时。
+                </p>
+              </div>
+              <div className="grid w-full items-center gap-1.5">
+                <Label htmlFor="upstream-model-concurrency">
+                  单渠道模型并发数
+                </Label>
+                <Input
+                  id="upstream-model-concurrency"
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={upstreamModelConcurrency}
+                  onChange={(e) => {
+                    const v = parseInt(e.target.value);
+                    setUpstreamModelConcurrency(isNaN(v) || v < 1 ? 1 : v);
+                  }}
+                  placeholder="默认 5"
+                  className="w-48"
+                />
+                <p className="text-sm text-muted-foreground">
+                  单个渠道内同时探测的模型数（含手动探针）。同一 Key
+                  并发请求，上游易限流时应设为 1。
                 </p>
               </div>
             </CardContent>

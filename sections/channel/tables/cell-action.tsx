@@ -17,12 +17,14 @@ import {
   CircleSlash2,
   ListTree,
   KeyRound,
-  Copy
+  Copy,
+  Radar
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { ModelsModal } from './models-modal';
+import { ProbeModal } from './probe-modal';
 
 export interface CellActionProps {
   data: Channel;
@@ -40,6 +42,7 @@ export const CellAction: React.FC<CellActionProps> = ({
   const [open, setOpen] = useState(false);
   const [copyConfirmOpen, setCopyConfirmOpen] = useState(false);
   const [modelsModalOpen, setModelsModalOpen] = useState(false);
+  const [probeModalOpen, setProbeModalOpen] = useState(false);
   const router = useRouter();
 
   const onConfirm = async (channel: Channel) => {
@@ -164,6 +167,12 @@ export const CellAction: React.FC<CellActionProps> = ({
         isOpen={modelsModalOpen}
         onClose={() => setModelsModalOpen(false)}
       />
+      <ProbeModal
+        channel={data}
+        isOpen={probeModalOpen}
+        onClose={() => setProbeModalOpen(false)}
+        onApplied={onDataChange}
+      />
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="h-8 w-8 p-0">
@@ -219,6 +228,9 @@ export const CellAction: React.FC<CellActionProps> = ({
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setModelsModalOpen(true)}>
             <ListTree className="mr-2 h-4 w-4" /> View Models
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setProbeModalOpen(true)}>
+            <Radar className="mr-2 h-4 w-4" /> 模型探针
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
