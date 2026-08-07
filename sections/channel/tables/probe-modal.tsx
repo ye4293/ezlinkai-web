@@ -116,7 +116,10 @@ export const ProbeModal: React.FC<ProbeModalProps> = ({
   channel,
   onApplied
 }) => {
-  const targets = useMemo(() => parseTargets(channel), [channel]);
+  const [targets, setTargets] = useState<ProbeTarget[]>(() =>
+    parseTargets(channel)
+  );
+  const [detecting, setDetecting] = useState(false);
   const [results, setResults] = useState<Record<string, ProbeResult>>({});
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [running, setRunning] = useState(false);
@@ -126,6 +129,12 @@ export const ProbeModal: React.FC<ProbeModalProps> = ({
   const [unsupported, setUnsupported] = useState('');
   const abortRef = useRef<AbortController | null>(null);
 
+  useEffect(() => {
+    if (isOpen) {
+      setTargets(parseTargets(channel));
+    }
+  }, [isOpen, channel]);
+
   // 关闭时中止在途探测并复位
   useEffect(() => {
     if (!isOpen) {
@@ -134,10 +143,45 @@ export const ProbeModal: React.FC<ProbeModalProps> = ({
       setResults({});
       setSelected({});
       setRunning(false);
+      setDetecting(false);
       setProgress({ done: 0, total: 0 });
       setUnsupported('');
     }
   }, [isOpen]);
+
+  const runDetect = async () => {
+    setDetecting(true);
+    try {
+      const res = await fetch('/api/channel/upstream_updates/detect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: Number(channel.id) }),
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (!data.success) {
+        toast.error(data.message || '拉取上游差异失败');
+        return;
+      }
+      const addModels: string[] = data.data?.add_models || [];
+      const removeModels: string[] = data.data?.remove_models || [];
+      const newTargets: ProbeTarget[] = [];
+      addModels.forEach(
+        (m) => m && newTargets.push({ model: m, scene: 'pending_add' })
+      );
+      removeModels.forEach(
+        (m) => m && newTargets.push({ model: m, scene: 'pending_remove' })
+      );
+      setTargets(newTargets);
+      if (newTargets.length === 0) {
+        toast.info('上游模型列表与本地一致，无差异');
+      }
+    } catch (e: any) {
+      toast.error(e?.message || '拉取上游差异异常');
+    } finally {
+      setDetecting(false);
+    }
+  };
 
   const runProbe = async () => {
     const controller = new AbortController();
@@ -286,8 +330,13 @@ export const ProbeModal: React.FC<ProbeModalProps> = ({
           </DialogHeader>
 
           {targets.length === 0 ? (
-            <div className="py-8 text-center text-sm text-muted-foreground">
-              当前没有待处理的上游差异。请先在渠道编辑页点「立即检测」拉取上游差异。
+            <div className="flex flex-col items-center gap-3 py-8">
+              <span className="text-sm text-muted-foreground">
+                当前没有待处理的上游差异。
+              </span>
+              <Button size="sm" onClick={runDetect} disabled={detecting}>
+                {detecting ? '正在拉取…' : '拉取上游差异'}
+              </Button>
             </div>
           ) : unsupported ? (
             <div className="py-8 text-center text-sm text-destructive">
