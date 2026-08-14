@@ -20,9 +20,14 @@ export interface ModelChannelItem {
   unit_price: number;
 }
 
+// 后端返回结构：{ success, message, data: { list, total, page, pageSize } }
 export interface ModelOverviewResponse {
-  list: ModelOverviewItem[];
-  total: number;
-  page: number;
-  pageSize: number;
+  success: boolean;
+  message?: string;
+  data: {
+    list: ModelOverviewItem[];
+    total: number;
+    page: number;
+    pageSize: number;
+  };
 }

@@ -117,13 +117,10 @@ export default function ModelOverviewTable() {
       if (typeFilter) params.set('channel_type', typeFilter);
 
       const res = await fetch(`/api/channel/models_overview?${params}`);
-      const body: ModelOverviewResponse & {
-        success: boolean;
-        message?: string;
-      } = await res.json();
-      if (res.ok && body.success) {
-        setData(body.list || []);
-        setTotal(body.total || 0);
+      const body: ModelOverviewResponse = await res.json();
+      if (res.ok && body.success && body.data) {
+        setData(body.data.list || []);
+        setTotal(body.data.total || 0);
       } else {
         setError(body?.message || `加载失败（HTTP ${res.status}）`);
         setData([]);
