@@ -39,7 +39,8 @@ import {
   Share2,
   FlaskConical,
   Palette,
-  Activity
+  Activity,
+  Boxes
 } from 'lucide-react';
 
 export type Icon = LucideIcon;
@@ -119,5 +120,6 @@ export const Icons = {
   chart: BarChart3,
   playground: FlaskConical,
   store: Store,
-  database: Database
+  database: Database,
+  model: Boxes
 };

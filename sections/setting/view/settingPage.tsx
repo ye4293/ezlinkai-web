@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { Breadcrumbs } from '@/components/breadcrumbs';
+import DynamicPrioritySetting from '@/sections/setting/view/dynamic-priority-setting';
 import PageContainer from '@/components/layout/page-container';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
@@ -865,6 +866,9 @@ export default function SettingPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* 动态优先级（自包含组件，独立保存，不参与本页统一保存） */}
+          <DynamicPrioritySetting />
 
           {/* ==================== 提醒设置 ==================== */}
           <Separator className="my-6" />

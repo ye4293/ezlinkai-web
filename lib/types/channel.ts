@@ -22,6 +22,8 @@ export interface ChannelForm {
   groups: Array<string>;
   /** 渠道折扣倍率 (0-1, 如 0.7 表示七折) */
   discount?: number;
+  /** 收购单价，用于动态优先级评分的价格维度，默认 1 */
+  unit_price?: number;
 }
 
 /** 渠道返回结果 */
@@ -79,6 +81,8 @@ export interface Channel {
   balance?: number;
   /** 渠道折扣倍率 */
   discount?: number;
+  /** 收购单价，用于动态优先级评分的价格维度，默认 1 */
+  unit_price?: number;
   /** 渠道扩展设置（JSON 字符串），含上游模型巡检配置 */
   other_settings?: string;
 }

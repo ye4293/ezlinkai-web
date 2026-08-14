@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -101,6 +102,12 @@ const formSchema = z.object({
     })
     .max(1, {
       message: '折扣倍率不能超过1'
+    })
+    .optional(),
+  unit_price: z
+    .number()
+    .min(0, {
+      message: '单价必须大于等于0'
     })
     .optional(),
   auto_disabled: z.boolean().default(true),
@@ -616,6 +623,7 @@ export default function ChannelForm() {
             priority: channelData.priority || 0,
             weight: channelData.weight || 0,
             discount: channelData.discount ?? 1,
+            unit_price: channelData.unit_price ?? 1,
             auto_disabled: autoDisabledValue,
             auto_enabled: autoEnabledValue,
             test_model: channelData.test_model || '',
@@ -718,6 +726,7 @@ export default function ChannelForm() {
       priority: 0,
       weight: 0,
       discount: 1,
+      unit_price: 1,
       auto_disabled: true,
       auto_enabled: true,
       test_model: '',
@@ -1287,6 +1296,7 @@ export default function ChannelForm() {
         priority: values.priority || 0,
         weight: values.weight || 0,
         discount: values.discount ?? 1,
+        unit_price: values.unit_price ?? 1,
         auto_disabled: values.auto_disabled ?? true,
         auto_enabled: values.auto_enabled ?? true,
         test_model: values.test_model || '',
@@ -1445,6 +1455,7 @@ export default function ChannelForm() {
           priority: values.priority || 0,
           weight: values.weight || 0,
           discount: values.discount ?? 1,
+          unit_price: values.unit_price ?? 1,
           auto_disabled: values.auto_disabled ?? true,
           auto_enabled: values.auto_enabled ?? true,
           test_model: values.test_model || '',
@@ -3411,6 +3422,37 @@ ${type2secretPrompt(form.watch('type'))}`}
                         }}
                       />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="unit_price"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>收购单价</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.000001"
+                        placeholder="请输入收购单价，默认为1"
+                        {...field}
+                        value={field.value ?? 1}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          const parsed = parseFloat(value);
+                          field.onChange(
+                            value === '' || isNaN(parsed) ? 1 : parsed
+                          );
+                        }}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      渠道收购单价，用于动态优先级评分的价格维度。越便宜分数越高，默认1。
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
