@@ -1,7 +1,8 @@
-import PageContainer from '@/components/layout/page-container';
 import { Breadcrumbs } from '@/components/breadcrumbs';
+import PageContainer from '@/components/layout/page-container';
 import { Separator } from '@/components/ui/separator';
-import ModelView from '@/sections/model/model-view';
+import { Heading } from '@/components/ui/heading';
+import ModelOverviewTable from '@/sections/model/model-overview-table';
 
 const breadcrumbItems = [
   { title: 'Dashboard', link: '/dashboard' },
@@ -14,14 +15,15 @@ export const metadata = {
 
 export default function Page() {
   return (
-    <PageContainer>
+    <PageContainer scrollable>
       <div className="space-y-4">
         <Breadcrumbs items={breadcrumbItems} />
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold tracking-tight">模型渠道挂载</h1>
-        </div>
+        <Heading
+          title="模型"
+          description="模型及挂载渠道的动态优先级视图。点击模型名查看渠道详情。"
+        />
         <Separator />
-        <ModelView />
+        <ModelOverviewTable />
       </div>
     </PageContainer>
   );
