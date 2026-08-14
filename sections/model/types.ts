@@ -11,7 +11,8 @@ export interface ModelChannelItem {
   channel_id: number;
   channel_name: string;
   channel_type: number;
-  group: string;
+  groups: string[]; // 该渠道该模型挂载的所有分组（聚合）
+  group_count: number;
   enabled: boolean;
   channel_status: number;
   priority: number;

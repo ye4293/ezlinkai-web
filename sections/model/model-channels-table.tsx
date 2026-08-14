@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { DataTable } from '@/components/ui/table/data-table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectTrigger,
@@ -12,7 +13,8 @@ import {
   SelectContent,
   SelectItem
 } from '@/components/ui/select';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Check, X } from 'lucide-react';
+import { toast } from 'sonner';
 import { CHANNEL_OPTIONS } from '@/constants';
 import { ModelChannelItem } from './types';
 
@@ -41,70 +43,113 @@ function typeBadge(type: number) {
   return <Badge variant="outline">{typeTextMap[type] || `类型 ${type}`}</Badge>;
 }
 
-const columns: ColumnDef<ModelChannelItem>[] = [
-  {
-    accessorKey: 'channel_id',
-    header: '渠道ID',
-    cell: ({ row }) => (
-      <span className="font-mono text-xs">{row.original.channel_id}</span>
-    )
-  },
-  {
-    accessorKey: 'channel_name',
-    header: '渠道名称',
-    cell: ({ row }) => (
-      <span className="font-medium">{row.original.channel_name || '-'}</span>
-    )
-  },
-  {
-    accessorKey: 'channel_type',
-    header: '类型',
-    cell: ({ row }) => typeBadge(row.original.channel_type)
-  },
-  {
-    accessorKey: 'group',
-    header: '分组',
-    cell: ({ row }) => (
-      <span className="font-mono text-xs">{row.original.group}</span>
-    )
-  },
-  {
-    accessorKey: 'channel_status',
-    header: '状态',
-    cell: ({ row }) =>
-      statusBadge(row.original.channel_status, row.original.enabled)
-  },
-  {
-    accessorKey: 'priority',
-    header: '静态优先级',
-    cell: ({ row }) => (
-      <span className="font-mono">{row.original.priority}</span>
-    )
-  },
-  {
-    accessorKey: 'dynamic_priority',
-    header: '动态优先级',
-    cell: ({ row }) => (
-      <span className="font-mono font-semibold text-primary">
-        {row.original.dynamic_priority || '-'}
-      </span>
-    )
-  },
-  {
-    accessorKey: 'weight',
-    header: '权重',
-    cell: ({ row }) => <span className="font-mono">{row.original.weight}</span>
-  },
-  {
-    accessorKey: 'unit_price',
-    header: '单价',
-    cell: ({ row }) => (
-      <span className="font-mono">
-        {row.original.unit_price > 0 ? row.original.unit_price.toFixed(4) : '-'}
-      </span>
-    )
+// 可编辑优先级单元格：点击进入编辑，回车/确认提交，ESC 取消。
+// 提交时调 PUT /api/channel/model_channel_priority，同步更新该渠道该模型所有 group 行。
+function PriorityCell({
+  channelId,
+  model,
+  value,
+  onUpdated
+}: {
+  channelId: number;
+  model: string;
+  value: number;
+  onUpdated: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(String(value));
+  const [saving, setSaving] = useState(false);
+
+  const startEdit = () => {
+    setDraft(String(value));
+    setEditing(true);
+  };
+
+  const cancel = () => {
+    setEditing(false);
+    setDraft(String(value));
+  };
+
+  const save = async () => {
+    const n = parseInt(draft);
+    if (isNaN(n) || n < 0) {
+      toast.error('优先级必须是非负整数');
+      return;
+    }
+    if (n === value) {
+      setEditing(false);
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch('/api/channel/model_channel_priority', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channel_id: channelId, model, priority: n })
+      });
+      const body = await res.json();
+      if (res.ok && body.success) {
+        toast.success(`已同步更新 ${body.affected} 个分组行`);
+        setEditing(false);
+        onUpdated();
+      } else {
+        toast.error(body?.message || '更新失败');
+      }
+    } catch (e: any) {
+      toast.error(e?.message || '网络错误');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-1">
+        <Input
+          type="number"
+          min={0}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') save();
+            if (e.key === 'Escape') cancel();
+          }}
+          className="h-8 w-20"
+          autoFocus
+          disabled={saving}
+        />
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-7 w-7"
+          onClick={save}
+          disabled={saving}
+        >
+          <Check className="h-4 w-4" />
+        </Button>
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-7 w-7"
+          onClick={cancel}
+          disabled={saving}
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+    );
   }
-];
+
+  return (
+    <span
+      className="cursor-pointer rounded px-1 font-mono hover:bg-accent"
+      onClick={startEdit}
+      title="点击编辑（同步所有分组）"
+    >
+      {value}
+    </span>
+  );
+}
 
 export default function ModelChannelsTable({ model }: { model: string }) {
   const [data, setData] = useState<ModelChannelItem[]>([]);
@@ -145,6 +190,96 @@ export default function ModelChannelsTable({ model }: { model: string }) {
     const timer = setInterval(fetchData, 30000);
     return () => clearInterval(timer);
   }, [autoRefresh, fetchData]);
+
+  // 列定义用到 model 和 fetchData，故放在组件内
+  const columns: ColumnDef<ModelChannelItem>[] = [
+    {
+      accessorKey: 'channel_id',
+      header: '渠道ID',
+      cell: ({ row }) => (
+        <span className="font-mono text-xs">{row.original.channel_id}</span>
+      )
+    },
+    {
+      accessorKey: 'channel_name',
+      header: '渠道名称',
+      cell: ({ row }) => (
+        <span className="font-medium">{row.original.channel_name || '-'}</span>
+      )
+    },
+    {
+      accessorKey: 'channel_type',
+      header: '类型',
+      cell: ({ row }) => typeBadge(row.original.channel_type)
+    },
+    {
+      accessorKey: 'groups',
+      header: '分组',
+      cell: ({ row }) => {
+        const g = row.original.groups || [];
+        if (g.length === 0)
+          return <span className="text-muted-foreground">-</span>;
+        return (
+          <div className="flex flex-wrap gap-1">
+            {g.map((name) => (
+              <Badge
+                key={name}
+                variant="secondary"
+                className="font-mono text-xs"
+              >
+                {name}
+              </Badge>
+            ))}
+          </div>
+        );
+      }
+    },
+    {
+      accessorKey: 'channel_status',
+      header: '状态',
+      cell: ({ row }) =>
+        statusBadge(row.original.channel_status, row.original.enabled)
+    },
+    {
+      accessorKey: 'priority',
+      header: '静态优先级',
+      cell: ({ row }) => (
+        <PriorityCell
+          channelId={row.original.channel_id}
+          model={model}
+          value={row.original.priority}
+          onUpdated={fetchData}
+        />
+      )
+    },
+    {
+      accessorKey: 'dynamic_priority',
+      header: '动态优先级',
+      cell: ({ row }) => (
+        <span className="font-mono font-semibold text-primary">
+          {row.original.dynamic_priority || '-'}
+        </span>
+      )
+    },
+    {
+      accessorKey: 'weight',
+      header: '权重',
+      cell: ({ row }) => (
+        <span className="font-mono">{row.original.weight}</span>
+      )
+    },
+    {
+      accessorKey: 'unit_price',
+      header: '单价',
+      cell: ({ row }) => (
+        <span className="font-mono">
+          {row.original.unit_price > 0
+            ? row.original.unit_price.toFixed(4)
+            : '-'}
+        </span>
+      )
+    }
+  ];
 
   return (
     <div className="space-y-4">
@@ -189,6 +324,10 @@ export default function ModelChannelsTable({ model }: { model: string }) {
           共 {data.length} 个渠道
         </div>
       </div>
+
+      <p className="text-xs text-muted-foreground">
+        同一渠道挂载同一模型时，所有分组的优先级/状态同步——编辑优先级会一次性更新该渠道该模型的全部分组行。
+      </p>
 
       {error && (
         <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
