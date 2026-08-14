@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import request from '@/app/lib/clientFetch';
 import { CHANNEL_OPTIONS } from '@/constants';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -94,20 +93,23 @@ export default function ModelView() {
     setLoading(true);
     setError(null);
     try {
+      // 用原生 fetch 而非 clientFetch：clientFetch 响应拦截器会改变返回结构
+      // （200 时直接返回后端响应体，错误时不 reject），解析逻辑容易踩坑。
+      // Next API route（app/api/channel/model_channels/route.ts）服务端用 auth()
+      // 注入 token，客户端无需传 Authorization。
       const params = new URLSearchParams();
       if (modelPrefix.trim()) params.set('model_prefix', modelPrefix.trim());
       if (channelType && channelType !== 'all')
         params.set('channel_type', channelType);
-      const res = await request.get(
-        `/api/channel/model_channels${
-          params.toString() ? '?' + params.toString() : ''
-        }`
-      );
-      const body = res.data;
-      if (body && body.success) {
+      const url = `/api/channel/model_channels${
+        params.toString() ? '?' + params.toString() : ''
+      }`;
+      const res = await fetch(url);
+      const body = await res.json();
+      if (res.ok && body && body.success) {
         setGroups(body.data || []);
       } else {
-        setError(body?.message || '加载失败');
+        setError(body?.message || `加载失败（HTTP ${res.status}）`);
         setGroups([]);
       }
     } catch (e: any) {
