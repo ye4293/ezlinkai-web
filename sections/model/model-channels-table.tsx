@@ -16,7 +16,7 @@ import {
 import { RefreshCw, Check, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { CHANNEL_OPTIONS } from '@/constants';
-import { ModelChannelItem } from './types';
+import { ModelChannelItem, ModelChannelsResponse } from './types';
 
 const TYPE_OPTIONS = CHANNEL_OPTIONS.map((o) => ({
   value: String(o.value),
@@ -156,7 +156,11 @@ export default function ModelChannelsTable({ model }: { model: string }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [typeFilter, setTypeFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('0');
   const [autoRefresh, setAutoRefresh] = useState(false);
+  const [total, setTotal] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -164,25 +168,37 @@ export default function ModelChannelsTable({ model }: { model: string }) {
     try {
       const params = new URLSearchParams({ model });
       if (typeFilter) params.set('channel_type', typeFilter);
+      if (statusFilter !== '0') params.set('status_filter', statusFilter);
+      params.set('page', String(currentPage));
+      params.set('page_size', String(pageSize));
       const res = await fetch(`/api/channel/model_channels?${params}`);
       const body = await res.json();
       if (res.ok && body?.success) {
-        setData(body.data || []);
+        const resData = body.data as ModelChannelsResponse['data'];
+        setData(resData.list || []);
+        setTotal(resData.total || 0);
       } else {
         setError(body?.message || `加载失败（HTTP ${res.status}）`);
         setData([]);
+        setTotal(0);
       }
     } catch (e: any) {
       setError(e?.message || '网络错误');
       setData([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
-  }, [model, typeFilter]);
+  }, [model, typeFilter, statusFilter, currentPage, pageSize]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // 筛选器变化时重置到第一页
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [typeFilter, statusFilter]);
 
   // 自动刷新：动态优先级 5 分钟更新一次，30 秒拉取足够实时
   useEffect(() => {
@@ -300,6 +316,17 @@ export default function ModelChannelsTable({ model }: { model: string }) {
             ))}
           </SelectContent>
         </Select>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="状态筛选" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="0">全部状态</SelectItem>
+            <SelectItem value="1">启用</SelectItem>
+            <SelectItem value="2">手动禁用</SelectItem>
+            <SelectItem value="3">自动禁用</SelectItem>
+          </SelectContent>
+        </Select>
         <Button
           variant="outline"
           size="sm"
@@ -321,7 +348,7 @@ export default function ModelChannelsTable({ model }: { model: string }) {
           自动刷新（30s）
         </label>
         <div className="ml-auto text-sm text-muted-foreground">
-          共 {data.length} 个渠道
+          共 {total} 个渠道
         </div>
       </div>
 
@@ -339,8 +366,12 @@ export default function ModelChannelsTable({ model }: { model: string }) {
         <DataTable
           columns={columns}
           data={data}
-          totalItems={data.length}
-          pageSizeOptions={[10, 50, 100]}
+          totalItems={total}
+          currentPage={currentPage}
+          pageSize={pageSize}
+          setCurrentPage={setCurrentPage}
+          setPageSize={setPageSize}
+          pageSizeOptions={[10, 20, 50, 100]}
           minWidth="1100px"
         />
       </div>

@@ -32,3 +32,15 @@ export interface ModelOverviewResponse {
     pageSize: number;
   };
 }
+
+// 模型渠道列表响应（分页）
+export interface ModelChannelsResponse {
+  success: boolean;
+  message?: string;
+  data: {
+    list: ModelChannelItem[];
+    total: number;
+    page: number;
+    pageSize: number;
+  };
+}
