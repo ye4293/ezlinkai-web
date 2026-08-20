@@ -1,10 +1,11 @@
 'use client';
 
 import { ColumnDef } from '@tanstack/react-table';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { DataTable } from '@/components/ui/table/data-table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -32,10 +33,18 @@ const typeTextMap: Record<number, string> = CHANNEL_OPTIONS.reduce(
 );
 
 // 渠道状态：1=启用 2=手动禁用 3=自动禁用（与 common.ChannelStatus* 对齐）
-function statusBadge(status: number, enabled: boolean) {
+// 模型级自动禁用：渠道 status=1（启用）但该模型 auto_disabled=true —— 单独展示，
+// 与整渠道禁用区分（该渠道其他模型仍可用）。
+function statusBadge(status: number, enabled: boolean, autoDisabled: boolean) {
   if (status === 1 && enabled) return <Badge variant="secondary">启用</Badge>;
+  if (status === 1 && autoDisabled)
+    return (
+      <Badge className="border-amber-300 bg-amber-100 text-amber-800 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300">
+        模型自动禁用
+      </Badge>
+    );
   if (status === 2) return <Badge variant="destructive">手动禁用</Badge>;
-  if (status === 3) return <Badge variant="destructive">自动禁用</Badge>;
+  if (status === 3) return <Badge variant="destructive">渠道自动禁用</Badge>;
   return <Badge variant="outline">未知</Badge>;
 }
 
@@ -156,7 +165,9 @@ export default function ModelChannelsTable({ model }: { model: string }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [typeFilter, setTypeFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('0');
+  // 默认「启用」：详情页多数场景关心的是当前在服务的渠道，先展示 enabled 也让 SQL 扫描/排序的
+  // 分组数从"全部渠道"降到"活的渠道"，页面感官更快。运维排查禁用原因再切到手动/自动禁用。
+  const [statusFilter, setStatusFilter] = useState('1');
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [total, setTotal] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
@@ -207,8 +218,92 @@ export default function ModelChannelsTable({ model }: { model: string }) {
     return () => clearInterval(timer);
   }, [autoRefresh, fetchData]);
 
+  // 选中的模型自动禁用行（仅 auto_disabled=true 的行可选）
+  const [selectedRows, setSelectedRows] = useState<ModelChannelItem[]>([]);
+  const [batchEnabling, setBatchEnabling] = useState(false);
+  const selectableCount = useMemo(
+    () => data.filter((d) => d.auto_disabled).length,
+    [data]
+  );
+  const eligibleSelected = useMemo(
+    () => selectedRows.filter((r) => r.auto_disabled),
+    [selectedRows]
+  );
+
+  const batchEnable = async () => {
+    if (eligibleSelected.length === 0) return;
+    setBatchEnabling(true);
+    try {
+      const res = await fetch('/api/channel/model_channel_enable', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: eligibleSelected.map((r) => ({
+            channel_id: r.channel_id,
+            model
+          }))
+        })
+      });
+      const body = await res.json();
+      if (res.ok && body.success) {
+        const failed = (body.failed || []) as {
+          channel_id: number;
+          error: string;
+        }[];
+        if (failed.length > 0) {
+          toast.warning(
+            `批量启用：成功 ${body.affected}，失败 ${failed.length}`
+          );
+        } else {
+          toast.success(`已启用 ${body.affected} 个模型`);
+        }
+        setSelectedRows([]);
+        fetchData();
+      } else {
+        toast.error(body?.message || '批量启用失败');
+      }
+    } catch (e: any) {
+      toast.error(e?.message || '网络错误');
+    } finally {
+      setBatchEnabling(false);
+    }
+  };
+
   // 列定义用到 model 和 fetchData，故放在组件内
   const columns: ColumnDef<ModelChannelItem>[] = [
+    {
+      id: 'select',
+      header: ({ table }) => {
+        // 只允许勾选 auto_disabled=true 的行；全选也只作用于当前页 auto_disabled 行
+        const eligible = table
+          .getRowModel()
+          .rows.filter((r) => r.original.auto_disabled);
+        const allSelected =
+          eligible.length > 0 && eligible.every((r) => r.getIsSelected());
+        const someSelected = eligible.some((r) => r.getIsSelected());
+        return (
+          <Checkbox
+            checked={
+              allSelected ? true : someSelected ? 'indeterminate' : false
+            }
+            onCheckedChange={(value) => {
+              eligible.forEach((r) => r.toggleSelected(!!value));
+            }}
+            disabled={eligible.length === 0}
+            aria-label="全选被禁模型"
+          />
+        );
+      },
+      cell: ({ row }) =>
+        row.original.auto_disabled ? (
+          <Checkbox
+            checked={row.getIsSelected()}
+            onCheckedChange={(value) => row.toggleSelected(!!value)}
+            aria-label="选择该行"
+          />
+        ) : null,
+      enableSorting: false
+    },
     {
       accessorKey: 'channel_id',
       header: '渠道ID',
@@ -254,7 +349,11 @@ export default function ModelChannelsTable({ model }: { model: string }) {
       accessorKey: 'channel_status',
       header: '状态',
       cell: ({ row }) =>
-        statusBadge(row.original.channel_status, row.original.enabled)
+        statusBadge(
+          row.original.channel_status,
+          row.original.enabled,
+          row.original.auto_disabled
+        )
     },
     {
       accessorKey: 'priority',
@@ -324,7 +423,8 @@ export default function ModelChannelsTable({ model }: { model: string }) {
             <SelectItem value="0">全部状态</SelectItem>
             <SelectItem value="1">启用</SelectItem>
             <SelectItem value="2">手动禁用</SelectItem>
-            <SelectItem value="3">自动禁用</SelectItem>
+            <SelectItem value="3">渠道自动禁用</SelectItem>
+            <SelectItem value="4">模型自动禁用</SelectItem>
           </SelectContent>
         </Select>
         <Button
@@ -347,13 +447,28 @@ export default function ModelChannelsTable({ model }: { model: string }) {
           />
           自动刷新（30s）
         </label>
-        <div className="ml-auto text-sm text-muted-foreground">
-          共 {total} 个渠道
+        <div className="ml-auto flex items-center gap-2 text-sm text-muted-foreground">
+          {eligibleSelected.length > 0 && (
+            <Button
+              variant="default"
+              size="sm"
+              onClick={batchEnable}
+              disabled={batchEnabling}
+            >
+              批量启用 ({eligibleSelected.length})
+            </Button>
+          )}
+          <span>共 {total} 个渠道</span>
         </div>
       </div>
 
       <p className="text-xs text-muted-foreground">
         同一渠道挂载同一模型时，所有分组的优先级/状态同步——编辑优先级会一次性更新该渠道该模型的全部分组行。
+        {selectableCount > 0 && (
+          <span className="ml-1 text-amber-700 dark:text-amber-300">
+            当前页有 {selectableCount} 个模型级自动禁用行，可勾选后批量启用。
+          </span>
+        )}
       </p>
 
       {error && (
@@ -367,12 +482,13 @@ export default function ModelChannelsTable({ model }: { model: string }) {
           columns={columns}
           data={data}
           totalItems={total}
+          onSelectionChange={setSelectedRows}
           currentPage={currentPage}
           pageSize={pageSize}
           setCurrentPage={setCurrentPage}
           setPageSize={setPageSize}
           pageSizeOptions={[10, 20, 50, 100]}
-          minWidth="1100px"
+          minWidth="1150px"
         />
       </div>
     </div>

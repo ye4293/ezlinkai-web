@@ -14,6 +14,7 @@ export interface ModelChannelItem {
   groups: string[]; // 该渠道该模型挂载的所有分组（聚合）
   group_count: number;
   enabled: boolean;
+  auto_disabled: boolean; // 该渠道该模型是否被模型级自动禁用（渠道仍启用）
   channel_status: number;
   priority: number;
   dynamic_priority: number;
