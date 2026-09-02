@@ -49,6 +49,9 @@ export default function SettingPage() {
   const [autoTestFrequency, setAutoTestFrequency] = useState(0);
   // 响应时间阈值（秒）：自动启用时若渠道响应时间超过此值则跳过启用
   const [channelDisableThreshold, setChannelDisableThreshold] = useState(0);
+  // 最近使用模型窗口（分钟）：窗口内有真实请求的模型全部被自动禁用时，整渠道自动禁用
+  const [channelUsageWindowMinutes, setChannelUsageWindowMinutes] =
+    useState(60);
   const [upstreamIntervalMinutes, setUpstreamIntervalMinutes] = useState(30);
   const [upstreamChannelConcurrency, setUpstreamChannelConcurrency] =
     useState(5);
@@ -176,6 +179,15 @@ export default function SettingPage() {
         if (channelDisableThresholdOption) {
           setChannelDisableThreshold(
             parseFloat(channelDisableThresholdOption.value) || 0
+          );
+        }
+
+        const channelUsageWindowOption = options.find(
+          (o: Option) => o.key === 'ChannelUsageWindowMinutes'
+        );
+        if (channelUsageWindowOption) {
+          setChannelUsageWindowMinutes(
+            parseInt(channelUsageWindowOption.value) || 60
           );
         }
 
@@ -332,6 +344,10 @@ export default function SettingPage() {
         {
           key: 'ChannelDisableThreshold',
           value: channelDisableThreshold.toString()
+        },
+        {
+          key: 'ChannelUsageWindowMinutes',
+          value: channelUsageWindowMinutes.toString()
         },
         {
           key: 'UpstreamModelUpdateIntervalMinutes',
@@ -791,6 +807,29 @@ export default function SettingPage() {
                 <p className="text-sm text-muted-foreground">
                   自动测试时，若渠道响应时间超过此秒数则跳过自动启用（防止把响应过慢的渠道误恢复）。设为
                   0 表示不校验响应时间。
+                </p>
+              </div>
+
+              {/* 最近使用模型窗口 */}
+              <div className="grid w-full items-center gap-1.5">
+                <Label htmlFor="channel-usage-window">
+                  渠道最近使用窗口（分钟）
+                </Label>
+                <Input
+                  id="channel-usage-window"
+                  type="number"
+                  min={1}
+                  value={channelUsageWindowMinutes}
+                  onChange={(e) => {
+                    const v = parseInt(e.target.value);
+                    setChannelUsageWindowMinutes(isNaN(v) || v < 1 ? 60 : v);
+                  }}
+                  placeholder="默认 60"
+                  className="w-48"
+                />
+                <p className="text-sm text-muted-foreground">
+                  判定整渠道自动禁用的时间窗：窗口内有真实请求的模型若全部被自动禁用，则该渠道整体自动禁用。窗口越小、下线越快越激进。默认
+                  60 分钟。
                 </p>
               </div>
             </CardContent>
