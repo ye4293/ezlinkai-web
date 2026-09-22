@@ -33,8 +33,19 @@ import { useLocale } from '@/components/providers/locale-provider';
 import request from '@/app/lib/clientFetch';
 import JSONEditor from '@/components/json-editor';
 import { ModelSelectModal } from './model-select-modal';
+import { CHANNEL_OPTIONS } from '@/constants';
+
+const DEFAULT_PROVIDER = '__follow_channel_type__';
 
 const formSchema = z.object({
+  provider: z
+    .string()
+    .trim()
+    .refine(
+      (value) => Array.from(value).length <= 128,
+      'Provider 最多 128 个字符'
+    )
+    .default(''),
   type: z.string().min(1, {
     message: 'Type is required.'
   }),
@@ -164,6 +175,10 @@ export default function ChannelForm() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [originalConfig, setOriginalConfig] = useState<Record<string, unknown>>(
+    {}
+  );
+  const [configError, setConfigError] = useState('');
   const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0 });
   const [modelTypes, setModelTypes] = useState<ModelTypesOption[]>([]);
   const [groupOptions, setGroupOptions] = useState<string[]>([]);
@@ -558,9 +573,18 @@ export default function ChannelForm() {
           try {
             if (channelData.config) {
               config = JSON.parse(channelData.config);
+              if (
+                !config ||
+                typeof config !== 'object' ||
+                Array.isArray(config)
+              )
+                throw new Error('config 必须是 JSON 对象');
+              if ('provider' in config && typeof config.provider !== 'string')
+                throw new Error('Provider 必须是字符串');
             }
           } catch (error) {
-            console.log('Failed to parse channel config:', error);
+            setConfigError('渠道配置无法解析，请先修复配置后再保存。');
+            config = {};
           }
 
           // 处理 auto_disabled 字段的类型转换
@@ -590,7 +614,9 @@ export default function ChannelForm() {
             }
           }
 
+          setOriginalConfig(config);
           form.reset({
+            provider: config.provider?.trim() || '',
             type: String(channelData.type),
             name: channelData.name,
             groups:
@@ -698,6 +724,7 @@ export default function ChannelForm() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      provider: '',
       type: undefined,
       name: undefined,
       groups: undefined,
@@ -734,6 +761,18 @@ export default function ChannelForm() {
       beta_filter_mode: 'none'
     }
   });
+
+  const selectedProvider = form.watch('provider');
+  const selectedType = form.watch('type');
+  const defaultProvider =
+    CHANNEL_OPTIONS.find((item) => String(item.value) === selectedType)?.text ??
+    (selectedType ? `Channel Type ${selectedType}` : '请先选择渠道类型');
+  const providerOptions = Array.from(
+    new Set([
+      ...CHANNEL_OPTIONS.map((item) => item.text),
+      ...(selectedProvider ? [selectedProvider] : [])
+    ])
+  );
 
   const handleTypeInputChange = (value: string) => {
     if (value !== '3') {
@@ -1241,47 +1280,37 @@ export default function ChannelForm() {
       console.log('keys.length:', keys.length);
 
       const buildConfig = () => {
-        const config: any = {};
-        if (values.region) config.region = values.region;
-        if (values.ak) config.ak = values.ak;
-        if (values.sk) config.sk = values.sk;
-        if (values.user_id) config.user_id = values.user_id;
-        if (values.vertex_ai_project_id)
-          config.vertex_ai_project_id = values.vertex_ai_project_id;
-        if (values.vertex_ai_adc) config.vertex_ai_adc = values.vertex_ai_adc;
-        if (values.google_storage)
-          config.google_storage = values.google_storage;
-        // Vertex AI 新增配置
-        if (values.vertex_key_type)
-          config.vertex_key_type = values.vertex_key_type;
-        // AWS Bedrock 密钥格式
-        if (values.aws_key_type) config.aws_key_type = values.aws_key_type;
-        if (values.vertex_model_region) {
-          try {
-            // 解析并存储模型区域映射
-            config.vertex_model_region = JSON.parse(values.vertex_model_region);
-          } catch (e) {
-            // 如果解析失败，存储原始字符串
-            config.vertex_model_region = values.vertex_model_region;
-          }
-        }
-        // 新增：支持 Token 计数配置（仅 Anthropic=14 和 AWS Claude=33 渠道）
+        if (configError) throw new Error(configError);
+        // 保留未知配置，受管字段通过显式空值清空，Provider 空值表示恢复类型默认。
+        const config: Record<string, unknown> = {
+          ...originalConfig,
+          provider: values.provider || ''
+        };
+        const fields = [
+          'region',
+          'ak',
+          'sk',
+          'user_id',
+          'vertex_ai_project_id',
+          'vertex_ai_adc',
+          'google_storage',
+          'vertex_key_type',
+          'aws_key_type'
+        ] as const;
+        for (const field of fields) config[field] = values[field] || '';
+        config.vertex_model_region = values.vertex_model_region
+          ? JSON.parse(values.vertex_model_region)
+          : {};
         const channelType = Number(values.type);
-        if (
+        config.support_count_tokens =
           (channelType === 14 || channelType === 33) &&
-          values.support_count_tokens
-        ) {
-          config.support_count_tokens = values.support_count_tokens;
-        }
-        // Beta 过滤模式（Claude 相关渠道：14=Anthropic, 33=AWS Claude, 48=Vertex AI）
-        if (
-          (channelType === 14 || channelType === 33 || channelType === 48) &&
-          values.beta_filter_mode &&
+          !!values.support_count_tokens;
+        config.beta_filter_mode =
+          [14, 33, 48].includes(channelType) &&
           values.beta_filter_mode !== 'none'
-        ) {
-          config.beta_filter_mode = values.beta_filter_mode;
-        }
-        return Object.keys(config).length > 0 ? JSON.stringify(config) : '';
+            ? values.beta_filter_mode || ''
+            : '';
+        return JSON.stringify(config);
       };
 
       const baseParams: Omit<ParamsOption, 'key' | 'name'> = {
@@ -1524,6 +1553,11 @@ export default function ChannelForm() {
         <CardContent className="p-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              {configError && (
+                <p role="alert" className="text-red-600">
+                  {configError}
+                </p>
+              )}
               {/* 主要配置区域 */}
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 <div className="space-y-6">
@@ -1563,6 +1597,46 @@ export default function ChannelForm() {
                                 ))}
                               </SelectContent>
                             </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="provider"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Provider</FormLabel>
+                            <Select
+                              value={field.value || DEFAULT_PROVIDER}
+                              onValueChange={(value) =>
+                                field.onChange(
+                                  value === DEFAULT_PROVIDER ? '' : value
+                                )
+                              }
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="选择 Provider" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value={DEFAULT_PROVIDER}>
+                                  默认（跟随渠道类型）
+                                </SelectItem>
+                                {providerOptions.map((provider) => (
+                                  <SelectItem key={provider} value={provider}>
+                                    {provider}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormDescription>
+                              当前：{field.value || defaultProvider}（
+                              {field.value ? '显式指定' : '渠道类型默认'}
+                              ）。恢复默认后将跟随渠道类型。
+                            </FormDescription>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -2033,7 +2107,7 @@ export default function ChannelForm() {
                             </FormControl>
                             <div className="text-sm text-blue-700 dark:text-blue-300">
                               💡
-                              点击"立即添加"按钮将自定义模型直接添加到下方的模型选择列表中，方便您直观查看
+                              点击“立即添加”按钮将自定义模型直接添加到下方的模型选择列表中，方便您直观查看
                             </div>
                             <FormMessage />
                           </FormItem>
@@ -3186,7 +3260,7 @@ ${type2secretPrompt(form.watch('type'))}`}
                       <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-950">
                         <div className="text-sm text-blue-700 dark:text-blue-300">
                           💡 <strong>Vertex AI 用户提示</strong>：可以在上方的
-                          "Vertex AI JSON文件上传" 区域批量上传多个JSON文件
+                          “Vertex AI JSON文件上传” 区域批量上传多个JSON文件
                         </div>
                       </div>
                     )}
@@ -3242,7 +3316,7 @@ ${type2secretPrompt(form.watch('type'))}`}
                                     <div className="rounded-lg border border-green-200 bg-green-50 p-3 dark:border-green-800 dark:bg-green-950">
                                       <div className="text-sm text-green-700 dark:text-green-300">
                                         💡 <strong>Vertex AI 用户提示</strong>
-                                        ：可以在上方的 "Vertex AI JSON文件上传"
+                                        ：可以在上方的 “Vertex AI JSON文件上传”
                                         区域上传多个JSON文件
                                         <br />
                                         🔧 系统会根据当前编辑模式(
