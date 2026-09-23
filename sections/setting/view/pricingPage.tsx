@@ -60,6 +60,8 @@ interface ModelPriceInfo {
   price_type: string;
   has_ratio: boolean;
   cache_ratio: number;
+  claude_cache_5m_ratio: number;
+  claude_cache_1h_ratio: number;
   image_input_ratio: number;
   image_output_ratio: number;
   audio_input_ratio: number;
@@ -72,6 +74,8 @@ interface EditingRow {
   input_price: string;
   output_price: string;
   cache_price: string;
+  claude_cache_5m_price: string;
+  claude_cache_1h_price: string;
   image_input_price: string;
   image_output_price: string;
   audio_input_price: string;
@@ -82,6 +86,8 @@ interface EditingRow {
   model_ratio: string;
   completion_ratio: string;
   cache_ratio: string;
+  claude_cache_5m_ratio: string;
+  claude_cache_1h_ratio: string;
   image_input_ratio: string;
   image_output_ratio: string;
   audio_input_ratio: string;
@@ -94,6 +100,8 @@ interface UnsetModelEditData {
   input_price: string; // 文字输入价格
   output_price: string; // 文字输出价格
   cache_price: string; // 缓存价格
+  claude_cache_5m_price: string; // Claude 5 分钟缓存创建价格
+  claude_cache_1h_price: string; // Claude 1 小时缓存创建价格
   image_input_price: string; // 图片输入价格
   image_output_price: string; // 图片输出价格
   audio_input_price: string; // 音频输入价格
@@ -102,6 +110,8 @@ interface UnsetModelEditData {
   model_ratio: string;
   completion_ratio: string;
   cache_ratio: string;
+  claude_cache_5m_ratio: string;
+  claude_cache_1h_ratio: string;
   image_input_ratio: string;
   image_output_ratio: string;
   audio_input_ratio: string;
@@ -181,6 +191,8 @@ export default function PricingPage() {
   const [audioOutputRatio, setAudioOutputRatio] = useState('');
   const [imageInputRatio, setImageInputRatio] = useState('');
   const [imageOutputRatio, setImageOutputRatio] = useState('');
+  const [claudeCache5mRatio, setClaudeCache5mRatio] = useState('');
+  const [claudeCache1hRatio, setClaudeCache1hRatio] = useState('');
 
   // ==================== 可视化倍率设置状态 ====================
   const [configuredModels, setConfiguredModels] = useState<ModelPriceInfo[]>(
@@ -301,6 +313,16 @@ export default function PricingPage() {
           (o: Option) => o.key === 'CacheRatio'
         );
         setCacheRatio(formatJSON(cacheRatioOption?.value) || '{}');
+
+        const claudeCache5mOption = options.find(
+          (o: Option) => o.key === 'ClaudeCacheCreation5mRatio'
+        );
+        setClaudeCache5mRatio(formatJSON(claudeCache5mOption?.value) || '{}');
+
+        const claudeCache1hOption = options.find(
+          (o: Option) => o.key === 'ClaudeCacheCreation1hRatio'
+        );
+        setClaudeCache1hRatio(formatJSON(claudeCache1hOption?.value) || '{}');
       }
     } catch (err) {
       setError(
@@ -356,6 +378,8 @@ export default function PricingPage() {
             input_price: '',
             output_price: '',
             cache_price: '',
+            claude_cache_5m_price: '',
+            claude_cache_1h_price: '',
             image_input_price: '',
             image_output_price: '',
             audio_input_price: '',
@@ -363,6 +387,8 @@ export default function PricingPage() {
             model_ratio: '',
             completion_ratio: '',
             cache_ratio: '',
+            claude_cache_5m_ratio: '',
+            claude_cache_1h_ratio: '',
             image_input_ratio: '',
             image_output_ratio: '',
             audio_input_ratio: '',
@@ -468,6 +494,8 @@ export default function PricingPage() {
       await saveOption('AudioOutputRatio', audioOutputRatio);
       await saveOption('ImageInputRatio', imageInputRatio);
       await saveOption('ImageOutputRatio', imageOutputRatio);
+      await saveOption('ClaudeCacheCreation5mRatio', claudeCache5mRatio);
+      await saveOption('ClaudeCacheCreation1hRatio', claudeCache1hRatio);
 
       toast.success(p.saveSuccess);
       fetchConfiguredModels();
@@ -491,6 +519,12 @@ export default function PricingPage() {
         subRatioToPrice(model.completion_ratio || 0, mr)
       ),
       cache_price: formatPriceStr(subRatioToPrice(model.cache_ratio || 0, mr)),
+      claude_cache_5m_price: formatPriceStr(
+        subRatioToPrice(model.claude_cache_5m_ratio || 0, mr)
+      ),
+      claude_cache_1h_price: formatPriceStr(
+        subRatioToPrice(model.claude_cache_1h_ratio || 0, mr)
+      ),
       image_input_price: formatPriceStr(
         subRatioToPrice(model.image_input_ratio || 0, mr)
       ),
@@ -508,6 +542,8 @@ export default function PricingPage() {
       model_ratio: mr.toString(),
       completion_ratio: (model.completion_ratio || 0).toString(),
       cache_ratio: (model.cache_ratio || 0).toString(),
+      claude_cache_5m_ratio: (model.claude_cache_5m_ratio || 0).toString(),
+      claude_cache_1h_ratio: (model.claude_cache_1h_ratio || 0).toString(),
       image_input_ratio: (model.image_input_ratio || 0).toString(),
       image_output_ratio: (model.image_output_ratio || 0).toString(),
       audio_input_ratio: (model.audio_input_ratio || 0).toString(),
@@ -528,6 +564,8 @@ export default function PricingPage() {
       | 'input_price'
       | 'output_price'
       | 'cache_price'
+      | 'claude_cache_5m_price'
+      | 'claude_cache_1h_price'
       | 'image_input_price'
       | 'image_output_price'
       | 'audio_input_price'
@@ -554,6 +592,8 @@ export default function PricingPage() {
             ratioKey:
               | 'completion_ratio'
               | 'cache_ratio'
+              | 'claude_cache_5m_ratio'
+              | 'claude_cache_1h_ratio'
               | 'image_input_ratio'
               | 'image_output_ratio'
               | 'audio_input_ratio'
@@ -566,6 +606,8 @@ export default function PricingPage() {
           };
           recompute(next.output_price, 'completion_ratio');
           recompute(next.cache_price, 'cache_ratio');
+          recompute(next.claude_cache_5m_price, 'claude_cache_5m_ratio');
+          recompute(next.claude_cache_1h_price, 'claude_cache_1h_ratio');
           recompute(next.image_input_price, 'image_input_ratio');
           recompute(next.image_output_price, 'image_output_ratio');
           recompute(next.audio_input_price, 'audio_input_ratio');
@@ -580,6 +622,8 @@ export default function PricingPage() {
       const subMap: Record<string, string> = {
         output_price: 'completion_ratio',
         cache_price: 'cache_ratio',
+        claude_cache_5m_price: 'claude_cache_5m_ratio',
+        claude_cache_1h_price: 'claude_cache_1h_ratio',
         image_input_price: 'image_input_ratio',
         image_output_price: 'image_output_ratio',
         audio_input_price: 'audio_input_ratio',
@@ -615,6 +659,17 @@ export default function PricingPage() {
       }
       if (editingRow.cache_ratio) {
         payload.cache_ratio = parseFloat(editingRow.cache_ratio);
+      }
+      // Claude 专属：5 分钟 / 1 小时缓存创建倍率（仅 claude- 模型下发，必须 > 0）
+      if (editingRow.model_name.startsWith('claude-')) {
+        const c5m = parseFloat(editingRow.claude_cache_5m_ratio);
+        if (!isNaN(c5m) && c5m > 0) {
+          payload.claude_cache_5m_ratio = c5m;
+        }
+        const c1h = parseFloat(editingRow.claude_cache_1h_ratio);
+        if (!isNaN(c1h) && c1h > 0) {
+          payload.claude_cache_1h_ratio = c1h;
+        }
       }
       if (editingRow.image_input_ratio) {
         payload.image_input_ratio = parseFloat(editingRow.image_input_ratio);
@@ -665,6 +720,8 @@ export default function PricingPage() {
         input_price: '',
         output_price: '',
         cache_price: '',
+        claude_cache_5m_price: '',
+        claude_cache_1h_price: '',
         image_input_price: '',
         image_output_price: '',
         audio_input_price: '',
@@ -672,6 +729,8 @@ export default function PricingPage() {
         model_ratio: '',
         completion_ratio: '',
         cache_ratio: '',
+        claude_cache_5m_ratio: '',
+        claude_cache_1h_ratio: '',
         image_input_ratio: '',
         image_output_ratio: '',
         audio_input_ratio: '',
@@ -703,6 +762,22 @@ export default function PricingPage() {
           if (!isNaN(cachePrice) && cachePrice > 0) {
             newData.cache_ratio = formatRatio(
               priceToRatio(cachePrice, inputPrice)
+            );
+          }
+
+          // Claude 5 分钟缓存创建倍率 = 5m 缓存价格 / 文字输入价格
+          const claude5mPrice = parseFloat(newData.claude_cache_5m_price);
+          if (!isNaN(claude5mPrice) && claude5mPrice > 0) {
+            newData.claude_cache_5m_ratio = formatRatio(
+              priceToRatio(claude5mPrice, inputPrice)
+            );
+          }
+
+          // Claude 1 小时缓存创建倍率 = 1h 缓存价格 / 文字输入价格
+          const claude1hPrice = parseFloat(newData.claude_cache_1h_price);
+          if (!isNaN(claude1hPrice) && claude1hPrice > 0) {
+            newData.claude_cache_1h_ratio = formatRatio(
+              priceToRatio(claude1hPrice, inputPrice)
             );
           }
 
@@ -764,6 +839,30 @@ export default function PricingPage() {
           );
         } else {
           newData.cache_ratio = '';
+        }
+      }
+
+      // 当 Claude 5 分钟缓存价格变化时，计算对应倍率
+      if (field === 'claude_cache_5m_price' && baseInputPrice > 0) {
+        const claude5mPrice = parseFloat(value);
+        if (!isNaN(claude5mPrice) && claude5mPrice > 0) {
+          newData.claude_cache_5m_ratio = formatRatio(
+            priceToRatio(claude5mPrice, baseInputPrice)
+          );
+        } else {
+          newData.claude_cache_5m_ratio = '';
+        }
+      }
+
+      // 当 Claude 1 小时缓存价格变化时，计算对应倍率
+      if (field === 'claude_cache_1h_price' && baseInputPrice > 0) {
+        const claude1hPrice = parseFloat(value);
+        if (!isNaN(claude1hPrice) && claude1hPrice > 0) {
+          newData.claude_cache_1h_ratio = formatRatio(
+            priceToRatio(claude1hPrice, baseInputPrice)
+          );
+        } else {
+          newData.claude_cache_1h_ratio = '';
         }
       }
 
@@ -840,6 +939,17 @@ export default function PricingPage() {
 
         if (editData.cache_ratio) {
           modelData.cache_ratio = parseFloat(editData.cache_ratio);
+        }
+        // Claude 专属：仅 claude- 模型下发 5m/1h 缓存创建倍率（必须 > 0）
+        if (modelName.startsWith('claude-')) {
+          const c5m = parseFloat(editData.claude_cache_5m_ratio);
+          if (!isNaN(c5m) && c5m > 0) {
+            modelData.claude_cache_5m_ratio = c5m;
+          }
+          const c1h = parseFloat(editData.claude_cache_1h_ratio);
+          if (!isNaN(c1h) && c1h > 0) {
+            modelData.claude_cache_1h_ratio = c1h;
+          }
         }
         if (editData.image_input_ratio) {
           modelData.image_input_ratio = parseFloat(editData.image_input_ratio);
@@ -1238,6 +1348,40 @@ export default function PricingPage() {
                 className="h-32 font-mono text-sm"
               />
             </div>
+
+            {/* Claude 缓存创建倍率(5m) */}
+            <div className="space-y-2">
+              <Label className="text-base font-semibold">
+                Claude 缓存创建倍率(5m)
+              </Label>
+              <Textarea
+                value={claudeCache5mRatio}
+                onChange={(e) => setClaudeCache5mRatio(e.target.value)}
+                placeholder="{}"
+                className="h-32 font-mono text-sm"
+              />
+              <p className="text-sm text-muted-foreground">
+                Claude 5 分钟缓存创建（写入）相对文本输入价格的倍率，仅对 claude-
+                模型生效，未配置默认 1.25。
+              </p>
+            </div>
+
+            {/* Claude 缓存创建倍率(1h) */}
+            <div className="space-y-2">
+              <Label className="text-base font-semibold">
+                Claude 缓存创建倍率(1h)
+              </Label>
+              <Textarea
+                value={claudeCache1hRatio}
+                onChange={(e) => setClaudeCache1hRatio(e.target.value)}
+                placeholder="{}"
+                className="h-32 font-mono text-sm"
+              />
+              <p className="text-sm text-muted-foreground">
+                Claude 1 小时缓存创建（写入）相对文本输入价格的倍率，仅对 claude-
+                模型生效，未配置默认 2.0。
+              </p>
+            </div>
           </TabsContent>
 
           {/* ==================== 可视化倍率设置 Tab ==================== */}
@@ -1463,6 +1607,44 @@ export default function PricingPage() {
                             placeholder="默认=输出价"
                           />
                         </div>
+                        {editingRow.model_name.startsWith('claude-') && (
+                          <>
+                            <div className="space-y-1.5">
+                              <Label className="text-sm">
+                                缓存创建价格(5m)
+                              </Label>
+                              <Input
+                                type="number"
+                                step="0.001"
+                                value={editingRow.claude_cache_5m_price}
+                                onChange={(e) =>
+                                  updateEditingPrice(
+                                    'claude_cache_5m_price',
+                                    e.target.value
+                                  )
+                                }
+                                placeholder="默认=输入价×1.25"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <Label className="text-sm">
+                                缓存创建价格(1h)
+                              </Label>
+                              <Input
+                                type="number"
+                                step="0.001"
+                                value={editingRow.claude_cache_1h_price}
+                                onChange={(e) =>
+                                  updateEditingPrice(
+                                    'claude_cache_1h_price',
+                                    e.target.value
+                                  )
+                                }
+                                placeholder="默认=输入价×2"
+                              />
+                            </div>
+                          </>
+                        )}
                         <div className="space-y-1.5">
                           <Label className="text-sm">图片输入价格</Label>
                           <Input
@@ -1530,7 +1712,16 @@ export default function PricingPage() {
                     <div className="rounded bg-muted/50 p-2 font-mono text-xs text-muted-foreground">
                       换算倍率：模型 {editingRow.model_ratio || '-'} · 补全{' '}
                       {editingRow.completion_ratio || '-'} · 缓存{' '}
-                      {editingRow.cache_ratio || '-'} · 图入{' '}
+                      {editingRow.cache_ratio || '-'}
+                      {editingRow.model_name.startsWith('claude-') && (
+                        <>
+                          {' '}
+                          · 缓存创建5m{' '}
+                          {editingRow.claude_cache_5m_ratio || '-'} · 缓存创建1h{' '}
+                          {editingRow.claude_cache_1h_ratio || '-'}
+                        </>
+                      )}{' '}
+                      · 图入{' '}
                       {editingRow.image_input_ratio || '-'} · 图出{' '}
                       {editingRow.image_output_ratio || '-'} · 音入{' '}
                       {editingRow.audio_input_ratio || '-'} · 音出{' '}
