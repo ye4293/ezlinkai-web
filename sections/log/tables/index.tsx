@@ -93,11 +93,15 @@ const ExpandedRowContent = ({ row }: { row: Row<LogStat> }) => {
   const getUsageEntries = (details: UsageDetails | null) => {
     if (!details) return [];
     return Object.entries(details)
-      .filter(([_, value]) => value !== undefined && value > 0)
+      .filter(([key, value]) =>
+        key === 'service_tier'
+          ? typeof value === 'string' && value.trim() !== ''
+          : typeof value === 'number' && value > 0
+      )
       .map(([key, value]) => ({
         key,
         label: labels[key] || key,
-        value: value as number
+        value: value as number | string
       }));
   };
 
@@ -225,7 +229,9 @@ const ExpandedRowContent = ({ row }: { row: Row<LogStat> }) => {
               {label}
             </span>
             <p className="text-sm font-medium">
-              {value.toLocaleString()} tokens
+              {typeof value === 'number'
+                ? `${value.toLocaleString()} tokens`
+                : value}
             </p>
           </div>
         ))}
@@ -559,11 +565,15 @@ const MobileLogCard = ({ row }: { row: LogStat }) => {
   const getUsageEntries = (details: UsageDetails | null) => {
     if (!details) return [];
     return Object.entries(details)
-      .filter(([_, value]) => value !== undefined && value > 0)
+      .filter(([key, value]) =>
+        key === 'service_tier'
+          ? typeof value === 'string' && value.trim() !== ''
+          : typeof value === 'number' && value > 0
+      )
       .map(([key, value]) => ({
         key,
         label: labels[key] || key,
-        value: value as number
+        value: value as number | string
       }));
   };
 
