@@ -106,15 +106,19 @@ const ExpandedRowContentImpl = ({ row }: { row: Row<LogStat> }) => {
     return ratio * 2;
   };
 
-  // 获取有效的 usageDetails 条目（值大于0的）
+  // 展示非空响应档位和大于 0 的 token 数
   const getUsageEntries = (details: UsageDetails | null) => {
     if (!details) return [];
     return Object.entries(details)
-      .filter(([_, value]) => value !== undefined && value > 0)
+      .filter(([key, value]) =>
+        key === 'service_tier'
+          ? typeof value === 'string' && value.trim() !== ''
+          : typeof value === 'number' && value > 0
+      )
       .map(([key, value]) => ({
         key,
         label: labels[key] || key,
-        value: value as number
+        value: value as number | string
       }));
   };
 
@@ -209,7 +213,9 @@ const ExpandedRowContentImpl = ({ row }: { row: Row<LogStat> }) => {
               {label}
             </span>
             <p className="text-sm font-medium">
-              {value.toLocaleString()} tokens
+              {typeof value === 'number'
+                ? `${value.toLocaleString()} tokens`
+                : value}
             </p>
           </div>
         ))}
@@ -466,11 +472,15 @@ const MobileLogCard = ({ row }: { row: Row<LogStat> }) => {
   const getUsageEntries = (details: UsageDetails | null) => {
     if (!details) return [];
     return Object.entries(details)
-      .filter(([_, value]) => value !== undefined && value > 0)
+      .filter(([key, value]) =>
+        key === 'service_tier'
+          ? typeof value === 'string' && value.trim() !== ''
+          : typeof value === 'number' && value > 0
+      )
       .map(([key, value]) => ({
         key,
         label: labels[key] || key,
-        value: value as number
+        value: value as number | string
       }));
   };
 

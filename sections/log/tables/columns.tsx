@@ -19,6 +19,7 @@ import { CopyableCell } from '@/components/ui/copyable-cell';
 
 // usageDetails 字段的类型定义
 export interface UsageDetails {
+  service_tier?: string;
   // 基础 token 计数
   input_tokens?: number;
   output_tokens?: number;
@@ -36,7 +37,7 @@ export interface UsageDetails {
   claude_cache_creation_1_h_tokens?: number;
   cached_tokens?: number;
   // 其他可能的字段
-  [key: string]: number | undefined;
+  [key: string]: number | string | undefined;
 }
 
 // billingDetails 字段的类型定义
