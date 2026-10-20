@@ -1644,6 +1644,27 @@ export default function ChannelForm() {
                           <div className="space-y-4">
                             <FormField
                               control={form.control}
+                              name="region"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Azure 区域</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      placeholder="例如：eastus、swedencentral"
+                                      {...field}
+                                      value={field.value ?? ''}
+                                    />
+                                  </FormControl>
+                                  <FormDescription>
+                                    请求失败时仅重试相同区域的 Azure
+                                    渠道；未填写区域或同区域渠道均不可用时直接返回错误。
+                                  </FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
                               name="base_url"
                               render={({ field }) => (
                                 <FormItem>
