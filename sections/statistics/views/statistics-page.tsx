@@ -23,6 +23,7 @@ import DurationChart from '../components/duration-chart';
 import LatencyChart from '../components/latency-chart';
 import SpeedChart from '../components/speed-chart';
 import RequestChart from '../components/request-chart';
+import RequestMinuteReports from '../components/minute-reports';
 
 const breadcrumbItems = [
   { title: 'Dashboard', link: '/dashboard' },
@@ -373,6 +374,8 @@ export default function StatisticsPage() {
             No data available for the selected time range.
           </div>
         ) : null}
+
+        <RequestMinuteReports />
       </div>
     </PageContainer>
   );
