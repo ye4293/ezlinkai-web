@@ -11,9 +11,12 @@ const failure = (status: number, message: string) =>
     headers
   });
 
-// 限定于两个新增报表路由，复用现有 auth 和上游认证头约定。
+// 限定报表路由，复用现有 auth 和上游认证头约定。
 export function requestStatisticsProxy(
-  endpoint: '/api/statistics/requests' | '/api/statistics/models/requests'
+  endpoint:
+    | '/api/statistics/requests'
+    | '/api/statistics/models/requests'
+    | '/api/dashboard/models/usage'
 ) {
   return async (req: NextRequest) => {
     const abort = new AbortController();
