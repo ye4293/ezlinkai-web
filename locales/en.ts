@@ -408,6 +408,36 @@ const en: Locale = {
     popularModels: {
       title: 'Most Popular Models',
       description: '{count} models called today'
+    },
+    modelUsage: {
+      title: 'Model usage · last 24 hours',
+      description:
+        'Previous 23 hours plus the current hour. Refresh to update the current hour.',
+      aggregatedUntil: 'Aggregated through',
+      currentHour:
+        'Current hour in progress; includes aggregated completed minutes only',
+      requests: 'Requests',
+      amount: 'Amount (USD)',
+      models: 'Model',
+      details: 'Hourly model details, scroll to view more',
+      total: 'Total',
+      refresh: 'Refresh chart',
+      loading: 'Loading model usage',
+      empty: 'No recorded model requests in this period',
+      incomplete: 'Some hours are incomplete. Only aggregated data is shown.',
+      amountPending:
+        'Some amounts are not yet available, shown as “—”. Amount bars show the known portion only.',
+      partialHour: 'This hour is incomplete',
+      pendingAmount: 'Amount is not fully available',
+      order: {
+        requests:
+          'Stacked by request count in this time range, largest at the bottom.',
+        amount: 'Stacked by amount in this time range, highest at the bottom.'
+      },
+      totalsNote:
+        'Click a model to highlight it; click again to clear. Totals include all models.',
+      metric: 'Chart metric',
+      rangeEnd: 'End time is exclusive'
     }
   },
   // User management

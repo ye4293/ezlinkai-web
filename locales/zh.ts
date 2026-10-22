@@ -403,6 +403,32 @@ const zh = {
     popularModels: {
       title: '热门模型',
       description: '今日共 {count} 个模型被调用'
+    },
+    modelUsage: {
+      title: '最近 24 小时模型用量',
+      description:
+        '前 23 小时及当前小时，每个柱子代表一小时；刷新更新当前小时累计',
+      aggregatedUntil: '已汇总至',
+      currentHour: '当前小时持续累计，仅包含已汇总的完整分钟',
+      requests: '请求量',
+      amount: '金额（USD）',
+      models: '模型',
+      details: '小时模型明细，可滚动查看',
+      total: '合计',
+      refresh: '刷新图表',
+      loading: '正在加载模型用量',
+      empty: '这段时间没有已记录的模型请求',
+      incomplete: '部分小时尚未完整统计，当前仅展示已汇总的数据。',
+      amountPending: '部分金额尚未回填，以“—”表示，金额柱仅展示已知部分。',
+      partialHour: '此小时数据不完整',
+      pendingAmount: '金额尚未完整统计',
+      order: {
+        requests: '按当前时间范围的请求量从高到低堆叠，最多的模型在底部。',
+        amount: '按当前时间范围的金额从高到低堆叠，金额最高的模型在底部。'
+      },
+      totalsNote: '点击模型可高亮，再次点击恢复全部；合计包含全部模型。',
+      metric: '切换图表指标',
+      rangeEnd: '结束时间不含在内'
     }
   },
   // 用户管理

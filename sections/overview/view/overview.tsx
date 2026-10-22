@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 import { Wallet, Zap, CalendarDays } from 'lucide-react';
 import { BarGraph } from '../bar-graph';
+import { ModelUsageChart } from '../model-usage-chart';
 import { AnalyticsContent } from '../analytics-content';
 import PageContainer from '@/components/layout/page-container';
 import { RecentSales } from '../recent-sales';
@@ -263,6 +264,10 @@ export default function OverViewPage() {
                 </CardContent>
               </Card>
             </div>
+            <ModelUsageChart
+              key={`${session?.user?.id}-${userRole}`}
+              enabled={status === 'authenticated'}
+            />
           </TabsContent>
           <TabsContent value="analytics" className="space-y-4">
             <AnalyticsContent
