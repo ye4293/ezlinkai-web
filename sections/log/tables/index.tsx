@@ -20,7 +20,7 @@ import {
   getStatusTier,
   RetryAttempt,
   getUsageDetailsLabels,
-  UsageDetails,
+  getUsageDetailsEntries,
   getModelMappingInfo
 } from './columns';
 import { useTableFilters } from './use-table-filters';
@@ -88,24 +88,9 @@ const ExpandedRowContent = ({ row }: { row: Row<LogStat> }) => {
   const billingDetails = parseBillingDetails(log);
   const channelIds = parseAdminInfo(log);
   const retryHistory = parseRetryHistory(log);
-  const labels = getUsageDetailsLabels(ld);
+  const labels = getUsageDetailsLabels(ld, usageDetails, log.model_name);
 
-  const getUsageEntries = (details: UsageDetails | null) => {
-    if (!details) return [];
-    return Object.entries(details)
-      .filter(([key, value]) =>
-        key === 'service_tier'
-          ? typeof value === 'string' && value.trim() !== ''
-          : typeof value === 'number' && value > 0
-      )
-      .map(([key, value]) => ({
-        key,
-        label: labels[key] || key,
-        value: value as number | string
-      }));
-  };
-
-  const usageEntries = getUsageEntries(usageDetails);
+  const usageEntries = getUsageDetailsEntries(usageDetails, labels);
   const hasUsageDetails = usageEntries.length > 0;
   const hasChannelInfo = channelIds && channelIds.length > 0;
   const hasBillingDetails = billingDetails !== null;
@@ -418,6 +403,19 @@ const ExpandedRowContent = ({ row }: { row: Row<LogStat> }) => {
                         </span>
                       </p>
                     )}
+                  {(
+                    [
+                      [ld.openaiCache30mRatio, billingDetails.cache_write_30m_ratio],
+                      [ld.openaiCache12hRatio, billingDetails.cache_write_12h_ratio]
+                    ] as const
+                  ).map(([label, ratio]) =>
+                    typeof ratio === 'number' ? (
+                      <p key={label}>
+                        <span className="font-medium">{ratio}×</span>{' '}
+                        <span className="text-muted-foreground">{label}</span>
+                      </p>
+                    ) : null
+                  )}
                   {claudeCacheLines.map((line) => (
                     <p key={line.key}>
                       <span className="font-medium">
@@ -560,24 +558,9 @@ const MobileLogCard = ({ row }: { row: LogStat }) => {
   const log = row;
   const [isExpanded, setIsExpanded] = useState(false);
   const usageDetails = parseUsageDetails(log);
-  const labels = getUsageDetailsLabels(ld);
+  const labels = getUsageDetailsLabels(ld, usageDetails, log.model_name);
 
-  const getUsageEntries = (details: UsageDetails | null) => {
-    if (!details) return [];
-    return Object.entries(details)
-      .filter(([key, value]) =>
-        key === 'service_tier'
-          ? typeof value === 'string' && value.trim() !== ''
-          : typeof value === 'number' && value > 0
-      )
-      .map(([key, value]) => ({
-        key,
-        label: labels[key] || key,
-        value: value as number | string
-      }));
-  };
-
-  const usageEntries = getUsageEntries(usageDetails);
+  const usageEntries = getUsageDetailsEntries(usageDetails, labels);
   const hasUsageDetails = usageEntries.length > 0;
 
   const renderType = (status: number) => {

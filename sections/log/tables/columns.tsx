@@ -33,6 +33,8 @@ export interface UsageDetails {
   // 缓存相关
   cache_read_input_tokens?: number;
   cache_creation_input_tokens?: number;
+  cache_creation_12h_tokens?: number;
+  cache_creation_total_tokens?: number;
   claude_cache_creation_5_m_tokens?: number;
   claude_cache_creation_1_h_tokens?: number;
   cached_tokens?: number;
@@ -49,6 +51,9 @@ export interface BillingDetails {
   model_price?: number;
   cached_tokens?: number;
   cache_ratio?: number;
+  // 有效 OpenAI 缓存分项结算时保存的倍率，旧日志缺失时不补现价。
+  cache_write_30m_ratio?: number;
+  cache_write_12h_ratio?: number;
   // Claude 原生三档缓存倍率（相对于输入价格）
   claude_cache_5m_ratio?: number;
   claude_cache_1h_ratio?: number;
@@ -64,7 +69,9 @@ export interface BillingDetails {
 
 // usageDetails 字段名称映射（用于展示），支持 i18n
 export const getUsageDetailsLabels = (
-  logDetail: Record<string, string>
+  logDetail: Record<string, string>,
+  usageDetails?: UsageDetails | null,
+  modelName = ''
 ): Record<string, string> => ({
   input_tokens: logDetail.inputTokens,
   output_tokens: logDetail.outputTokens,
@@ -74,7 +81,14 @@ export const getUsageDetailsLabels = (
   output_image: logDetail.outputImage,
   output_reasoning: logDetail.outputReasoning,
   cache_read_input_tokens: logDetail.cacheRead,
-  cache_creation_input_tokens: logDetail.cacheCreation,
+  // OpenAI 旧创建字段就是 30m；其他模型的旧标签保持原样。
+  cache_creation_input_tokens:
+    usageDetails?.cache_creation_total_tokens != null ||
+    /^(?:gpt-|chatgpt-|o[1-9][0-9]*(?:$|-))/i.test(modelName)
+      ? logDetail.openaiCache30m
+      : logDetail.cacheCreation,
+  cache_creation_12h_tokens: logDetail.openaiCache12h,
+  cache_creation_total_tokens: logDetail.cacheCreationTotal,
   claude_cache_creation_5_m_tokens: logDetail.claudeCache5m,
   claude_cache_creation_1_h_tokens: logDetail.claudeCache1h,
   cached_tokens: logDetail.cachedTokens
@@ -91,9 +105,40 @@ export const usageDetailsLabels: Record<string, string> = {
   output_reasoning: '推理输出',
   cache_read_input_tokens: '缓存读取',
   cache_creation_input_tokens: '缓存创建',
+  cache_creation_12h_tokens: 'OpenAI 缓存创建(12h)',
+  cache_creation_total_tokens: '缓存创建总量',
   claude_cache_creation_5_m_tokens: 'Claude 5分钟缓存创建',
   claude_cache_creation_1_h_tokens: 'Claude 1小时缓存创建',
   cached_tokens: '缓存 Token'
+};
+
+// 30m、12h 和总量分别展示；新记录保留明确零值，旧日志沿用原筛选。
+export const getUsageDetailsEntries = (
+  details: UsageDetails | null,
+  labels: Record<string, string>
+) => {
+  if (!details) return [];
+  return Object.entries(details)
+    .filter(([key, value]) => {
+      if (key === 'service_tier') {
+        return typeof value === 'string' && value.trim() !== '';
+      }
+      if (typeof value !== 'number') return false;
+      if (
+        (key === 'cache_creation_input_tokens' &&
+          details.cache_creation_total_tokens != null) ||
+        key === 'cache_creation_12h_tokens' ||
+        key === 'cache_creation_total_tokens'
+      ) {
+        return value >= 0;
+      }
+      return value > 0;
+    })
+    .map(([key, value]) => ({
+      key,
+      label: labels[key] || key,
+      value: value as number | string
+    }));
 };
 
 // 解析 other 字段中的 usageDetails

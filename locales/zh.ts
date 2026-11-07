@@ -136,6 +136,11 @@ const zh = {
   },
   // 日志计费详情
   logDetail: {
+    openaiCache30m: 'OpenAI 缓存创建(30m)',
+    openaiCache12h: 'OpenAI 缓存创建(12h)',
+    openaiCache30mRatio: '缓存创建倍率(30m，结算快照)',
+    openaiCache12hRatio: '缓存创建倍率(12h，结算快照)',
+    cacheCreationTotal: '缓存创建总量',
     channelInfo: '渠道信息',
     promptTokens: '提示 Token',
     completionTokens: '补全 Token',
@@ -179,6 +184,14 @@ const zh = {
   },
   // 计费/定价设置页
   pricing: {
+    openaiCache30mPrice: '缓存创建价格(30m)',
+    openaiCache12hPrice: '缓存创建价格(12h)',
+    openaiCachePricePlaceholder: '留空保持原配置',
+    openaiCachePriceInvalid: 'GPT 缓存创建价格须为非负数字，输入价格须大于 0',
+    openaiCache30m: 'openai缓存创建倍率(30m)',
+    openaiCache12h: 'openai缓存创建倍率(12h)',
+    openaiCacheJSONHint:
+      '相对输入价格的倍率。30m 默认 1.25，保留旧模型 1.0；12h 默认 2.5。删除覆盖项后恢复默认倍率，未拆分的创建量沿用 30m 倍率。',
     title: '模型定价设置',
     tabRatioSettings: '模型倍率设置',
     tabVisualPricing: '可视化倍率设置',

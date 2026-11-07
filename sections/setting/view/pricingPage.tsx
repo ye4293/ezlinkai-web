@@ -62,6 +62,8 @@ interface ModelPriceInfo {
   cache_ratio: number;
   claude_cache_5m_ratio: number;
   claude_cache_1h_ratio: number;
+  cache_write_30m_ratio?: number;
+  cache_write_12h_ratio?: number;
   image_input_ratio: number;
   image_output_ratio: number;
   audio_input_ratio: number;
@@ -76,6 +78,10 @@ interface EditingRow {
   cache_price: string;
   claude_cache_5m_price: string;
   claude_cache_1h_price: string;
+  cache_write_30m_price: string;
+  cache_write_12h_price: string;
+  cache_write_30m_edited: boolean;
+  cache_write_12h_edited: boolean;
   image_input_price: string;
   image_output_price: string;
   audio_input_price: string;
@@ -88,6 +94,8 @@ interface EditingRow {
   cache_ratio: string;
   claude_cache_5m_ratio: string;
   claude_cache_1h_ratio: string;
+  cache_write_30m_ratio: string;
+  cache_write_12h_ratio: string;
   image_input_ratio: string;
   image_output_ratio: string;
   audio_input_ratio: string;
@@ -174,6 +182,12 @@ const formatRatio = (ratio: number): string => {
   return parseFloat(ratio.toFixed(6)).toString();
 };
 
+const isGPTModel = (name: string): boolean => /^(?:chat)?gpt-/i.test(name);
+
+// OpenAI 允许显式零创建价，不能使用会将 0 转为空串的通用格式化规则。
+const formatCachePrice = (price: number): string =>
+  price === 0 ? '0' : formatPriceStr(price);
+
 export default function PricingPage() {
   const { t } = useLocale();
   const p = t.pricing;
@@ -193,6 +207,8 @@ export default function PricingPage() {
   const [imageOutputRatio, setImageOutputRatio] = useState('');
   const [claudeCache5mRatio, setClaudeCache5mRatio] = useState('');
   const [claudeCache1hRatio, setClaudeCache1hRatio] = useState('');
+  const [cacheWrite30mRatio, setCacheWrite30mRatio] = useState('{}');
+  const [cacheWrite12hRatio, setCacheWrite12hRatio] = useState('{}');
 
   // ==================== 可视化倍率设置状态 ====================
   const [configuredModels, setConfiguredModels] = useState<ModelPriceInfo[]>(
@@ -323,6 +339,16 @@ export default function PricingPage() {
           (o: Option) => o.key === 'ClaudeCacheCreation1hRatio'
         );
         setClaudeCache1hRatio(formatJSON(claudeCache1hOption?.value) || '{}');
+        setCacheWrite30mRatio(
+          formatJSON(
+            options.find((o: Option) => o.key === 'CacheWriteRatio')?.value
+          ) || '{}'
+        );
+        setCacheWrite12hRatio(
+          formatJSON(
+            options.find((o: Option) => o.key === 'CacheWrite12hRatio')?.value
+          ) || '{}'
+        );
       }
     } catch (err) {
       setError(
@@ -471,7 +497,9 @@ export default function PricingPage() {
         !validateJSON(audioInputRatio, p.audioInputRatio) ||
         !validateJSON(audioOutputRatio, p.audioOutputRatio) ||
         !validateJSON(imageInputRatio, p.imageInputRatio) ||
-        !validateJSON(imageOutputRatio, p.imageOutputRatio)
+        !validateJSON(imageOutputRatio, p.imageOutputRatio) ||
+        !validateJSON(cacheWrite30mRatio, p.openaiCache30m) ||
+        !validateJSON(cacheWrite12hRatio, p.openaiCache12h)
       ) {
         setIsLoading(false);
         return;
@@ -483,7 +511,9 @@ export default function PricingPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ key, value })
         });
-        if (!response.ok) throw new Error(`Failed to save ${key}`);
+        const result = await response.json();
+        if (!response.ok || !result.success)
+          throw new Error(result.message || `Failed to save ${key}`);
       };
 
       await saveOption('PerCallPricing', perCallPricing);
@@ -496,6 +526,9 @@ export default function PricingPage() {
       await saveOption('ImageOutputRatio', imageOutputRatio);
       await saveOption('ClaudeCacheCreation5mRatio', claudeCache5mRatio);
       await saveOption('ClaudeCacheCreation1hRatio', claudeCache1hRatio);
+
+      await saveOption('CacheWriteRatio', cacheWrite30mRatio);
+      await saveOption('CacheWrite12hRatio', cacheWrite12hRatio);
 
       toast.success(p.saveSuccess);
       fetchConfiguredModels();
@@ -525,6 +558,14 @@ export default function PricingPage() {
       claude_cache_1h_price: formatPriceStr(
         subRatioToPrice(model.claude_cache_1h_ratio || 0, mr)
       ),
+      cache_write_30m_price:
+        mr > 0 && model.cache_write_30m_ratio != null
+          ? formatCachePrice(subRatioToPrice(model.cache_write_30m_ratio, mr))
+          : '',
+      cache_write_12h_price:
+        mr > 0 && model.cache_write_12h_ratio != null
+          ? formatCachePrice(subRatioToPrice(model.cache_write_12h_ratio, mr))
+          : '',
       image_input_price: formatPriceStr(
         subRatioToPrice(model.image_input_ratio || 0, mr)
       ),
@@ -537,6 +578,8 @@ export default function PricingPage() {
       audio_output_price: formatPriceStr(
         subRatioToPrice(model.audio_output_ratio || 0, mr)
       ),
+      cache_write_30m_edited: false,
+      cache_write_12h_edited: false,
       fixed_price: model.fixed_price.toString(),
       // 倍率字段保留（用户不改输入价时保存仍可直接用）
       model_ratio: mr.toString(),
@@ -544,6 +587,8 @@ export default function PricingPage() {
       cache_ratio: (model.cache_ratio || 0).toString(),
       claude_cache_5m_ratio: (model.claude_cache_5m_ratio || 0).toString(),
       claude_cache_1h_ratio: (model.claude_cache_1h_ratio || 0).toString(),
+      cache_write_30m_ratio: model.cache_write_30m_ratio?.toString() ?? '',
+      cache_write_12h_ratio: model.cache_write_12h_ratio?.toString() ?? '',
       image_input_ratio: (model.image_input_ratio || 0).toString(),
       image_output_ratio: (model.image_output_ratio || 0).toString(),
       audio_input_ratio: (model.audio_input_ratio || 0).toString(),
@@ -566,6 +611,8 @@ export default function PricingPage() {
       | 'cache_price'
       | 'claude_cache_5m_price'
       | 'claude_cache_1h_price'
+      | 'cache_write_30m_price'
+      | 'cache_write_12h_price'
       | 'image_input_price'
       | 'image_output_price'
       | 'audio_input_price'
@@ -582,7 +629,7 @@ export default function PricingPage() {
 
       const baseInputPrice = parseFloat(next.input_price) || 0;
 
-      // 输入价变化：重算模型倍率，并按新基准重算所有子倍率
+      // 输入价变化：未编辑的缓存保留倍率，其他价格沿用原换算。
       if (field === 'input_price') {
         const inputPrice = parseFloat(value);
         if (!isNaN(inputPrice) && inputPrice > 0) {
@@ -615,21 +662,64 @@ export default function PricingPage() {
         } else {
           next.model_ratio = '';
         }
+        for (const [priceKey, ratioKey, editedKey] of [
+          ['cache_write_30m_price', 'cache_write_30m_ratio', 'cache_write_30m_edited'],
+          ['cache_write_12h_price', 'cache_write_12h_ratio', 'cache_write_12h_edited']
+        ] as const) {
+          if (!next[editedKey]) {
+            // 只刷新展示价格，保留原倍率及继承关系。
+            next[priceKey] =
+              inputPrice > 0 && next[ratioKey] !== ''
+                ? formatCachePrice(Number(next[ratioKey]) * inputPrice)
+                : '';
+            continue;
+          }
+          // 用户明确编辑的缓存价格保持不变，按新输入价换算倍率。
+          const price = Number(next[priceKey]);
+          next[ratioKey] =
+            next[priceKey].trim() !== '' &&
+            Number.isFinite(price) &&
+            price >= 0 &&
+            inputPrice > 0
+              ? priceToRatio(price, inputPrice).toString()
+              : '';
+        }
         return next;
       }
 
       // 子项价格变化：相对当前输入价换算对应倍率
-      const subMap: Record<string, string> = {
+      const subMap = {
         output_price: 'completion_ratio',
         cache_price: 'cache_ratio',
         claude_cache_5m_price: 'claude_cache_5m_ratio',
         claude_cache_1h_price: 'claude_cache_1h_ratio',
+        cache_write_30m_price: 'cache_write_30m_ratio',
+        cache_write_12h_price: 'cache_write_12h_ratio',
         image_input_price: 'image_input_ratio',
         image_output_price: 'image_output_ratio',
         audio_input_price: 'audio_input_ratio',
         audio_output_price: 'audio_output_ratio'
-      };
-      const ratioKey = subMap[field] as keyof EditingRow;
+      } as const;
+      const ratioKey = subMap[field];
+      if (
+        field === 'cache_write_30m_price' ||
+        field === 'cache_write_12h_price'
+      ) {
+        if (field === 'cache_write_30m_price') {
+          next.cache_write_30m_edited = true;
+        } else {
+          next.cache_write_12h_edited = true;
+        }
+        const price = Number(value);
+        next[ratioKey] =
+          value.trim() !== '' &&
+          Number.isFinite(price) &&
+          price >= 0 &&
+          baseInputPrice > 0
+            ? priceToRatio(price, baseInputPrice).toString()
+            : '';
+        return next;
+      }
       if (baseInputPrice > 0) {
         const price = parseFloat(value);
         next[ratioKey] =
@@ -669,6 +759,31 @@ export default function PricingPage() {
         const c1h = parseFloat(editingRow.claude_cache_1h_ratio);
         if (!isNaN(c1h) && c1h > 0) {
           payload.claude_cache_1h_ratio = c1h;
+        }
+      }
+      // 仅提交用户明确编辑的 GPT 缓存价格；空白不覆盖，显式零价有效。
+      if (isGPTModel(editingRow.model_name)) {
+        for (const [priceKey, ratioKey, editedKey] of [
+          ['cache_write_30m_price', 'cache_write_30m_ratio', 'cache_write_30m_edited'],
+          ['cache_write_12h_price', 'cache_write_12h_ratio', 'cache_write_12h_edited']
+        ] as const) {
+          if (!editingRow[editedKey] || editingRow[priceKey].trim() === '') continue;
+          const price = Number(editingRow[priceKey]);
+          const inputPrice = Number(editingRow.input_price);
+          const ratio = Number(editingRow[ratioKey]);
+          if (
+            !Number.isFinite(price) ||
+            price < 0 ||
+            !Number.isFinite(inputPrice) ||
+            inputPrice <= 0 ||
+            editingRow[ratioKey] === '' ||
+            !Number.isFinite(ratio) ||
+            ratio < 0
+          ) {
+            toast.error(p.openaiCachePriceInvalid);
+            return;
+          }
+          payload[ratioKey] = ratio;
         }
       }
       if (editingRow.image_input_ratio) {
@@ -1382,6 +1497,27 @@ export default function PricingPage() {
                 claude- 模型生效，未配置默认 2.0。
               </p>
             </div>
+
+            {/* OpenAI 缓存创建倍率配置放在原有配置项之后。 */}
+            {(
+              [
+                [p.openaiCache30m, cacheWrite30mRatio, setCacheWrite30mRatio],
+                [p.openaiCache12h, cacheWrite12hRatio, setCacheWrite12hRatio]
+              ] as const
+            ).map(([label, value, setValue]) => (
+              <div key={label} className="space-y-2">
+                <Label className="text-base font-semibold">{label}</Label>
+                <Textarea
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                  placeholder="{}"
+                  className="h-32 font-mono text-sm"
+                />
+                <p className="text-sm text-muted-foreground">
+                  {p.openaiCacheJSONHint}
+                </p>
+              </div>
+            ))}
           </TabsContent>
 
           {/* ==================== 可视化倍率设置 Tab ==================== */}
@@ -1645,6 +1781,30 @@ export default function PricingPage() {
                             </div>
                           </>
                         )}
+                        {isGPTModel(editingRow.model_name) &&
+                          (
+                            [
+                              [p.openaiCache30mPrice, 'cache_write_30m_price'],
+                              [p.openaiCache12hPrice, 'cache_write_12h_price']
+                            ] as const
+                          ).map(([label, field]) => (
+                            <div key={field} className="space-y-1.5">
+                              <Label htmlFor={field} className="text-sm">
+                                {label}
+                              </Label>
+                              <Input
+                                id={field}
+                                type="number"
+                                min="0"
+                                step="0.001"
+                                value={editingRow[field]}
+                                onChange={(e) =>
+                                  updateEditingPrice(field, e.target.value)
+                                }
+                                placeholder={p.openaiCachePricePlaceholder}
+                              />
+                            </div>
+                          ))}
                         <div className="space-y-1.5">
                           <Label className="text-sm">图片输入价格</Label>
                           <Input
@@ -1721,6 +1881,13 @@ export default function PricingPage() {
                           · 缓存创建1h {editingRow.claude_cache_1h_ratio || '-'}
                         </>
                       )}{' '}
+                      {isGPTModel(editingRow.model_name) && (
+                        <>
+                          · 缓存创建30m{' '}
+                          {editingRow.cache_write_30m_ratio || '-'} ·
+                          缓存创建12h {editingRow.cache_write_12h_ratio || '-'}{' '}
+                        </>
+                      )}
                       · 图入 {editingRow.image_input_ratio || '-'} · 图出{' '}
                       {editingRow.image_output_ratio || '-'} · 音入{' '}
                       {editingRow.audio_input_ratio || '-'} · 音出{' '}
@@ -2262,7 +2429,7 @@ export default function PricingPage() {
                         colSpan={10}
                         className="py-10 text-center text-muted-foreground"
                       >
-                        暂无定价规则，点击"添加规则"创建
+                        暂无定价规则，点击&quot;添加规则&quot;创建
                       </TableCell>
                     </TableRow>
                   ) : (

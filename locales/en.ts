@@ -139,6 +139,11 @@ const en: Locale = {
   },
   // Log billing details
   logDetail: {
+    openaiCache30m: 'OpenAI Cache Creation (30m)',
+    openaiCache12h: 'OpenAI Cache Creation (12h)',
+    openaiCache30mRatio: 'Cache creation ratio (30m, billed)',
+    openaiCache12hRatio: 'Cache creation ratio (12h, billed)',
+    cacheCreationTotal: 'Cache Creation Total',
     channelInfo: 'Channel Info',
     promptTokens: 'Prompt Tokens',
     completionTokens: 'Completion Tokens',
@@ -182,6 +187,15 @@ const en: Locale = {
   },
   // Pricing settings page
   pricing: {
+    openaiCache30mPrice: 'Cache creation price (30m)',
+    openaiCache12hPrice: 'Cache creation price (12h)',
+    openaiCachePricePlaceholder: 'Leave blank to keep current setting',
+    openaiCachePriceInvalid:
+      'GPT cache creation prices must be non-negative and the input price must be greater than zero',
+    openaiCache30m: 'OpenAI cache creation ratio (30m)',
+    openaiCache12h: 'OpenAI cache creation ratio (12h)',
+    openaiCacheJSONHint:
+      'Ratios to input price. 30m defaults to 1.25 with legacy 1.0 model defaults; 12h defaults to 2.5. Removing an override restores its default. Unclassified writes use the 30m ratio.',
     title: 'Model Pricing Settings',
     tabRatioSettings: 'Ratio Settings',
     tabVisualPricing: 'Visual Pricing',

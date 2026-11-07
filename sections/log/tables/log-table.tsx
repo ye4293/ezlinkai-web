@@ -51,7 +51,7 @@ import {
   parseBillingDetails,
   parseLogOther,
   getUsageDetailsLabels,
-  UsageDetails,
+  getUsageDetailsEntries,
   BillingDetails
 } from './columns';
 import {
@@ -92,7 +92,7 @@ const ExpandedRowContentImpl = ({ row }: { row: Row<LogStat> }) => {
   const usageDetails = parseUsageDetails(log);
   const billingDetails = parseBillingDetails(log);
   const channelIds = parseAdminInfo(log);
-  const labels = getUsageDetailsLabels(ld);
+  const labels = getUsageDetailsLabels(ld, usageDetails, log.model_name);
 
   // 处理配额
   const processQuota = (quota: number) => {
@@ -106,23 +106,8 @@ const ExpandedRowContentImpl = ({ row }: { row: Row<LogStat> }) => {
     return ratio * 2;
   };
 
-  // 展示非空响应档位和大于 0 的 token 数
-  const getUsageEntries = (details: UsageDetails | null) => {
-    if (!details) return [];
-    return Object.entries(details)
-      .filter(([key, value]) =>
-        key === 'service_tier'
-          ? typeof value === 'string' && value.trim() !== ''
-          : typeof value === 'number' && value > 0
-      )
-      .map(([key, value]) => ({
-        key,
-        label: labels[key] || key,
-        value: value as number | string
-      }));
-  };
-
-  const usageEntries = getUsageEntries(usageDetails);
+  // 新缓存字段保留明确零值，其他用量沿用原显示规则。
+  const usageEntries = getUsageDetailsEntries(usageDetails, labels);
   const hasUsageDetails = usageEntries.length > 0;
   const hasChannelInfo = channelIds && channelIds.length > 0;
   const hasBillingDetails = billingDetails !== null;
@@ -314,6 +299,19 @@ const ExpandedRowContentImpl = ({ row }: { row: Row<LogStat> }) => {
                         </span>
                       </p>
                     )}
+                  {(
+                    [
+                      [ld.openaiCache30mRatio, billingDetails.cache_write_30m_ratio],
+                      [ld.openaiCache12hRatio, billingDetails.cache_write_12h_ratio]
+                    ] as const
+                  ).map(([label, ratio]) =>
+                    typeof ratio === 'number' ? (
+                      <p key={label}>
+                        <span className="font-medium">{ratio}×</span>{' '}
+                        <span className="text-muted-foreground">{label}</span>
+                      </p>
+                    ) : null
+                  )}
                   {claudeCacheLines.map((line) => (
                     <p key={line.key}>
                       <span className="font-medium">
@@ -449,7 +447,7 @@ const MobileLogCard = ({ row }: { row: Row<LogStat> }) => {
   const log = row.original;
   const [isExpanded, setIsExpanded] = React.useState(false);
   const usageDetails = parseUsageDetails(log);
-  const labels = getUsageDetailsLabels(ld);
+  const labels = getUsageDetailsLabels(ld, usageDetails, log.model_name);
 
   const renderType = (status: number) => {
     switch (status) {
@@ -469,22 +467,7 @@ const MobileLogCard = ({ row }: { row: Row<LogStat> }) => {
   };
 
   // 获取有效的 usageDetails 条目
-  const getUsageEntries = (details: UsageDetails | null) => {
-    if (!details) return [];
-    return Object.entries(details)
-      .filter(([key, value]) =>
-        key === 'service_tier'
-          ? typeof value === 'string' && value.trim() !== ''
-          : typeof value === 'number' && value > 0
-      )
-      .map(([key, value]) => ({
-        key,
-        label: labels[key] || key,
-        value: value as number | string
-      }));
-  };
-
-  const usageEntries = getUsageEntries(usageDetails);
+  const usageEntries = getUsageDetailsEntries(usageDetails, labels);
   const hasUsageDetails = usageEntries.length > 0;
 
   return (
