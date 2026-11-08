@@ -51,6 +51,9 @@ export interface BillingDetails {
   model_price?: number;
   cached_tokens?: number;
   cache_ratio?: number;
+  cache_write_tokens?: number;
+  cache_write_ratio?: number;
+  cache_creation_ratio?: number;
   // 有效 OpenAI 缓存分项结算时保存的倍率，旧日志缺失时不补现价。
   cache_write_30m_ratio?: number;
   cache_write_12h_ratio?: number;

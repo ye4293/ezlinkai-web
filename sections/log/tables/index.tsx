@@ -142,6 +142,103 @@ const ExpandedRowContent = ({ row }: { row: Row<LogStat> }) => {
     return lines;
   })();
 
+  // 仅补齐 OpenAI 系列的缓存创建公式，结果仍直接使用 log.quota。
+  const openAICache = (() => {
+    const modelName =
+      getModelMappingInfo(log)?.upstreamModelName || log.model_name;
+    if (
+      !/^(?:gpt-|chatgpt-|o[1-9][0-9]*(?:$|-))/i.test(modelName) ||
+      billingDetails?.billing_type !== 'token'
+    )
+      return null;
+    const short = usageDetails?.cache_creation_input_tokens;
+    const long = usageDetails?.cache_creation_12h_tokens;
+    const total =
+      billingDetails.cache_write_tokens ??
+      usageDetails?.cache_creation_total_tokens ??
+      (short !== undefined && long !== undefined ? short + long : short) ??
+      0;
+    if (!Number.isFinite(total) || total < 0) return null;
+    const hasSplit =
+      typeof short === 'number' &&
+      short >= 0 &&
+      typeof long === 'number' &&
+      long >= 0 &&
+      short + long === total &&
+      (billingDetails.cache_write_30m_ratio !== undefined ||
+        billingDetails.cache_write_12h_ratio !== undefined ||
+        long > 0);
+    return {
+      total,
+      lines: hasSplit
+        ? [
+            {
+              label: ld.openaiCache30m,
+              tokens: short,
+              ratio: billingDetails.cache_write_30m_ratio
+            },
+            {
+              label: ld.openaiCache12h,
+              tokens: long,
+              ratio: billingDetails.cache_write_12h_ratio
+            }
+          ]
+        : total > 0
+        ? [
+            {
+              label: ld.cacheCreation,
+              tokens: total,
+              ratio:
+                billingDetails.cache_write_ratio ??
+                billingDetails.cache_creation_ratio
+            }
+          ]
+        : []
+    };
+  })();
+
+  // 公式只列出有用量的项，不在前端计算最终金额。
+  const openAIFormula =
+    openAICache && billingDetails
+      ? [
+          {
+            tokens: Math.max(
+              0,
+              log.prompt_tokens -
+                (billingDetails.cached_tokens || 0) -
+                openAICache.total
+            ),
+            ratio: 1,
+            label: ''
+          },
+          {
+            tokens: billingDetails.cached_tokens || 0,
+            ratio: billingDetails.cache_ratio,
+            label: ''
+          },
+          ...openAICache.lines,
+          {
+            tokens: log.completion_tokens,
+            ratio: billingDetails.completion_ratio ?? 1,
+            label: ''
+          }
+        ]
+          .filter((line) => line.tokens > 0)
+          .map((line) => {
+            const price =
+              typeof line.ratio === 'number' &&
+              Number.isFinite(line.ratio) &&
+              line.ratio >= 0
+                ? `$${getTokenPrice(
+                    (billingDetails.model_ratio || 0) * line.ratio
+                  ).toFixed(6)}/1M`
+                : '—';
+            return `${line.tokens.toLocaleString()} × ${price}${
+              line.label ? ` (${line.label})` : ''
+            }`;
+          })
+      : null;
+
   return (
     <div className="px-6 py-4">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -405,14 +502,32 @@ const ExpandedRowContent = ({ row }: { row: Row<LogStat> }) => {
                     )}
                   {(
                     [
-                      [ld.openaiCache30mRatio, billingDetails.cache_write_30m_ratio],
-                      [ld.openaiCache12hRatio, billingDetails.cache_write_12h_ratio]
+                      [
+                        openAICache
+                          ? ld.openaiCache30m
+                          : ld.openaiCache30mRatio,
+                        billingDetails.cache_write_30m_ratio
+                      ],
+                      [
+                        openAICache
+                          ? ld.openaiCache12h
+                          : ld.openaiCache12hRatio,
+                        billingDetails.cache_write_12h_ratio
+                      ]
                     ] as const
                   ).map(([label, ratio]) =>
                     typeof ratio === 'number' ? (
                       <p key={label}>
-                        <span className="font-medium">{ratio}×</span>{' '}
-                        <span className="text-muted-foreground">{label}</span>
+                        <span className="font-medium">
+                          {openAICache
+                            ? `$${getTokenPrice(
+                                (billingDetails.model_ratio || 0) * ratio
+                              ).toFixed(6)}`
+                            : `${ratio}×`}
+                        </span>{' '}
+                        <span className="text-muted-foreground">
+                          {openAICache ? `/ 1M tokens · ${label}` : label}
+                        </span>
                       </p>
                     ) : null
                   )}
@@ -444,39 +559,53 @@ const ExpandedRowContent = ({ row }: { row: Row<LogStat> }) => {
                 </p>
               ) : (
                 <>
-                  <p>
-                    (
-                    {Math.max(
-                      0,
-                      log.prompt_tokens - (billingDetails.cached_tokens || 0)
-                    ).toLocaleString()}{' '}
-                    × $
-                    {getTokenPrice(billingDetails.model_ratio || 0).toFixed(6)}
-                    /1M
-                    {billingDetails.cached_tokens &&
-                    billingDetails.cached_tokens > 0
-                      ? ` + ${billingDetails.cached_tokens.toLocaleString()} × $${getTokenPrice(
-                          (billingDetails.model_ratio || 0) *
-                            (billingDetails.cache_ratio || 0)
-                        ).toFixed(6)}/1M`
-                      : ''}
-                    {' + '}
-                    {log.completion_tokens.toLocaleString()} × $
-                    {getTokenPrice(
-                      (billingDetails.model_ratio || 0) *
-                        (billingDetails.completion_ratio || 1)
-                    ).toFixed(6)}
-                    /1M
-                    {claudeCacheLines.map((line) => (
-                      <React.Fragment key={line.key}>
-                        {' + '}
-                        {line.tokens.toLocaleString()} × $
-                        {line.pricePerMillion.toFixed(6)}/1M
-                      </React.Fragment>
-                    ))}
-                    ) × {billingDetails.group_ratio?.toFixed(2)} ={' '}
-                    {processQuota(log.quota)}
-                  </p>
+                  {openAIFormula !== null ? (
+                    <p>
+                      {openAIFormula.length > 0 && (
+                        <>
+                          ({openAIFormula.join(' + ')}) ×{' '}
+                          {billingDetails.group_ratio?.toFixed(2)} ={' '}
+                        </>
+                      )}
+                      {processQuota(log.quota)}
+                    </p>
+                  ) : (
+                    <p>
+                      (
+                      {Math.max(
+                        0,
+                        log.prompt_tokens - (billingDetails.cached_tokens || 0)
+                      ).toLocaleString()}{' '}
+                      × $
+                      {getTokenPrice(billingDetails.model_ratio || 0).toFixed(
+                        6
+                      )}
+                      /1M
+                      {billingDetails.cached_tokens &&
+                      billingDetails.cached_tokens > 0
+                        ? ` + ${billingDetails.cached_tokens.toLocaleString()} × $${getTokenPrice(
+                            (billingDetails.model_ratio || 0) *
+                              (billingDetails.cache_ratio || 0)
+                          ).toFixed(6)}/1M`
+                        : ''}
+                      {' + '}
+                      {log.completion_tokens.toLocaleString()} × $
+                      {getTokenPrice(
+                        (billingDetails.model_ratio || 0) *
+                          (billingDetails.completion_ratio || 1)
+                      ).toFixed(6)}
+                      /1M
+                      {claudeCacheLines.map((line) => (
+                        <React.Fragment key={line.key}>
+                          {' + '}
+                          {line.tokens.toLocaleString()} × $
+                          {line.pricePerMillion.toFixed(6)}/1M
+                        </React.Fragment>
+                      ))}
+                      ) × {billingDetails.group_ratio?.toFixed(2)} ={' '}
+                      {processQuota(log.quota)}
+                    </p>
+                  )}
                   {billingDetails.cached_tokens &&
                     billingDetails.cached_tokens > 0 && (
                       <p className="mt-1 text-muted-foreground">
